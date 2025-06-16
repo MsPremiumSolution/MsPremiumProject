@@ -34,6 +34,43 @@ namespace MSPremiumProject.Controllers
             _logger = logger;
         }
 
+        [HttpGet("setup-admin-user-temp")] // Rota para aceder
+        [AllowAnonymous] // Para poder aceder sem estar logado
+        public async Task<IActionResult> SetupAdminUserTemp()
+        {
+            // Injetar AppDbContext no construtor do seu controlador se ainda não o fez
+            // private readonly AppDbContext _context;
+            // public SeuControlador(AppDbContext context) { _context = context; }
+
+            string adminRoleName = "Admin";
+            var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Nome == adminRoleName);
+            if (adminRole == null)
+            {
+                adminRole = new Role { Nome = adminRoleName, Descricao = "Administrador do Sistema" };
+                _context.Roles.Add(adminRole);
+                await _context.SaveChangesAsync();
+            }
+
+            string adminUserEmail = "gilrodrigueshenrique@gmail.com";
+            var existingUser = await _context.Utilizadores.FirstOrDefaultAsync(u => u.Login == adminUserEmail);
+            if (existingUser == null)
+            {
+                var newUser = new Utilizador
+                {
+                    Nome = "Admin User",
+                    Login = adminUserEmail,
+                    Pwp = BCrypt.Net.BCrypt.HashPassword("Henrique"),
+                    Dtnascimento = new DateTime(2007, 12, 20),
+                    Activo = true,
+                    RoleId = adminRole.RoleId
+                };
+                _context.Utilizadores.Add(newUser);
+                await _context.SaveChangesAsync();
+                return Content("Utilizador Admin criado (ou já existia). Pode agora remover este endpoint.");
+            }
+            return Content("Utilizador Admin já existe.");
+        }
+
         // GET: /Account/Login
         // ... (código existente) ...
         [HttpGet]
