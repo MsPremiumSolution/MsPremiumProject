@@ -1,0 +1,16 @@
+﻿@{
+    ViewData["Title"] = "Acesso Negado";
+    Layout = "_Layout"; // Ou _LayoutLogin
+}
+
+<div class="container mt-5 text-center">
+    <h1 class="display-4 text-danger">Acesso Negado</h1>
+    <p class="lead">
+        Você não tem permissão para aceder a este recurso.
+    </p>
+    <p>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Voltar à Página Inicial</a>
+        @* Ou se a página inicial após login for Users/Index *@
+        @* <a asp-controller="Users" asp-action="Index" class="btn btn-primary">Voltar à Área de Utilizadores</a> *@
+    </p>
+</div>

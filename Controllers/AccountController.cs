@@ -1,0 +1,369 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using MSPremiumProject.Data; // Seu AppDbContext
+using Microsoft.EntityFrameworkCore;
+using MSPremiumProject.Models; // Seus modelos Utilizador, PasswordResetToken, Role
+using MSPremiumProject.ViewModels;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using System;
+using System.Security.Cryptography; // Para gerar tokens de reset
+using MSPremiumProject.Services;   // Para IEmailSender
+using Microsoft.Extensions.Logging; // Para ILogger
+
+namespace MSPremiumProject.Controllers
+{
+    public class AccountController : Controller
+    {
+        private readonly AppDbContext _context; // interage com a base de dados 
+        private readonly IEmailSender _emailSender; // para enviar emails
+        private readonly ILogger<AccountController> _logger; // registar logs
+
+        // Adicione esta configuração para facilitar a alteração do IP/Host para teste
+        private const string DevelopmentHostOverride = "192.168.1.155:5042"; // ip de casa
+       
+
+        public AccountController(AppDbContext context, IEmailSender emailSender, ILogger<AccountController> logger)
+        {
+            _context = context;
+            _emailSender = emailSender;
+            _logger = logger;
+        }
+
+        // GET: /Account/Login
+        // ... (código existente) ...
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult Login(string returnUrl = null)
+        {
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")); // Se o user está autenticado redireciona-o
+            }
+            ViewData["ReturnUrl"] = returnUrl; // guarda o url de retorno para usar após o login
+            return View("~/Views/Account/Login.cshtml", new LoginViewModel());
+        }
+
+        // POST: /Account/Login
+        // ... (código existente) ...
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]  // Protege contra ataques CSRF (Cross-Site Request Forgery).
+        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+
+            if (ModelState.IsValid)
+            {
+                var user = await _context.Utilizadores
+                                   .Include(u => u.Role) // Inclui o Role para usar nos Claims
+                                   .FirstOrDefaultAsync(u => u.Login.ToLower() == model.Login.ToLower());
+
+                if (user != null)
+                {
+                    if (!user.Activo)
+                    {
+                        ModelState.AddModelError(string.Empty, "Esta conta de utilizador está desativada.");
+                        return View("~/Views/Account/Login.cshtml", model);
+                    }
+
+                    // Verifica se a password fornecida corresponde à password hashada na BD.
+                    if (BCrypt.Net.BCrypt.Verify(model.Password, user.Pwp))
+                    {
+                        // Claims são pedaços de informação sobre o utilizador (ID, nome, role).
+                        var claims = new List<Claim>
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, user.UtilizadorId.ToString()),
+                            new Claim(ClaimTypes.Name, user.Login),
+                            new Claim("FullName", user.Nome ?? string.Empty), // Garante que Nome não é nulo
+                            // Garante que Role e Role.Nome não são nulos antes de aceder
+                            new Claim(ClaimTypes.Role, user.Role?.Nome ?? "DefaultRole")
+                        };
+                        // Cria uma identidade baseada nas claims.
+                        var claimsIdentity = new ClaimsIdentity(
+                            claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                        // Define propriedades da autenticação (ex: se o cookie é persistente).
+                        var authProperties = new AuthenticationProperties
+                        {
+                            ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(model.RememberMe ? (60 * 24 * 7) : 60), // o que é o cookie?
+                            IsPersistent = model.RememberMe,
+                        };
+                        // Realiza o login, criando o cookie de autenticação.
+                        await HttpContext.SignInAsync(
+                            CookieAuthenticationDefaults.AuthenticationScheme,
+                            new ClaimsPrincipal(claimsIdentity),
+                            authProperties);
+
+                        _logger.LogInformation($"Utilizador {user.Login} logado com sucesso.");
+
+                        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                        {
+                            return LocalRedirect(returnUrl);
+                        }
+                        else
+                        {
+                            return RedirectToAction("Index", "Home");
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Tentativa de login falhada para {model.Login}: Password incorreta.");
+                        ModelState.AddModelError(string.Empty, "Login ou password inválidos.");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning($"Tentativa de login falhada: Utilizador {model.Login} não encontrado.");
+                    ModelState.AddModelError(string.Empty, "Login ou password inválidos.");
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Tentativa de login falhada: ModelState inválido.");
+            }
+            return View("~/Views/Account/Login.cshtml", model);
+        }
+
+
+        // POST: /Account/Logout
+        // ... (código existente) ...
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); // remove o cookie de autenticação
+            _logger.LogInformation("Utilizador deslogado.");
+            return RedirectToAction(nameof(Login), "Account");
+        }
+
+        // GET: /Account/AccessDenied
+        // ... (código existente) ...
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult AccessDenied()
+        {
+            return View("~/Views/Account/AccessDenied.cshtml");
+        }
+
+        // GET: /Account/ForgotPassword
+        // ... (código existente) ...
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+            return View("~/Views/Account/ForgotPassword.cshtml", new ForgotPasswordViewModel());
+        }
+
+
+        // POST: /Account/ForgotPassword
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _context.Utilizadores
+                    .FirstOrDefaultAsync(u => u.Login.ToLower() == model.Login.ToLower()); // Assumindo que Login é o email
+
+                if (user != null)
+                {
+                    // (Opcional) Invalida tokens de reset anteriores para este utilizador.
+                    var existingTokens = _context.PasswordResetTokens
+                                           .Where(t => t.UtilizadorId == user.UtilizadorId && !t.IsUsed && t.ExpirationDate > DateTime.UtcNow);
+                    foreach (var oldToken in existingTokens)
+                    {
+                        oldToken.IsUsed = true;
+                    }
+                    // Se você modificar existingTokens, precisará de SaveChanges aqui antes de adicionar o novo.
+                    // Ou, melhor, adicione o novo e depois, ao redefinir a password, invalide todos os outros para esse user.
+                    // Para simplificar por agora, vou comentar o SaveChanges aqui.
+                    // await _context.SaveChangesAsync();
+
+                    // Gera um token de redefinição seguro e aleatório
+                    var tokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+                    var expirationDate = DateTime.UtcNow.AddHours(1);
+
+                    // Cria um novo registo de token de redefinição.
+                    var passwordResetToken = new PasswordResetToken
+                    {
+                        UtilizadorId = user.UtilizadorId,
+                        TokenValue = tokenValue,
+                        ExpirationDate = expirationDate,
+                        IsUsed = false
+                    };
+
+                    _context.PasswordResetTokens.Add(passwordResetToken);
+                    await _context.SaveChangesAsync(); // Salva o novo token (e os antigos marcados como usados se descomentado acima)
+
+                    // ***** ALTERAÇÃO PARA GERAR URL COM IP PARA TESTE LOCAL *****
+                    // Lógica para construir o URL de callback (link de redefinição).
+                    // Usa o IP de desenvolvimento se estiver em ambiente local, senão usa o host do pedido.
+                    string callbackUrl;
+                    if (Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || Request.Host.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Estamos em ambiente de desenvolvimento local, vamos usar o IP se DevelopmentHostOverride estiver definido
+                        if (!string.IsNullOrEmpty(DevelopmentHostOverride))
+                        {
+                            var pathAndQuery = Url.Action("ResetPassword", "Account", new { userId = user.UtilizadorId.ToString(), token = tokenValue });
+                            callbackUrl = $"http://{DevelopmentHostOverride}{pathAndQuery}";
+                        }
+                        else
+                        {
+                            // Fallback para o esquema e host normais se DevelopmentHostOverride não estiver definido
+                            callbackUrl = Url.Action("ResetPassword", "Account",
+                                new { userId = user.UtilizadorId.ToString(), token = tokenValue }, protocol: "http"); // Usando HTTP como no seu launchSettings
+                        }
+                    }
+                    else
+                    {
+                        // Para produção ou outros ambientes, usa o esquema e host do pedido atual
+                        callbackUrl = Url.Action("ResetPassword", "Account",
+                            new { userId = user.UtilizadorId.ToString(), token = tokenValue }, protocol: Request.Scheme);
+                    }
+                    _logger.LogInformation($"Callback URL gerado: {callbackUrl}");
+                    // ***** FIM DA ALTERAÇÃO *****
+
+
+                    try
+                    {
+                        await _emailSender.SendEmailAsync(
+                           user.Login, // Envia para o Login do utilizador (que é o email)
+                           "Redefinir Password - MSPremiumProject",
+                           $"Olá {user.Nome ?? "utilizador"},<br/><br/>Para redefinir a sua password, por favor clique no link abaixo:<br/><a href='{callbackUrl}'>Redefinir Password</a><br/><br/>Se não solicitou esta alteração, pode ignorar este email.<br/><br/>Obrigado,<br/>Equipa MSPremiumProject");
+                        _logger.LogInformation($"Email de redefinição de password enviado para {user.Login}.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Falha ao enviar email de redefinição para {user.Login}. Detalhes: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning($"Tentativa de redefinição de password para login (email) não encontrado: {model.Login}");
+                }
+                return View("~/Views/Account/ForgotPasswordConfirmation.cshtml");
+            }
+            return View("~/Views/Account/ForgotPassword.cshtml", model);
+        }
+
+        // GET: /Account/ForgotPasswordConfirmation
+        // ... (código existente) ...
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            return View("~/Views/Account/ForgotPasswordConfirmation.cshtml");
+        }
+
+
+        // GET: /Account/ResetPassword
+        // ... (código existente) ...
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword(string userId, string token)
+        {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+            {
+                _logger.LogWarning("Tentativa de ResetPassword com userId ou token em falta.");
+                TempData["ErrorMessage"] = "Link de redefinição inválido ou incompleto.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            if (!ulong.TryParse(userId, out ulong parsedUserId))
+            {
+                _logger.LogWarning($"Tentativa de ResetPassword com userId inválido: {userId}");
+                TempData["ErrorMessage"] = "Link de redefinição inválido.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var storedToken = await _context.PasswordResetTokens
+                .FirstOrDefaultAsync(t => t.UtilizadorId == parsedUserId &&
+                                          t.TokenValue == token &&
+                                          !t.IsUsed &&
+                                          t.ExpirationDate > DateTime.UtcNow);
+
+            if (storedToken == null)
+            {
+                _logger.LogWarning($"Token de ResetPassword inválido ou expirado para userId: {userId}, token: {token}");
+                TempData["ErrorMessage"] = "O link de redefinição de password é inválido ou expirou. Por favor, tente novamente.";
+                return RedirectToAction("ForgotPassword");
+            }
+
+            var model = new ResetPasswordViewModel { UserId = userId, Token = token };
+            return View("~/Views/Account/ResetPassword.cshtml", model);
+        }
+
+
+        // POST: /Account/ResetPassword
+        // ... (código existente) ...
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View("~/Views/Account/ResetPassword.cshtml", model);
+            }
+
+            if (!ulong.TryParse(model.UserId, out ulong parsedUserId))
+            {
+                ModelState.AddModelError(string.Empty, "Erro ao processar o seu pedido. ID de utilizador inválido.");
+                return View("~/Views/Account/ResetPassword.cshtml", model);
+            }
+
+            var user = await _context.Utilizadores.FindAsync(parsedUserId);
+            if (user == null)
+            {
+                _logger.LogError($"Utilizador não encontrado durante ResetPassword (POST). UserId: {model.UserId}");
+                ModelState.AddModelError(string.Empty, "Utilizador não encontrado. O link pode ser inválido.");
+                return View("~/Views/Account/ResetPassword.cshtml", model);
+            }
+
+            var storedToken = await _context.PasswordResetTokens
+                .FirstOrDefaultAsync(t => t.UtilizadorId == parsedUserId &&
+                                          t.TokenValue == model.Token &&
+                                          !t.IsUsed &&
+                                          t.ExpirationDate > DateTime.UtcNow);
+            // verifica novamente a validade do token
+            if (storedToken == null)
+            {
+                _logger.LogWarning($"Token de ResetPassword inválido ou expirado (POST) para userId: {model.UserId}, token: {model.Token}");
+                ModelState.AddModelError(string.Empty, "O link de redefinição de password é inválido ou expirou. Por favor, tente novamente.");
+                return View("~/Views/Account/ResetPassword.cshtml", model);
+            }
+            // hash da nova password,guarda na bd a nova password
+            user.Pwp = BCrypt.Net.BCrypt.HashPassword(model.Password);
+            storedToken.IsUsed = true;
+
+            _context.Update(user);
+            _context.Update(storedToken);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Password redefinida com sucesso para o utilizador ID: {user.UtilizadorId}");
+                TempData["SuccessMessage"] = "A sua password foi redefinida com sucesso. Pode agora fazer login.";
+                return RedirectToAction(nameof(Login));
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, $"Erro de concorrência ao atualizar password para utilizador ID: {user.UtilizadorId}");
+                ModelState.AddModelError(string.Empty, "Ocorreu um erro ao tentar guardar as alterações devido a um conflito de dados. Tente novamente.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Erro ao guardar alterações de password para utilizador ID: {user.UtilizadorId}");
+                ModelState.AddModelError(string.Empty, "Ocorreu um erro inesperado ao tentar redefinir a sua password. Tente novamente.");
+            }
+
+            return View("~/Views/Account/ResetPassword.cshtml", model);
+        }
+
+    }
+}

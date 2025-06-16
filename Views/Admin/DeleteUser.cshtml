@@ -1,0 +1,62 @@
+﻿@model MSPremiumProject.Models.Utilizador
+
+@{
+    ViewData["Title"] = "Apagar Utilizador";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Ou o seu layout de Admin
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow rounded-4">
+                <div class="card-body p-4">
+                    <h3 class="mb-3 text-center text-danger">Tem a certeza que quer apagar este utilizador?</h3>
+                    <hr />
+                    <dl class="row">
+                        <dt class="col-sm-4">
+                            @Html.DisplayNameFor(model => model.Nome)
+                        </dt>
+                        <dd class="col-sm-8">
+                            @Html.DisplayFor(model => model.Nome)
+                        </dd>
+                        <dt class="col-sm-4">
+                            @Html.DisplayNameFor(model => model.Login)
+                        </dt>
+                        <dd class="col-sm-8">
+                            @Html.DisplayFor(model => model.Login)
+                        </dd>
+                        @if (Model.Role != null)
+                        {
+                            <dt class="col-sm-4">
+                                @Html.DisplayNameFor(model => model.Role.Nome)
+                            </dt>
+                            <dd class="col-sm-8">
+                                @Html.DisplayFor(model => model.Role.Nome)
+                            </dd>
+                        }
+                        <dt class="col-sm-4">
+                            @Html.DisplayNameFor(model => model.Dtnascimento)
+                        </dt>
+                        <dd class="col-sm-8">
+                            @Html.DisplayFor(model => model.Dtnascimento)
+                        </dd>
+                    </dl>
+
+                    <form asp-action="Delete">
+                        @* Vai submeter para a action POST DeleteConfirmed devido ao ActionName *@
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="UtilizadorId" /> @* Passa o ID para a action POST *@
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="submit" class="btn btn-danger me-md-2">
+                                <i class="bi bi-trash me-2"></i> Apagar
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-2"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

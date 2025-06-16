@@ -1,0 +1,47 @@
+﻿@model MSPremiumProject.Models.Role
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Adicionar Role";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow rounded-4">
+                <div class="card-body p-4">
+                    <h2 class="mb-4 text-center">Adicionar Role</h2>
+
+                    @if (ViewBag.Mensagem != null)
+                    {
+                        <div class="alert alert-success mt-3 text-center">
+                            @ViewBag.Mensagem
+                        </div>
+                    }
+
+                    @using (Html.BeginForm("Create", "Roles", FormMethod.Post))
+                    {
+                        <div class="form-floating mb-3">
+                            @Html.TextBoxFor(m => m.RoleId, new { @class = "form-control", placeholder = "ID da Role" })
+                            @Html.LabelFor(m => m.RoleId)
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            @Html.TextBoxFor(m => m.Nome, new { @class = "form-control", placeholder = "Nome da role" })
+                            @Html.LabelFor(m => m.Nome)
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            @Html.TextAreaFor(m => m.Descricao, 5, 50, new { @class = "form-control", placeholder = "Descrição da role" })
+                            @Html.LabelFor(m => m.Descricao)
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            <i class="bi bi-save me-2"></i> Guardar Role
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

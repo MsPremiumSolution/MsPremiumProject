@@ -1,0 +1,100 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    transition: margin-left 0.3s ease-out;
+}
+
+.sidebar {
+    height: 100vh;
+    width: 250px;
+    background-color: #000;
+    color: white;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease-out;
+    transform: translateX(0);
+}
+
+    .sidebar .logo {
+        padding: 20px;
+        text-align: center;
+    }
+
+    .sidebar .nav-link {
+        color: white;
+        padding: 12px 20px;
+        display: block;
+        text-decoration: none;
+    }
+
+        .sidebar .nav-link:hover {
+            background-color: #222;
+        }
+
+.topbar {
+    height: 60px;
+    background-color: #000;
+    color: white;
+    padding: 0 20px;
+    margin-left: 250px; /* Para ecrãs grandes */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    transition: margin-left 0.3s ease-out;
+}
+
+.menu-toggle {
+    /* display: none;  Removido daqui, será controlado pela media query abaixo */
+    font-size: 24px;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px 15px;
+}
+
+.content {
+    margin-left: 250px; /* Para ecrãs grandes */
+    padding: 80px 30px 30px 30px;
+    background-color: white;
+    min-height: calc(100vh - 60px);
+    transition: margin-left 0.3s ease-out;
+}
+
+/* Estilos para ecrãs menores (ex: tablets e telemóveis) */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-250px);
+    }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+    .topbar {
+        margin-left: 0;
+    }
+
+    .menu-toggle {
+        display: block; /* Mostra o botão de menu em ecrãs pequenos */
+    }
+
+    .content {
+        margin-left: 0;
+    }
+}
+
+/* Estilos para ecrãs maiores - garante que o menu-toggle está escondido */
+@media (min-width: 769px) { /* O oposto da media query acima */
+    .menu-toggle {
+        display: none; /* Esconde o botão de menu em ecrãs grandes */
+    }
+}
