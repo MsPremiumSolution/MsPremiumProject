@@ -12,7 +12,6 @@
                 <div class="card-body p-4">
                     <h2 class="mb-4 text-center">@ViewData["Title"]</h2>
 
-                    @* Para exibir mensagens de erro de validação do modelo ou feedback geral *@
                     @if (!ViewData.ModelState.IsValid)
                     {
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger text-center"></div>
@@ -47,25 +46,17 @@
                             <span asp-validation-for="Regiao" class="text-danger"></span>
                         </div>
 
-                        @* Campo PaisId (Dropdown para selecionar o País) *@
+                        @* Campo PaisId (Dropdown para selecionar o País usando Html.DropDownListFor) *@
                         <div class="form-floating mb-4">
-                            @* ViewBag.PaisesList deve ser um SelectList populado no Controller *@
-                            <select asp-for="PaisId" class="form-select" asp-items="ViewBag.PaisesList" placeholder="Selecione o País">
-                                <option value="">-- Selecione um País --</option>
-                            </select>
-                            <label asp-for="PaisId">País</label>
-                            <span asp-validation-for="PaisId" class="text-danger"></span>
+                            @Html.DropDownListFor(
+                                     m => m.PaisId,                     // A propriedade do modelo a ser vinculada (Localidade.PaisId)
+                                     ViewBag.PaisesList as SelectList,  // O SelectList vindo do controller
+                                     "-- Selecione um País --",         // O texto da opção inicial (opcional)
+                                     new { @class = "form-select" }     // Atributos HTML para o <select>
+                                     )
+                            @Html.LabelFor(m => m.PaisId, "País") @* Label para o campo PaisId *@
+                            @Html.ValidationMessageFor(m => m.PaisId, "", new { @class = "text-danger" })
                         </div>
-
-                        @* O LocalidadeId é geralmente gerado pelo banco de dados, então não é um input aqui.
-                           Se você precisar de um campo para ele por algum motivo específico (ex: se não for auto-incremento),
-                           adicione-o, mas tipicamente não é necessário num formulário de criação.
-                        <div class="form-floating mb-3">
-                            <input asp-for="LocalidadeId" class="form-control" placeholder="ID da Localidade" />
-                            <label asp-for="LocalidadeId"></label>
-                            <span asp-validation-for="LocalidadeId" class="text-danger"></span>
-                        </div>
-                        *@
 
                         <button type="submit" class="btn btn-primary w-100 py-2">
                             <i class="bi bi-save me-2"></i> Guardar Localidade
@@ -73,7 +64,7 @@
                     </form>
 
                     <div class="mt-3 text-center">
-                        <a asp-action="Index" asp-controller="Localidades" class="text-decoration-none">Voltar à Lista</a>
+                        <a asp-action="Index" asp-controller="Locality" class="text-decoration-none">Voltar à Lista</a>
                     </div>
                 </div>
             </div>
