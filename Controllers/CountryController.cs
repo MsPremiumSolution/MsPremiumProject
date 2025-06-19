@@ -14,9 +14,9 @@ namespace MSPremiumProject.Controllers
 
 
         private readonly AppDbContext _context;
-        private readonly ILogger<PaisesController> _logger;
+        private readonly ILogger<CountryController> _logger;
 
-        public PaisesController(AppDbContext context, ILogger<PaisesController> logger)
+        public CountryController(AppDbContext context, ILogger<CountryController> logger)
         {
             _context = context;
             _logger = logger;

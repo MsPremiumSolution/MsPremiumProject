@@ -9,9 +9,9 @@ namespace MSPremiumProject.Controllers
     public class LocalityController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly ILogger<LocalidadesController> _logger;
+        private readonly ILogger<LocalityController> _logger;
 
-        public LocalidadesController(AppDbContext context, ILogger<LocalidadesController> logger)
+        public LocalityController(AppDbContext context, ILogger<LocalityController> logger)
         {
             _context = context;
             _logger = logger;

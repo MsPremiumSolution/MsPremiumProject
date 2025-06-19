@@ -1,5 +1,108 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model IEnumerable<MSPremiumProject.Models.Utilizador>
+
 @{
+    ViewData["Title"] = "Lista de Utilizadores";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>@ViewData["Title"]</h1>
+        <a asp-controller="Users" asp-action="Create" class="btn btn-primary">   @*por mudar, adicionar, novo cliente, falta a ação*@
+            <i class="bi bi-plus-circle me-2"></i> Adicionar Novo Utilizador 
+        </a>
+    </div>
+
+    @* Mensagens TempData *@
+    @if (TempData["Mensagem"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Mensagem"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["MensagemErro"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["MensagemErro"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center" role="alert">
+            Nenhum Cliente encontrado.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm rounded-3">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nome</th>
+                                <th>Login</th>
+                                <th>Role</th>
+                                <th>Data Nasc.</th>
+                                <th class="text-center">Activo</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@Html.DisplayFor(modelItem => item.Nome)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.Login)</td>
+                                    <td>@(item.Role != null ? Html.DisplayFor(modelItem => item.Role.Nome) : "N/A")</td>
+                                    <td>@item.Dtnascimento.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">
+                                        @if (item.Activo)
+                                        {
+                                            <span class="badge bg-success">Sim</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Não</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @* Formulário para alternar o estado Activo *@
+                                        <form asp-controller="Users" asp-action="ToggleUserStatus" asp-route-id="@item.UtilizadorId" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            @if (item.Activo)
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Desativar Utilizador"
+                                                        onclick="return confirm('Tem a certeza que quer desativar este utilizador?');">
+                                                    <i class="bi bi-person-fill-slash"></i> Desativar
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Ativar Utilizador"
+                                                        onclick="return confirm('Tem a certeza que quer ativar este utilizador?');">
+                                                    <i class="bi bi-person-fill-check"></i> Ativar
+                                                </button>
+                                            }
+                                        </form>
+
+                                        @* Link para Hard Delete (se implementado e desejado) *@
+                                        @*      <a asp-controller="Users" asp-action="HardDelete" asp-route-id="@item.UtilizadorId"
+                                           class="btn btn-sm btn-danger ms-1" title="Apagar Permanentemente"
+                                           onclick="return confirm('APAGAR PERMANENTEMENTE! Esta ação não pode ser desfeita. Tem a certeza absoluta?');">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </a>  *@
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

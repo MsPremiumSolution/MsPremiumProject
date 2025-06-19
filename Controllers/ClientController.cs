@@ -14,5 +14,7 @@ namespace MSPremiumProject.Controllers
         {
             return View("~/Views/Client/ClientPainel.cshtml");
         }
+
+        
     }
 }
