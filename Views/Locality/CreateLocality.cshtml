@@ -1,5 +1,88 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model MSPremiumProject.Models.Localidade
+
 @{
+    ViewData["Title"] = "Adicionar Nova Localidade";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow rounded-4">
+                <div class="card-body p-4">
+                    <h2 class="mb-4 text-center">@ViewData["Title"]</h2>
+
+                    @* Para exibir mensagens de erro de validação do modelo ou feedback geral *@
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger text-center"></div>
+                    }
+                    @if (TempData["MensagemSucesso"] != null)
+                    {
+                        <div class="alert alert-success mt-3 text-center">
+                            @TempData["MensagemSucesso"]
+                        </div>
+                    }
+                    @if (TempData["MensagemErro"] != null)
+                    {
+                        <div class="alert alert-danger mt-3 text-center">
+                            @TempData["MensagemErro"]
+                        </div>
+                    }
+
+                    <form asp-action="Create" asp-controller="Localidades" method="post">
+                        @Html.AntiForgeryToken()
+
+                        @* Campo NomeLocalidade *@
+                        <div class="form-floating mb-3">
+                            <input asp-for="NomeLocalidade" class="form-control" placeholder="Nome da Localidade" />
+                            <label asp-for="NomeLocalidade"></label>
+                            <span asp-validation-for="NomeLocalidade" class="text-danger"></span>
+                        </div>
+
+                        @* Campo Regiao *@
+                        <div class="form-floating mb-3">
+                            <input asp-for="Regiao" class="form-control" placeholder="Região" />
+                            <label asp-for="Regiao"></label>
+                            <span asp-validation-for="Regiao" class="text-danger"></span>
+                        </div>
+
+                        @* Campo PaisId (Dropdown para selecionar o País) *@
+                        <div class="form-floating mb-4">
+                            @* ViewBag.PaisesList deve ser um SelectList populado no Controller *@
+                            <select asp-for="PaisId" class="form-select" asp-items="ViewBag.PaisesList" placeholder="Selecione o País">
+                                <option value="">-- Selecione um País --</option>
+                            </select>
+                            <label asp-for="PaisId">País</label>
+                            <span asp-validation-for="PaisId" class="text-danger"></span>
+                        </div>
+
+                        @* O LocalidadeId é geralmente gerado pelo banco de dados, então não é um input aqui.
+                           Se você precisar de um campo para ele por algum motivo específico (ex: se não for auto-incremento),
+                           adicione-o, mas tipicamente não é necessário num formulário de criação.
+                        <div class="form-floating mb-3">
+                            <input asp-for="LocalidadeId" class="form-control" placeholder="ID da Localidade" />
+                            <label asp-for="LocalidadeId"></label>
+                            <span asp-validation-for="LocalidadeId" class="text-danger"></span>
+                        </div>
+                        *@
+
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            <i class="bi bi-save me-2"></i> Guardar Localidade
+                        </button>
+                    </form>
+
+                    <div class="mt-3 text-center">
+                        <a asp-action="Index" asp-controller="Localidades" class="text-decoration-none">Voltar à Lista</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
