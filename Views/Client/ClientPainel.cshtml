@@ -11,7 +11,7 @@
 
     <div class="row">
         <div class="col-md-4">
-            <h4>Gestão de Utilizadores</h4>
+            <h4>Gestão de Clientes</h4>
             <div class="list-group">
                 <a asp-controller="Users" asp-action="Index" class="list-group-item list-group-item-action">
                     <i class="bi bi-list-ul me-2"></i> Listar Clientes
@@ -24,12 +24,21 @@
         </div>
 
         <div class="col-md-4">
-            <h4>Gestão de Roles</h4>
+            <h4>Gestão de Localidades</h4>
             <div class="list-group">
                 @* Supondo que você terá um AdminController ou RoleController para gerir roles *@
                 @* Se CreateRole estiver no AdminController e o controller estiver protegido por [Authorize(Roles="Admin")] *@
-                <a asp-controller="Admin" asp-action="CreateRole" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock-fill me-2"></i> Criar Roles
+                <a asp-controller="Country" asp-action="GoToViewCreate" class="list-group-item list-group-item-action">
+                    <i class="bi bi-shield-lock-fill me-2"></i> Criar País
+                </a>
+                <a asp-controller="Country" asp-action="Index" class="list-group-item list-group-item-action">
+                    <i class="bi bi-shield-lock-fill me-2"></i> Listagem de Países
+                </a>
+                <a asp-controller="Locality" asp-action="Create" class="list-group-item list-group-item-action">
+                    <i class="bi bi-shield-lock-fill me-2"></i> Criar Localidade
+                </a>
+                <a asp-controller="Locality" asp-action="Index" class="list-group-item list-group-item-action">
+                    <i class="bi bi-shield-lock-fill me-2"></i> Listagem de Localidades
                 </a>
                 @*
                 <a asp-controller="Admin" asp-action="ListRoles" class="list-group-item list-group-item-action">

@@ -7,9 +7,13 @@ namespace MSPremiumProject.Controllers
 {
     public class CountryController : Controller
     {
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            // Busca todos os países, ordenados por nome, e envia para a view
+            var paises = await _context.Paises  // Assumindo que o seu DbSet se chama Paises
+                                   .OrderBy(p => p.NomePais)
+                                   .ToListAsync();
+            return View(paises); // Passa a lista de países para a view Paises/Index.cshtml
         }
 
 
@@ -51,7 +55,7 @@ namespace MSPremiumProject.Controllers
                     _logger.LogInformation($"País '{pais.NomePais}' criado com sucesso com ID: {pais.PaisId}.");
                     TempData["MensagemSucesso"] = $"País '{pais.NomePais}' adicionado com sucesso!";
                     // return RedirectToAction(nameof(Index)); // Se tiver uma lista de países
-                    return RedirectToAction(nameof(Create)); // Redireciona para criar outro, com mensagem de sucesso
+                    return RedirectToAction(nameof(Index)); // Redireciona para criar outro, com mensagem de sucesso
                 }
                 catch (DbUpdateException ex)
                 {
@@ -63,6 +67,11 @@ namespace MSPremiumProject.Controllers
 
             // Se ModelState não for válido ou ocorrer um erro, retorna à view com o objeto pais e os erros
             return View(pais);
+        }
+
+        public IActionResult GoToViewCreate()
+        {
+            return View("~/Views/Country/CreateCountry.cshtml");
         }
 
         // GET: Paises (Opcional: Uma view para listar os países)

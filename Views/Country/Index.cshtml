@@ -1,0 +1,94 @@
+﻿@model IEnumerable<MSPremiumProject.Models.Pai>
+
+@{
+    ViewData["Title"] = "Lista de Países";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>@ViewData["Title"]</h1>
+        <a asp-controller="Paises" asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i> Adicionar Novo País
+        </a>
+    </div>
+
+    @if (TempData["MensagemSucesso"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["MensagemSucesso"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["MensagemErro"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["MensagemErro"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center" role="alert">
+            Nenhum país encontrado. Clique em "Adicionar Novo País" para começar.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm rounded-3">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>@Html.DisplayNameFor(model => model.First().NomePais)</th>
+                                <th class="text-end">Ações</th> @* Coluna para botões de ação *@
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@Html.DisplayFor(modelItem => item.NomePais)</td>
+                                    <td class="text-end">
+                                        @* Links para Edit, Details, Delete (descomente e implemente as actions no controller) *@
+                                        @*
+                                        <a asp-controller="Paises" asp-action="Edit" asp-route-id="@item.PaisId" class="btn btn-sm btn-outline-primary" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a asp-controller="Paises" asp-action="Details" asp-route-id="@item.PaisId" class="btn btn-sm btn-outline-info ms-1" title="Detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-controller="Paises" asp-action="Delete" asp-route-id="@item.PaisId" class="btn btn-sm btn-outline-danger ms-1" title="Apagar"
+                                           onclick="return confirm('Tem a certeza que quer apagar este país? Se houver localidades associadas, elas podem ser afetadas ou a operação pode falhar dependendo das suas regras de chave estrangeira.');">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                        *@
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@* Se quiser usar DataTables para paginação/pesquisa avançada na tabela de países:
+@section Scripts {
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('.table').DataTable({ // Aplica a todos os .table, pode ser mais específico com um ID
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-PT.json"
+                }
+            });
+        });
+    </script>
+}
+*@

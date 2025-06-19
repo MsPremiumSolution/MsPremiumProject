@@ -17,7 +17,17 @@ namespace MSPremiumProject.Controllers
             _logger = logger;
         }
 
-        // ... outras actions (Index, Details, Edit, Delete) ...
+        public async Task<IActionResult> Index()
+        {
+            // Busca todas as localidades, incluindo a informação do País associado,
+            // e ordena por nome do país e depois por nome da localidade.
+            var localidades = await _context.Localidades
+                                          .Include(l => l.Pais) // Inclui a entidade Pai para aceder a NomePais
+                                          .OrderBy(l => l.Pais.NomePais)
+                                          .ThenBy(l => l.NomeLocalidade)
+                                          .ToListAsync();
+            return View(localidades);
+        }
 
         // GET: Localidades/Create
         public async Task<IActionResult> Create()
