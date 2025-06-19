@@ -32,10 +32,33 @@ namespace MSPremiumProject.Controllers
         // GET: Localidades/Create
         public async Task<IActionResult> Create()
         {
-            // Popula o ViewBag.PaisesList com a lista de países para o dropdown
-            // Ordenado por NomePais para melhor usabilidade
-            ViewBag.PaisesList = new SelectList(await _context.Paises.OrderBy(p => p.NomePais).ToListAsync(), "PaisId", "NomePais");
-            return View(new Localidade()); // Passa um novo objeto Localidade para o formulário
+            _logger.LogInformation("A aceder à action GET Create para Localidade.");
+            try
+            {
+                // Popula o ViewBag.PaisesList com a lista de países para o dropdown
+                // Ordenado por NomePais para melhor usabilidade
+                var paises = await _context.Paises.OrderBy(p => p.NomePais).ToListAsync();
+                ViewBag.PaisesList = new SelectList(
+                    paises,
+                    "PaisId",       // A propriedade do objeto Pai que será o 'value' da option
+                    "NomePais"      // A propriedade do objeto Pai que será o texto visível da option
+                );
+                _logger.LogInformation($"ViewBag.PaisesList populado com {paises.Count} países.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao popular ViewBag.PaisesList na action GET Create para Localidade.");
+                // Mesmo que falhe, crie uma lista vazia para evitar erro na view,
+                // e adicione uma mensagem para o utilizador ou log.
+                ViewBag.PaisesList = new List<SelectListItem>();
+                ModelState.AddModelError(string.Empty, "Não foi possível carregar a lista de países. Tente novamente mais tarde.");
+                // Você pode optar por retornar uma view de erro diferente aqui se a lista de países for crítica.
+            }
+
+            // Passa um novo objeto Localidade para o formulário.
+            // Como a view agora se chama "Create.cshtml" e está em "Views/Locality/",
+            // o ASP.NET Core MVC irá encontrá-la automaticamente por convenção.
+            return View(new Localidade());
         }
 
         // POST: Localidades/Create
@@ -124,7 +147,7 @@ namespace MSPremiumProject.Controllers
                 ModelState.AddModelError(string.Empty, "Não foi possível carregar a lista de países para o formulário. Tente novamente.");
             }
 
-            return View(localidade);
+            return View("CreateLocality", localidade);
         }
 
         public async Task<IActionResult> InserirLocalidade() // Mude para async Task<IActionResult>
