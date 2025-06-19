@@ -34,8 +34,7 @@ namespace MSPremiumProject.Controllers
         {
             // Popula o ViewBag.PaisesList com a lista de países para o dropdown
             // Ordenado por NomePais para melhor usabilidade
-            // ViewBag.PaisesList = new SelectList(await _context.Paises.OrderBy(p => p.NomePais).ToListAsync(), "PaisId", "NomePais");
-            ViewBag.PaisesList = new List<SelectListItem>();
+            ViewBag.PaisesList = new SelectList(await _context.Paises.OrderBy(p => p.NomePais).ToListAsync(), "PaisId", "NomePais");
             return View(new Localidade()); // Passa um novo objeto Localidade para o formulário
         }
 
@@ -68,9 +67,15 @@ namespace MSPremiumProject.Controllers
             return View(localidade);
         }
 
-        public IActionResult InserirLocalidade()
+        public async Task<IActionResult> InserirLocalidade() // Mude para async Task<IActionResult>
         {
-            return View("~/Views/Locality/CreateLocality.cshtml");
+            // Popula o ViewBag.PaisesList com a lista de países para o dropdown
+            ViewBag.PaisesList = new SelectList(
+                await _context.Paises.OrderBy(p => p.NomePais).ToListAsync(),
+                "PaisId",
+                "NomePais"
+            );
+            return View("~/Views/Locality/CreateLocality.cshtml", new Localidade()); // Passa um novo objeto
         }
     }
 }
