@@ -34,7 +34,8 @@ namespace MSPremiumProject.Controllers
         {
             // Popula o ViewBag.PaisesList com a lista de países para o dropdown
             // Ordenado por NomePais para melhor usabilidade
-            ViewBag.PaisesList = new SelectList(await _context.Paises.OrderBy(p => p.NomePais).ToListAsync(), "PaisId", "NomePais");
+            // ViewBag.PaisesList = new SelectList(await _context.Paises.OrderBy(p => p.NomePais).ToListAsync(), "PaisId", "NomePais");
+            ViewBag.PaisesList = new List<SelectListItem>();
             return View(new Localidade()); // Passa um novo objeto Localidade para o formulário
         }
 
