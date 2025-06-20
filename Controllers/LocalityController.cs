@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using MSPremiumProject.Data;
 using MSPremiumProject.Models;
-using System.Linq; // Adicionar para OrderBy e ToListAsync
-using System.Threading.Tasks; // Adicionar para Task
+using System.Linq;
+using System.Text.Json; // Para serializar os erros do ModelState
+using System.Threading.Tasks;
 
 namespace MSPremiumProject.Controllers
 {
@@ -23,28 +24,29 @@ namespace MSPremiumProject.Controllers
         public async Task<IActionResult> Index()
         {
             var localidades = await _context.Localidades
-                                          .Include(l => l.Pais) // Inclui a entidade Pai para aceder a NomePais
+                                          .Include(l => l.Pais)
                                           .OrderBy(l => l.Pais.NomePais)
                                           .ThenBy(l => l.NomeLocalidade)
                                           .ToListAsync();
             return View(localidades);
         }
 
-        // Função auxiliar para popular o ViewBag com a lista de países
         private async Task PopulatePaisesDropDownList(object? selectedPais = null)
         {
             try
             {
-                var paisesQuery = _context.Paises.OrderBy(p => p.NomePais);
-                ViewBag.PaisesList = new SelectList(await paisesQuery.ToListAsync(), "PaisId", "NomePais", selectedPais);
-                _logger.LogInformation("ViewBag.PaisesList populado com sucesso.");
+                var paises = await _context.Paises.OrderBy(p => p.NomePais).ToListAsync();
+                ViewBag.PaisesList = new SelectList(paises, "PaisId", "NomePais", selectedPais);
+                _logger.LogInformation("ViewBag.PaisesList populado com {Count} países.", paises.Count);
+                if (paises.Any() && _logger.IsEnabled(LogLevel.Debug)) // Log de exemplo do primeiro país em Debug
+                {
+                    _logger.LogDebug("Primeiro país na lista para dropdown: ID={PaisId}, Nome='{NomePais}'", paises.First().PaisId, paises.First().NomePais);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro ao popular ViewBag.PaisesList.");
                 ViewBag.PaisesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Erro ao carregar países --" } };
-                // Considerar adicionar um erro ao ModelState se for crítico para a view
-                // ModelState.AddModelError(string.Empty, "Não foi possível carregar a lista de países. Tente novamente mais tarde.");
             }
         }
 
@@ -53,18 +55,22 @@ namespace MSPremiumProject.Controllers
         {
             _logger.LogInformation("Acedendo à action GET Create para Localidade.");
             await PopulatePaisesDropDownList();
-            // Assume que a tua view se chama "CreateLocality.cshtml"
-            // Se se chamasse "Create.cshtml", poderias usar apenas return View(new Localidade());
             return View("CreateLocality", new Localidade());
         }
 
         // POST: Locality/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("NomeLocalidade,Regiao,PaisId")] Localidade localidade)
+        // ***** SUGESTÃO PRINCIPAL: REMOVER O [Bind] PARA TESTE *****
+        // Original: public async Task<IActionResult> Create([Bind("NomeLocalidade,Regiao,PaisId")] Localidade localidade)
+        public async Task<IActionResult> Create(Localidade localidade) // Removido o [Bind]
         {
-            _logger.LogInformation("Tentativa de POST Create para Localidade. Nome: {NomeLocalidade}, Regiao: {Regiao}, PaisId: {PaisId}",
-                localidade.NomeLocalidade, localidade.Regiao, localidade.PaisId);
+            // Log detalhado dos valores recebidos IMEDIATAMENTE
+            _logger.LogInformation(
+                "POST Create Localidade - Valores recebidos: NomeLocalidade='{NomeLocalidade}', Regiao='{Regiao}', PaisId={PaisId}",
+                localidade.NomeLocalidade,
+                localidade.Regiao,
+                localidade.PaisId); // VERIFIQUE ESTE VALOR NOS LOGS DO RENDER
 
             // Normalizar Regiao para consistência (null se vazia ou apenas espaços)
             if (string.IsNullOrWhiteSpace(localidade.Regiao))
@@ -72,36 +78,51 @@ namespace MSPremiumProject.Controllers
                 localidade.Regiao = null;
             }
 
-            // Validação explícita do PaisId para garantir que não é 0 (se o [Range] não for suficiente ou para feedback melhor)
-            if (localidade.PaisId == 0)
+            // Removendo a validação explícita de PaisId == 0 por agora,
+            // pois os atributos [Required] e [Range] no modelo já devem cobrir isso.
+            // Se PaisId ainda chegar como 0 e o ModelState estiver válido (improvável), podemos reavaliar.
+            // if (localidade.PaisId == 0)
+            // {
+            //     ModelState.AddModelError("PaisId", "É obrigatório selecionar um país.");
+            // }
+
+            // Se a propriedade de navegação PaisId está preenchida e a propriedade de navegação Pais está a causar problemas de validação
+            // (geralmente porque não é carregada e o EF Core tenta validar uma instância null com atributos [Required]),
+            // podemos remover o erro do ModelState para a propriedade de navegação.
+            if (localidade.PaisId > 0 && ModelState.ContainsKey(nameof(Localidade.Pais)))
             {
-                ModelState.AddModelError("PaisId", "É obrigatório selecionar um país.");
+                // Apenas remove se for um erro específico de 'The Pais field is required.'
+                // e não um erro vindo de validações dentro da classe Pai (se houver).
+                var paisErrors = ModelState[nameof(Localidade.Pais)].Errors;
+                if (paisErrors.Any(e => e.ErrorMessage.Contains("field is required"))) // Adapte a string se necessário
+                {
+                    _logger.LogInformation("Removendo erro de ModelState para a propriedade de navegação 'Pais' pois PaisId está preenchido.");
+                    ModelState.Remove(nameof(Localidade.Pais));
+                }
             }
+
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Normalizar strings para verificação de duplicados (case-insensitive)
                     string nomeLocalidadeLower = localidade.NomeLocalidade.Trim().ToLower();
-                    // Se Regiao for null, tratar como uma string vazia para a consulta de duplicados pode ser uma opção,
-                    // ou comparar especificamente com null. A abordagem aqui trata null como distinto de string vazia
-                    // para a lógica de negócio, mas para comparação de duplicados, podemos normalizar.
-                    // Para simplificar: se Regiao é null, então l.Regiao deve ser null. Se Regiao tem valor, compara os valores.
-                    // Se Regiao for opcional e pode ser "" ou null, e ambos significam "sem região", normalizar para null.
-
+                    // Lógica de verificação de duplicados (mantida)
                     bool localidadeJaExiste = await _context.Localidades.AnyAsync(l =>
                         l.NomeLocalidade.ToLower() == nomeLocalidadeLower &&
-                        (string.IsNullOrEmpty(l.Regiao) && localidade.Regiao == null || (l.Regiao != null && localidade.Regiao != null && l.Regiao.ToLower() == localidade.Regiao.ToLower())) &&
+                        ((string.IsNullOrEmpty(l.Regiao) && localidade.Regiao == null) || (l.Regiao != null && localidade.Regiao != null && l.Regiao.ToLower() == localidade.Regiao.ToLower())) &&
                         l.PaisId == localidade.PaisId);
 
                     if (localidadeJaExiste)
                     {
                         ModelState.AddModelError(string.Empty, "Já existe uma localidade com este nome e região para o país selecionado.");
-                        _logger.LogWarning("Tentativa de criar localidade duplicada: {Nome}, {Regiao}, {PaisId}", localidade.NomeLocalidade, localidade.Regiao, localidade.PaisId);
+                        _logger.LogWarning("Tentativa de criar localidade duplicada: Nome='{Nome}', Regiao='{Regiao}', PaisId={PaisId}",
+                                           localidade.NomeLocalidade, localidade.Regiao, localidade.PaisId);
                     }
                     else
                     {
+                        // Se PaisId é válido, a propriedade de navegação localidade.Pais será null aqui,
+                        // o EF Core vai ligar a relação usando apenas o PaisId.
                         _context.Add(localidade);
                         await _context.SaveChangesAsync();
                         _logger.LogInformation("Localidade '{NomeLocalidade}' (ID: {LocalidadeId}) criada com sucesso para o País ID: {PaisId}.",
@@ -126,19 +147,23 @@ namespace MSPremiumProject.Controllers
             }
             else
             {
-                _logger.LogWarning("ModelState inválido ao tentar criar Localidade. Erros: {ModelStateErrors}",
-                    string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+                // Log detalhado dos erros do ModelState
+                var errors = ModelState
+                    .Where(ms => ms.Value.Errors.Any())
+                    .Select(ms => new { Field = ms.Key, Errors = ms.Value.Errors.Select(e => e.ErrorMessage).ToList() });
+                string errorsJson = JsonSerializer.Serialize(errors); // Usar System.Text.Json
+
+                _logger.LogWarning(
+                    "ModelState inválido ao tentar criar Localidade. Detalhes dos Erros: {ModelStateErrorsDetailed} | Valores recebidos na Localidade: Nome='{NomeLocalidade}', Regiao='{Regiao}', PaisId={PaisId}",
+                    errorsJson,
+                    localidade.NomeLocalidade,
+                    localidade.Regiao,
+                    localidade.PaisId);
                 TempData["MensagemErro"] = "Dados inválidos. Por favor, corrija os erros abaixo.";
             }
 
-            // Se chegamos aqui, algo falhou (ModelState inválido ou exceção apanhada)
-            // Repopular o dropdown de países
             await PopulatePaisesDropDownList(localidade.PaisId);
-            return View("CreateLocality", localidade); // Retorna para a view CreateLocality com os dados e erros
+            return View("CreateLocality", localidade);
         }
-
-        // NOTA: A action `InserirLocalidade()` que tinhas parece redundante se `GET Create` já faz o trabalho
-        // de preparar o formulário. Se era para um propósito diferente, podes mantê-la.
-        // Se `InserirLocalidade` era apenas para mostrar o formulário, é melhor usar a convenção `Create`.
     }
 }
