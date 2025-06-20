@@ -1,41 +1,67 @@
-﻿using System;
+﻿// File: Models/Cliente.cs
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema; // Adicionar para [ForeignKey]
 
-namespace MSPremiumProject.Models;
-
-public partial class Cliente
+namespace MSPremiumProject.Models
 {
-    [Key]
-    public ulong ClienteId { get; set; }
+    public partial class Cliente
+    {
+        [Key]
+        public ulong ClienteId { get; set; }
 
-    public string Nome { get; set; } = null!;
+        [Required(ErrorMessage = "O nome é obrigatório.")]
+        [StringLength(100)]
+        public string Nome { get; set; } = null!;
 
-    public string Apelido { get; set; } = null!;
+        [StringLength(100)]
+        public string? Apelido { get; set; } // Permitir nulo se for opcional
 
-    public string Morada { get; set; } = null!;
+        [Required(ErrorMessage = "A morada é obrigatória.")]
+        [StringLength(255)]
+        public string Morada { get; set; } = null!;
 
-    public string Cp4 { get; set; } = null!;
+        [Required(ErrorMessage = "O CP4 é obrigatório.")]
+        [StringLength(4)]
+        public string Cp4 { get; set; } = null!;
 
-    public string Cp3 { get; set; } = null!;
+        [Required(ErrorMessage = "O CP3 é obrigatório.")]
+        [StringLength(3)]
+        public string Cp3 { get; set; } = null!;
 
-    public ulong LocalidadeId { get; set; }
+        // Chave estrangeira para a entidade Localidade
+        [Required(ErrorMessage = "A localidade é obrigatória.")]
+        public ulong LocalidadeId { get; set; }
 
-    public string Localidade { get; set; } = null!;
+        // A LINHA "public string Localidade { get; set; } = null!;" FOI REMOVIDA DAQUI.
 
-    public string NumeroFiscal { get; set; } = null!;
+        [StringLength(9)] // Assumindo NIF com 9 dígitos
+        public string? NumeroFiscal { get; set; } // Permitir nulo se for opcional
 
-    public string Observacoes { get; set; } = null!;
+        public string? Observacoes { get; set; } // Permitir nulo
 
-    public string Email { get; set; } = null!;
+        [EmailAddress]
+        [StringLength(255)]
+        public string? Email { get; set; } // Permitir nulo
 
-    public long Telefone1 { get; set; }
+        // Considerar string para telefones para flexibilidade de formato (+, espaços, etc.)
+        public string? Telefone1 { get; set; } // Se Telefone1 é long, não pode ser null por defeito. Se for opcional, use long? ou string?
 
-    public long Telefone2 { get; set; }
+        public string? Telefone2 { get; set; } // Idem para Telefone2
 
-    public DateOnly Dtnascimento { get; set; }
+        // DateOnly é bom, mas DateTime? é mais universalmente suportado por ORMs/BDs se houver problemas.
+        // Se for obrigatório, use DateOnly. Se opcional, DateOnly?
+        public DateOnly? Dtnascimento { get; set; } // Tornar nullable se for opcional
 
-    public virtual Localidade LocalidadeNavigation { get; set; } = null!;
+        // Propriedade de navegação para a entidade Localidade
+        // Renomear "LocalidadeNavigation" para "Localidade" é uma convenção comum.
+        // O [ForeignKey("LocalidadeId")] pode ser adicionado acima de LocalidadeId
+        // ou a relação configurada via Fluent API no DbContext.
+        // Em Cliente.cs (temporariamente)
+        [ForeignKey("LocalidadeId")] // Ou como estivesse antes
+        public virtual Localidade? LocalidadeNavigation { get; set; } // Volta ao nome antigo // Renomeado e tornado nullable
 
-    public virtual ICollection<Propostum> Proposta { get; set; } = new List<Propostum>();
+        public virtual ICollection<Propostum> Proposta { get; set; } = new List<Propostum>();
+    }
 }

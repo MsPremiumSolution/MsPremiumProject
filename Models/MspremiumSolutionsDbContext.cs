@@ -94,7 +94,7 @@ public partial class MspremiumSolutionsDbContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("CP4");
             entity.Property(e => e.Email).HasMaxLength(255);
-            entity.Property(e => e.Localidade).HasMaxLength(255);
+           // entity.Property(e => e.Localidade).HasMaxLength(255);
             entity.Property(e => e.LocalidadeId).HasColumnName("LocalidadeID");
             entity.Property(e => e.Morada).HasMaxLength(255);
             entity.Property(e => e.Nome).HasMaxLength(255);
