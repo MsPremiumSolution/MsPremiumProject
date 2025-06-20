@@ -73,7 +73,7 @@ namespace MSPremiumProject.Data
 
             modelBuilder.Entity<Localidade>(entity =>
             {
-                entity.ToTable("localidade"); // Nome da tabela no BD
+                entity.ToTable("Localidades"); // Nome da tabela no BD
                 // Configure .HasKey(), .Property() e relações
                 // Exemplo de relação com 'pais' (tabela pai):
                 // entity.HasOne(l => l.Pai) // Propriedade de navegação em Localidade.cs
