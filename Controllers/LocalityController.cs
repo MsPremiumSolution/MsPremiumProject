@@ -21,14 +21,32 @@ namespace MSPremiumProject.Controllers
         }
 
         // GET: Locality
+        // No LocalityController.cs
+
+        // GET: Locality
         public async Task<IActionResult> Index()
         {
-            var localidades = await _context.Localidades
-                                          .Include(l => l.Pais)
-                                          .OrderBy(l => l.Pais.NomePais)
-                                          .ThenBy(l => l.NomeLocalidade)
-                                          .ToListAsync();
-            return View(localidades);
+            _logger.LogInformation("Acedendo à action Index para listar Localidades.");
+            try
+            {
+                var localidades = await _context.Localidades
+                                              .Include(l => l.Pais) // Inclui a entidade Pai para aceder a NomePais
+                                              .OrderBy(l => l.Pais.NomePais) // Ordena primeiro por nome do país
+                                              .ThenBy(l => l.NomeLocalidade) // Depois por nome da localidade
+                                              .ToListAsync();
+
+                _logger.LogInformation("Encontradas {Count} localidades para exibir.", localidades.Count);
+                return View(localidades); // Passa a lista de localidades para a view
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar localidades na action Index.");
+                // Opcional: retornar uma view de erro ou uma lista vazia com uma mensagem de erro
+                // return View("Error", new ErrorViewModel { Message = "Não foi possível carregar as localidades." });
+                // Ou, para simplificar, podes apenas passar uma lista vazia e tratar na view:
+                TempData["MensagemErro"] = "Ocorreu um erro ao tentar carregar a lista de localidades.";
+                return View(new List<Localidade>());
+            }
         }
 
         private async Task PopulatePaisesDropDownList(object? selectedPais = null)
