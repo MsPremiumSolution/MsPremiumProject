@@ -132,6 +132,14 @@ namespace MSPremiumProject.Controllers
                     // A propriedade viewModel.Cliente já deve ter LocalidadeId preenchido.
                     // Não precisamos de definir viewModel.Cliente.LocalidadeNavigation manualmente aqui se não formos usá-la imediatamente.
                     // O EF Core vai ligar a relação usando apenas o LocalidadeId ao salvar.
+                    if (viewModel.Cliente.Observacoes == null)
+                    {
+                        viewModel.Cliente.Observacoes = "";
+                    }
+                    if (viewModel.Cliente.Telefone2 == null)
+                    {
+                        viewModel.Cliente.Telefone2 = "";
+                    }
                     _context.Clientes.Add(viewModel.Cliente);
                     await _context.SaveChangesAsync();
                     _logger.LogInformation("Cliente '{Nome}' (ID: {ClienteId}) criado com sucesso.", viewModel.Cliente.Nome, viewModel.Cliente.ClienteId);
