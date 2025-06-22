@@ -1,14 +1,16 @@
-﻿// File: Controllers/ClienteController.cs
+﻿// File: Controllers/ClientController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging; // Adicionado para ILogger, se não estiver já num using global
 using MSPremiumProject.Data;
-using MSPremiumProject.Models;
-using MSPremiumProject.ViewModels; // Adicionar o using para o ViewModel
+using MSPremiumProject.Models;       // Adicionado para Cliente, Localidade, etc.
+using MSPremiumProject.ViewModels;
+using System;                       // Adicionado para Exception
+using System.Collections.Generic;   // Adicionado para List
 using System.Linq;
-using System.Text.Json; // Para serializar erros do ModelState
+using System.Text.Json;             // Adicionado para JsonSerializer
 using System.Threading.Tasks;
-using System.Collections.Generic; // Para List
 
 namespace MSPremiumProject.Controllers
 {
@@ -23,10 +25,10 @@ namespace MSPremiumProject.Controllers
             _logger = logger;
         }
 
-        // GET: Cliente/Create
+        // GET: Client/Create
         public async Task<IActionResult> Create()
         {
-            _logger.LogInformation("Acedendo a GET Cliente/Create");
+            _logger.LogInformation("Acedendo a GET Client/Create");
             var viewModel = new ClienteCreateViewModel();
 
             try
@@ -44,15 +46,11 @@ namespace MSPremiumProject.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao popular lista de Regiões em GET Cliente/Create.");
+                _logger.LogError(ex, "Erro ao popular lista de Regiões em GET Client/Create.");
                 viewModel.RegioesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Erro ao carregar Regiões --" } };
-                // Opcional: Adicionar um erro ao ModelState para a view
-                // ModelState.AddModelError(string.Empty, "Não foi possível carregar as regiões.");
             }
 
-            // Inicializar a lista de localidades vazia ou com placeholder
             viewModel.LocalidadesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Região Primeiro --" } };
-
             return View(viewModel);
         }
 
@@ -95,38 +93,35 @@ namespace MSPremiumProject.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro em GetLocalidadesPorRegiao para Regiao: {Regiao}", regiao);
-                localidadesList.Clear(); // Limpa em caso de erro
+                localidadesList.Clear();
                 localidadesList.Add(new SelectListItem { Value = "", Text = "-- Erro ao carregar Localidades --" });
             }
             return Json(localidadesList);
         }
 
-        // POST: Cliente/Create
+        // POST: Client/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ClienteCreateViewModel viewModel)
         {
-            _logger.LogInformation("POST Cliente/Create. Cliente: {Nome}, LocalidadeId: {LocalidadeId}, RegiaoSelecionada: {Regiao}",
+            _logger.LogInformation("POST Client/Create. Cliente: {Nome}, LocalidadeId: {LocalidadeId}, RegiaoSelecionada: {Regiao}",
                 viewModel.Cliente.Nome, viewModel.Cliente.LocalidadeId, viewModel.SelectedRegiao);
 
-            // Se LocalidadeId é 0 (ou não selecionado), mas [Required] está no modelo, ModelState já deve ser inválido.
-            // A validação de LocalidadeId > 0 é uma dupla verificação.
             if (viewModel.Cliente.LocalidadeId == 0)
             {
                 ModelState.AddModelError("Cliente.LocalidadeId", "É obrigatório selecionar uma localidade válida.");
             }
 
-            // O EF Core pode tentar validar a propriedade de navegação 'Localidade'
-            // mesmo que estejamos apenas a definir 'LocalidadeId'. Se 'LocalidadeId' for válida,
-            // e 'Localidade' (instância) estiver a causar um erro de validação (ex: "The Localidade field is required.")
-            // podemos remover esse erro específico.
-            if (viewModel.Cliente.LocalidadeId > 0 && ModelState.TryGetValue(nameof(viewModel.Cliente) + "." + nameof(Cliente.LocalidadeId), out var localidadeEntry))
+            // CORRIGIDO AQUI para usar nameof(Models.Cliente.LocalidadeNavigation)
+            // O objetivo é remover o erro de validação da propriedade de NAVEGAÇÃO 'LocalidadeNavigation'
+            // se a CHAVE ESTRANGEIRA 'LocalidadeId' estiver preenchida.
+            if (viewModel.Cliente.LocalidadeId > 0 && ModelState.TryGetValue(nameof(viewModel.Cliente) + "." + nameof(Models.Cliente.LocalidadeNavigation), out var navegacaoLocalidadeEntry))
             {
-                // Verifica se o erro é o específico de required para a instância, não para LocalidadeId
-                if (localidadeEntry.Errors.Any(e => e.ErrorMessage.Contains("field is required")))
+                // Verifica se o erro é o específico de "field is required" para a instância da propriedade de navegação.
+                if (navegacaoLocalidadeEntry.Errors.Any(e => e.ErrorMessage.Contains("field is required"))) // Adapta a string da mensagem de erro se necessário
                 {
-                    _logger.LogInformation("Removendo erro de ModelState para a propriedade de navegação 'Cliente.Localidade' pois Cliente.LocalidadeId ({LocalidadeId}) está preenchido.", viewModel.Cliente.LocalidadeId);
-                    ModelState.Remove(nameof(viewModel.Cliente) + "." + nameof(Cliente.LocalidadeId));
+                    _logger.LogInformation("Removendo erro de ModelState para a propriedade de navegação 'Cliente.LocalidadeNavigation' pois Cliente.LocalidadeId ({LocalidadeId}) está preenchido.", viewModel.Cliente.LocalidadeId);
+                    ModelState.Remove(nameof(viewModel.Cliente) + "." + nameof(Models.Cliente.LocalidadeNavigation));
                 }
             }
 
@@ -134,11 +129,14 @@ namespace MSPremiumProject.Controllers
             {
                 try
                 {
-                    _context.Clientes.Add(viewModel.Cliente); // Adiciona o Cliente do ViewModel
+                    // A propriedade viewModel.Cliente já deve ter LocalidadeId preenchido.
+                    // Não precisamos de definir viewModel.Cliente.LocalidadeNavigation manualmente aqui se não formos usá-la imediatamente.
+                    // O EF Core vai ligar a relação usando apenas o LocalidadeId ao salvar.
+                    _context.Clientes.Add(viewModel.Cliente);
                     await _context.SaveChangesAsync();
                     _logger.LogInformation("Cliente '{Nome}' (ID: {ClienteId}) criado com sucesso.", viewModel.Cliente.Nome, viewModel.Cliente.ClienteId);
                     TempData["MensagemSucesso"] = $"Cliente '{viewModel.Cliente.Nome}' adicionado com sucesso!";
-                    return RedirectToAction(nameof(Create)); // Redireciona para um novo formulário de criação ou para o Index de Clientes
+                    return RedirectToAction(nameof(Create)); // Ou para o Index de Clientes, ou para onde fizer mais sentido
                 }
                 catch (DbUpdateException dbEx)
                 {
@@ -160,8 +158,7 @@ namespace MSPremiumProject.Controllers
                 TempData["MensagemErro"] = "Dados inválidos. Por favor, corrija os erros sinalizados.";
             }
 
-            // Se chegamos aqui, algo falhou (ModelState inválido ou exceção). Repopular dropdowns.
-            // Repopular RegioesList
+            // Se chegamos aqui, algo falhou. Repopular dropdowns.
             try
             {
                 var regioesDb = await _context.Localidades.Select(l => l.Regiao).Where(r => !string.IsNullOrEmpty(r)).Distinct().OrderBy(r => r).ToListAsync();
@@ -170,12 +167,10 @@ namespace MSPremiumProject.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao REpopular lista de Regiões em POST Cliente/Create.");
+                _logger.LogError(ex, "Erro ao REpopular lista de Regiões em POST Client/Create.");
                 viewModel.RegioesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Erro ao carregar Regiões --" } };
             }
 
-
-            // Repopular LocalidadesList com base na SelectedRegiao que o utilizador tinha submetido (se houver)
             if (!string.IsNullOrEmpty(viewModel.SelectedRegiao))
             {
                 try
@@ -185,13 +180,26 @@ namespace MSPremiumProject.Controllers
                                                 .OrderBy(l => l.NomeLocalidade)
                                                 .Select(l => new SelectListItem { Value = l.LocalidadeId.ToString(), Text = l.NomeLocalidade })
                                                 .ToListAsync();
-                    var localidadesParaDropdown = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Localidade --" } };
-                    localidadesParaDropdown.AddRange(localidadesDb);
+                    // Preserva o valor selecionado de LocalidadeId se possível
+                    var selectedLocalidadeId = viewModel.Cliente.LocalidadeId.ToString();
+
+                    var localidadesParaDropdown = new List<SelectListItem>();
+                    localidadesParaDropdown.Add(new SelectListItem { Value = "", Text = "-- Selecione uma Localidade --" });
+
+                    foreach (var loc in localidadesDb)
+                    {
+                        localidadesParaDropdown.Add(new SelectListItem
+                        {
+                            Value = loc.Value,
+                            Text = loc.Text,
+                            Selected = loc.Value == selectedLocalidadeId
+                        });
+                    }
                     viewModel.LocalidadesList = localidadesParaDropdown;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Erro ao REpopular lista de Localidades em POST Cliente/Create para Regiao: {Regiao}", viewModel.SelectedRegiao);
+                    _logger.LogError(ex, "Erro ao REpopular lista de Localidades em POST Client/Create para Regiao: {Regiao}", viewModel.SelectedRegiao);
                     viewModel.LocalidadesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Erro ao carregar Localidades --" } };
                 }
             }
