@@ -168,7 +168,7 @@
                 if (selectedRegiao) {
                     localidadeDropdown.append($('<option></option>').val('').text('-- A Carregar Localidades... --'));
                     $.ajax({
-                        url: '@Url.Action("GetLocalidadesPorRegiao", "Cliente")',
+                        url: '@Url.Action("GetLocalidadesPorRegiao", "Client")',
                         type: 'GET',
                         dataType: 'json',
                         data: { regiao: selectedRegiao },
