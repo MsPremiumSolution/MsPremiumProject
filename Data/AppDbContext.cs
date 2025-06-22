@@ -49,7 +49,7 @@ namespace MSPremiumProject.Data
 
             modelBuilder.Entity<Cliente>(entity =>
             {
-                entity.ToTable("cliente"); // Nome da tabela no BD
+                entity.ToTable("Clientes"); // Nome da tabela no BD
                 // Configure .HasKey(), .Property() e relações
             });
 
