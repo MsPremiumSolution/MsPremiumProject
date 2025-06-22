@@ -25,6 +25,11 @@ namespace MSPremiumProject.Controllers
             return View();
         }
 
+        public IActionResult ClientPainel()
+        {
+            return View("~/Views/Client/ClientPainel.cshtml");
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

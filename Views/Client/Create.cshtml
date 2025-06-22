@@ -1,0 +1,221 @@
+﻿@model MSPremiumProject.ViewModels.ClienteCreateViewModel
+
+@{
+    ViewData["Title"] = "Criar Novo Cliente";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Certifica-te que este é o teu layout principal
+}
+
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">@ViewData["Title"]</h3>
+                </div>
+                <div class="card-body p-4">
+
+                    @* Exibição de mensagens globais *@
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty] != null)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <h5 class="alert-heading">Erros no Formulário:</h5>
+                            <div asp-validation-summary="ModelOnly" class="mb-0"></div>
+                        </div>
+                    }
+                    @if (TempData["MensagemSucesso"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["MensagemSucesso"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+                    @if (TempData["MensagemErro"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["MensagemErro"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Create" asp-controller="Cliente" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <fieldset class="mb-4">
+                            <legend class="h5 mb-3 border-bottom pb-2">Dados Pessoais</legend>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Nome" class="form-label"></label>
+                                    <input asp-for="Cliente.Nome" class="form-control" />
+                                    <span asp-validation-for="Cliente.Nome" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Apelido" class="form-label"></label>
+                                    <input asp-for="Cliente.Apelido" class="form-control" />
+                                    <span asp-validation-for="Cliente.Apelido" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <label asp-for="Cliente.Email" class="form-label"></label>
+                                <input asp-for="Cliente.Email" class="form-control" type="email" />
+                                <span asp-validation-for="Cliente.Email" class="text-danger"></span>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Telefone1" class="form-label"></label>
+                                    <input asp-for="Cliente.Telefone1" class="form-control" />
+                                    <span asp-validation-for="Cliente.Telefone1" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Telefone2" class="form-label"></label>
+                                    <input asp-for="Cliente.Telefone2" class="form-control" />
+                                    <span asp-validation-for="Cliente.Telefone2" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.NumeroFiscal" class="form-label"></label>
+                                    <input asp-for="Cliente.NumeroFiscal" class="form-control" />
+                                    <span asp-validation-for="Cliente.NumeroFiscal" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Dtnascimento" class="form-label"></label>
+                                    <input asp-for="Cliente.Dtnascimento" class="form-control" type="date" />
+                                    <span asp-validation-for="Cliente.Dtnascimento" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="mb-4">
+                            <legend class="h5 mb-3 border-bottom pb-2">Morada</legend>
+                            <div>
+                                <label asp-for="Cliente.Morada" class="form-label"></label>
+                                <input asp-for="Cliente.Morada" class="form-control" />
+                                <span asp-validation-for="Cliente.Morada" class="text-danger"></span>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-5">
+                                    <label asp-for="SelectedRegiao" class="form-label"></label>
+                                    <select asp-for="SelectedRegiao" asp-items="Model.RegioesList" class="form-select" id="regiaoDropdown">
+                                        @* Opção default é carregada do Controller ou via JavaScript *@
+                                    </select>
+                                    @* Não é necessária validação para SelectedRegiao, pois é um controlo de UI *@
+                                </div>
+                                <div class="col-md-7">
+                                    <label asp-for="Cliente.LocalidadeId" class="form-label">Localidade</label>
+                                    <select asp-for="Cliente.LocalidadeId" asp-items="Model.LocalidadesList" class="form-select" id="localidadeDropdown">
+                                        @* Populado via AJAX *@
+                                    </select>
+                                    <span asp-validation-for="Cliente.LocalidadeId" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-4">
+                                    <label asp-for="Cliente.Cp4" class="form-label"></label>
+                                    <input asp-for="Cliente.Cp4" class="form-control" placeholder="Ex: 1234" />
+                                    <span asp-validation-for="Cliente.Cp4" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label asp-for="Cliente.Cp3" class="form-label"></label>
+                                    <input asp-for="Cliente.Cp3" class="form-control" placeholder="Ex: 567" />
+                                    <span asp-validation-for="Cliente.Cp3" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="mb-4">
+                            <legend class="h5 mb-3 border-bottom pb-2">Outras Informações</legend>
+                            <div>
+                                <label asp-for="Cliente.Observacoes" class="form-label"></label>
+                                <textarea asp-for="Cliente.Observacoes" class="form-control" rows="3"></textarea>
+                                <span asp-validation-for="Cliente.Observacoes" class="text-danger"></span>
+                            </div>
+                        </fieldset>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save me-2"></i> Guardar Cliente
+                            </button>
+                            <a asp-action="Index" asp-controller="Cliente" class="btn btn-outline-secondary">
+                                <i class="bi bi-list-ul me-2"></i> Voltar à Lista
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+            var localidadeDropdown = $('#localidadeDropdown');
+            var regiaoDropdown = $('#regiaoDropdown');
+
+            // Função para atualizar o dropdown de localidades
+            function updateLocalidades(selectedRegiao) {
+                localidadeDropdown.empty(); // Limpa opções existentes
+                localidadeDropdown.prop('disabled', true); // Desabilita enquanto carrega
+
+                if (selectedRegiao) {
+                    localidadeDropdown.append($('<option></option>').val('').text('-- A Carregar Localidades... --'));
+                    $.ajax({
+                        url: '@Url.Action("GetLocalidadesPorRegiao", "Cliente")',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: { regiao: selectedRegiao },
+                        success: function (data) {
+                            localidadeDropdown.empty(); // Limpa a mensagem "A Carregar..."
+                            if (data && data.length > 0) {
+                                // A primeira opção (ex: "-- Selecione uma Localidade --") já virá do controller
+                                $.each(data, function (index, item) {
+                                    localidadeDropdown.append($('<option></option>').val(item.value).text(item.text));
+                                });
+                            } else {
+                                // Isto não deveria acontecer se o controller sempre retorna pelo menos um placeholder
+                                localidadeDropdown.append($('<option></option>').val('').text('-- Nenhuma localidade encontrada --'));
+                            }
+                            localidadeDropdown.prop('disabled', false); // Reabilita
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Erro ao buscar localidades: ", status, error, xhr.responseText);
+                            localidadeDropdown.empty();
+                            localidadeDropdown.append($('<option></option>').val('').text('-- Erro ao carregar localidades --'));
+                            localidadeDropdown.prop('disabled', false);
+                        }
+                    });
+                } else {
+                    // Se nenhuma região for selecionada, reseta o dropdown de localidades
+                    localidadeDropdown.append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --'));
+                    localidadeDropdown.prop('disabled', true);
+                }
+            }
+
+            // Evento de mudança no dropdown de regiões
+            regiaoDropdown.on('change', function () {
+                var selectedRegiao = $(this).val();
+                updateLocalidades(selectedRegiao);
+            });
+
+            // Ao carregar a página, se uma região já estiver selecionada (ex: ao voltar de um erro de validação),
+            // dispara o evento 'change' para carregar as localidades correspondentes.
+            var initialRegiao = regiaoDropdown.val();
+            if (initialRegiao) {
+                 // Pequeno delay para garantir que o DOM está pronto, se necessário, mas geralmente não é.
+                 // updateLocalidades(initialRegiao); // Chamada direta também funciona
+                 regiaoDropdown.trigger('change');
+            } else {
+                // Garante que o dropdown de localidades está no estado inicial correto se nenhuma região estiver selecionada
+                localidadeDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --')).prop('disabled', true);
+            }
+        });
+    </script>
+}
