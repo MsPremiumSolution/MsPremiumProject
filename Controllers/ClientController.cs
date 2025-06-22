@@ -12,12 +12,12 @@ using System.Collections.Generic; // Para List
 
 namespace MSPremiumProject.Controllers
 {
-    public class ClienteController : Controller
+    public class ClientController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly ILogger<ClienteController> _logger;
+        private readonly ILogger<ClientController> _logger;
 
-        public ClienteController(AppDbContext context, ILogger<ClienteController> logger)
+        public ClientController(AppDbContext context, ILogger<ClientController> logger)
         {
             _context = context;
             _logger = logger;
