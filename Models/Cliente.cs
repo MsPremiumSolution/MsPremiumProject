@@ -7,14 +7,14 @@ using MSPremiumProject.Utils;
 using MSPremiumProject.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
-
+using System.Runtime.Intrinsics.X86;
 namespace MSPremiumProject.Models
 {
     public partial class Cliente : IValidatableObject
     {
         [Key]
         public ulong ClienteId { get; set; }
-
+       
         [Required(ErrorMessage = "O nome é obrigatório.")]
         [StringLength(100, ErrorMessage = "O nome não pode exceder 100 caracteres.")]
         [Display(Name = "Nome")]
@@ -112,5 +112,6 @@ namespace MSPremiumProject.Models
             }
             return results;
         }
-    }
 }
+
+    }

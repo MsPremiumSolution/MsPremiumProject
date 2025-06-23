@@ -1,10 +1,8 @@
 ﻿@model MSPremiumProject.ViewModels.ClienteCreateViewModel
-
 @{
     ViewData["Title"] = "Editar Cliente"; // <<< TÍTULO ALTERADO
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
 <div class="container mt-4 mb-5">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
@@ -14,7 +12,7 @@
                     <h3 class="mb-0">@ViewData["Title"]: @Model.Cliente.Nome @Model.Cliente.Apelido</h3> @* Mostrar nome do cliente *@
                 </div>
                 <div class="card-body p-4">
-
+                    
                     @* Mensagens TempData e Validação (igual ao Create.cshtml) *@
                     @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty] != null)
                     {
@@ -154,8 +152,8 @@
             </div>
         </div>
     </div>
+    Use code with caution.
 </div>
-
 @* O SCRIPT JAVASCRIPT É EXATAMENTE O MESMO DA CREATE.CSHTML *@
 @section Scripts {
     @{
@@ -163,61 +161,62 @@
     }
     <script>
         $(document).ready(function () {
-            var localidadeDropdown = $('#localidadeDropdown');
-            var regiaoDropdown = $('#regiaoDropdown');
-
-            function updateLocalidades(selectedRegiao) {
-                localidadeDropdown.empty();
-                localidadeDropdown.prop('disabled', true);
-
-                if (selectedRegiao) {
-                    localidadeDropdown.append($('<option></option>').val('').text('-- A Carregar Localidades... --'));
-                    $.ajax({
-                        url: '@Url.Action("GetLocalidadesPorRegiao", "Client")',
-                        type: 'GET',
-                        dataType: 'json',
-                        data: { regiao: selectedRegiao },
-                        success: function (data) {
-                            localidadeDropdown.empty();
-                            if (data && data.length > 0) {
-                                var clienteLocalidadeId = "@Model.Cliente.LocalidadeId"; // Para pré-selecionar
-                                $.each(data, function (index, item) {
-                                    var option = $('<option></option>').val(item.value).text(item.text);
-                                    if(item.value == clienteLocalidadeId && selectedRegiao == "@Model.SelectedRegiao") { // Só pré-seleciona se a região também for a do cliente
-                                        option.prop('selected', true);
-                                    }
-                                    localidadeDropdown.append(option);
-                                });
-                            } else {
-                                localidadeDropdown.append($('<option></option>').val('').text('-- Nenhuma localidade encontrada --'));
-                            }
-                            localidadeDropdown.prop('disabled', false);
-                        },
-                        error: function (xhr, status, error) {
-                            console.error("Erro ao buscar localidades: ", status, error, xhr.responseText);
-                            localidadeDropdown.empty();
-                            localidadeDropdown.append($('<option></option>').val('').text('-- Erro ao carregar localidades --'));
-                            localidadeDropdown.prop('disabled', false);
-                        }
-                    });
-                } else {
-                    localidadeDropdown.append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --'));
+        var localidadeDropdown = $('#localidadeDropdown');
+        var regiaoDropdown = $('#regiaoDropdown');
+        Generated code
+        function updateLocalidades(selectedRegiao) {
+                    localidadeDropdown.empty();
                     localidadeDropdown.prop('disabled', true);
+
+                    if (selectedRegiao) {
+                        localidadeDropdown.append($('<option></option>').val('').text('-- A Carregar Localidades... --'));
+                        $.ajax({
+                            url: '@Url.Action("GetLocalidadesPorRegiao", "Client")',
+                            type: 'GET',
+                            dataType: 'json',
+                            data: { regiao: selectedRegiao },
+                            success: function (data) {
+                                localidadeDropdown.empty();
+                                if (data && data.length > 0) {
+                                    var clienteLocalidadeId = "@Model.Cliente.LocalidadeId"; // Para pré-selecionar
+                                    $.each(data, function (index, item) {
+                                        var option = $('<option></option>').val(item.value).text(item.text);
+                                        if(item.value == clienteLocalidadeId && selectedRegiao == "@Model.SelectedRegiao") { // Só pré-seleciona se a região também for a do cliente
+                                            option.prop('selected', true);
+                                        }
+                                        localidadeDropdown.append(option);
+                                    });
+                                } else {
+                                    localidadeDropdown.append($('<option></option>').val('').text('-- Nenhuma localidade encontrada --'));
+                                }
+                                localidadeDropdown.prop('disabled', false);
+                            },
+                            error: function (xhr, status, error) {
+                                console.error("Erro ao buscar localidades: ", status, error, xhr.responseText);
+                                localidadeDropdown.empty();
+                                localidadeDropdown.append($('<option></option>').val('').text('-- Erro ao carregar localidades --'));
+                                localidadeDropdown.prop('disabled', false);
+                            }
+                        });
+                    } else {
+                        localidadeDropdown.append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --'));
+                        localidadeDropdown.prop('disabled', true);
+                    }
                 }
-            }
 
-            regiaoDropdown.on('change', function () {
-                var selectedRegiao = $(this).val();
-                updateLocalidades(selectedRegiao);
+                regiaoDropdown.on('change', function () {
+                    var selectedRegiao = $(this).val();
+                    updateLocalidades(selectedRegiao);
+                });
+
+                var initialRegiao = "@Model.SelectedRegiao"; // Usa o valor do ViewModel
+                if (initialRegiao) {
+                     regiaoDropdown.val(initialRegiao); // Define o valor do dropdown de região
+                     updateLocalidades(initialRegiao); // Dispara o carregamento das localidades
+                } else {
+                    localidadeDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --')).prop('disabled', true);
+                }
             });
-
-            var initialRegiao = "@Model.SelectedRegiao"; // Usa o valor do ViewModel
-            if (initialRegiao) {
-                 regiaoDropdown.val(initialRegiao); // Define o valor do dropdown de região
-                 updateLocalidades(initialRegiao); // Dispara o carregamento das localidades
-            } else {
-                localidadeDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --')).prop('disabled', true);
-            }
-        });
     </script>
+    
 }

@@ -9,17 +9,17 @@ using MSPremiumProject.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Intrinsics.X86;
 using System.Text.Json;
 using System.Threading.Tasks;
-
 namespace MSPremiumProject.Controllers
 {
     public class ClientController : Controller
     {
         private readonly AppDbContext _context;
         private readonly ILogger<ClientController> _logger;
-
-        public ClientController(AppDbContext context, ILogger<ClientController> logger)
+       
+    public ClientController(AppDbContext context, ILogger<ClientController> logger)
         {
             _context = context;
             _logger = logger;
@@ -434,5 +434,6 @@ namespace MSPremiumProject.Controllers
         {
             return await _context.Clientes.AnyAsync(e => e.ClienteId == id);
         }
-    }
 }
+
+    }

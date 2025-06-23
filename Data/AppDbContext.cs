@@ -1,15 +1,16 @@
 ﻿// File: Data/AppDbContext.cs
 using Microsoft.EntityFrameworkCore;
 using MSPremiumProject.Models;
-
+using System.Runtime.Intrinsics.X86;
+using System;
 namespace MSPremiumProject.Data
 {
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options)
-            : base(options) { }
-
-        public DbSet<Calculovolume> Calculovolumes { get; set; }
+        : base(options) { }
+        
+    public DbSet<Calculovolume> Calculovolumes { get; set; }
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Construtivo> Construtivos { get; set; }
         public DbSet<Dadosgeral> Dadosgerals { get; set; }
@@ -42,45 +43,45 @@ namespace MSPremiumProject.Data
             modelBuilder.Entity<Calculovolume>(entity =>
             {
                 entity.ToTable("calculovolume"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações conforme necessário
-                // Ex: entity.HasKey(e => e.CalculoVolumeId);
-                //     entity.Property(e => e.CalculoVolumeId).HasColumnName("CalculoVolumeID"); // Se o nome da coluna for diferente
+                                                 // Configure .HasKey(), .Property() e relações conforme necessário
+                                                 // Ex: entity.HasKey(e => e.CalculoVolumeId);
+                                                 //     entity.Property(e => e.CalculoVolumeId).HasColumnName("CalculoVolumeID"); // Se o nome da coluna for diferente
             });
 
             modelBuilder.Entity<Cliente>(entity =>
             {
                 entity.ToTable("Clientes"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                            // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Construtivo>(entity =>
             {
                 entity.ToTable("construtivo"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                               // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Dadosgeral>(entity =>
             {
                 entity.ToTable("dadosgeral"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                              // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Higrometrium>(entity => // Classe C# é Higrometrium
             {
                 entity.ToTable("higrometria"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                               // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Localidade>(entity =>
             {
                 entity.ToTable("Localidades"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
-                // Exemplo de relação com 'pais' (tabela pai):
-                // entity.HasOne(l => l.Pai) // Propriedade de navegação em Localidade.cs
-                //       .WithMany(p => p.Localidades) // Coleção em Pai.cs
-                //       .HasForeignKey(l => l.PaisId) // FK em Localidade.cs
-                //       .HasPrincipalKey(p => p.PaisId) // PK em Pai.cs
-                //       .OnDelete(DeleteBehavior.Restrict); // Ou o que for apropriado
+                                               // Configure .HasKey(), .Property() e relações
+                                               // Exemplo de relação com 'pais' (tabela pai):
+                                               // entity.HasOne(l => l.Pai) // Propriedade de navegação em Localidade.cs
+                                               //       .WithMany(p => p.Localidades) // Coleção em Pai.cs
+                                               //       .HasForeignKey(l => l.PaisId) // FK em Localidade.cs
+                                               //       .HasPrincipalKey(p => p.PaisId) // PK em Pai.cs
+                                               //       .OnDelete(DeleteBehavior.Restrict); // Ou o que for apropriado
             });
 
             modelBuilder.Entity<Pai>(entity => // Classe C# é Pai
@@ -99,13 +100,13 @@ namespace MSPremiumProject.Data
             modelBuilder.Entity<Propostum>(entity => // Classe C# é Propostum
             {
                 entity.ToTable("proposta"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                            // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Qualidadear>(entity =>
             {
                 entity.ToTable("qualidadear"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                               // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Role>(entity =>
@@ -120,24 +121,24 @@ namespace MSPremiumProject.Data
             modelBuilder.Entity<Sintoma>(entity =>
             {
                 entity.ToTable("sintoma"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                           // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Tipojanela>(entity =>
             {
                 entity.ToTable("tipojanela"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                              // Configure .HasKey(), .Property() e relações
             });
             modelBuilder.Entity<Tipoobra>(entity =>
             {
                 entity.ToTable("tipoobra"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                            // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Tipotratamento>(entity =>
             {
                 entity.ToTable("tipotratamento"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                                  // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<Utilizador>(entity =>
@@ -164,7 +165,7 @@ namespace MSPremiumProject.Data
             modelBuilder.Entity<Volume>(entity =>
             {
                 entity.ToTable("volume"); // Nome da tabela no BD
-                // Configure .HasKey(), .Property() e relações
+                                          // Configure .HasKey(), .Property() e relações
             });
 
             modelBuilder.Entity<PasswordResetToken>(entity =>
@@ -186,5 +187,6 @@ namespace MSPremiumProject.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }
-    }
 }
+
+    }
