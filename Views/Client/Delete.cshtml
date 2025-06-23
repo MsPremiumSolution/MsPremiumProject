@@ -1,0 +1,21 @@
+﻿@model MSPremiumProject.Models.Cliente
+@{
+    ViewData["Title"] = "Apagar Cliente";
+}
+<h1>@ViewData["Title"]</h1>
+<h3>Tem a certeza que quer apagar este cliente?</h3>
+<div>
+    <h4>@Html.DisplayFor(model => model.Nome) @Html.DisplayFor(model => model.Apelido)</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">Email</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.Email)</dd>
+        @* Adiciona outros campos para confirmação *@
+    </dl>
+    <form asp-action="Delete" asp-route-id="@Model.ClienteId" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ClienteId" /> @* Importante para o POST DeleteConfirmed *@
+        <button type="submit" class="btn btn-danger">Apagar</button> |
+        <a asp-action="Index">Cancelar</a>
+    </form>
+</div>

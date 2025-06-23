@@ -1,23 +1,23 @@
-﻿@model IEnumerable<MSPremiumProject.Models.Utilizador>
+﻿@model IEnumerable<MSPremiumProject.Models.Cliente>
 
 @{
-    ViewData["Title"] = "Lista de Utilizadores";
+    ViewData["Title"] = "Lista de Clientes";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>@ViewData["Title"]</h1>
-        <a asp-controller="Users" asp-action="Create" class="btn btn-primary">   @*por mudar, adicionar, novo cliente, falta a ação*@
-            <i class="bi bi-plus-circle me-2"></i> Adicionar Novo Utilizador 
+        <a asp-controller="Client" asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-person-plus-fill me-2"></i> Adicionar Novo Cliente
         </a>
     </div>
 
     @* Mensagens TempData *@
-    @if (TempData["Mensagem"] != null)
+    @if (TempData["MensagemSucesso"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["Mensagem"]
+            @TempData["MensagemSucesso"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
@@ -29,26 +29,27 @@
         </div>
     }
 
-
     @if (!Model.Any())
     {
         <div class="alert alert-info text-center" role="alert">
-            Nenhum Cliente encontrado.
+            Nenhum cliente encontrado. <a asp-action="Create" asp-controller="Client" class="alert-link">Adicione o primeiro!</a>
         </div>
     }
     else
     {
         <div class="card shadow-sm rounded-3">
-            <div class="card-body">
+            <div class="card-body p-0">
+                @* p-0 para remover padding se a tabela preenche tudo *@
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover table-striped mb-0">
+                        @* mb-0 para remover margem inferior *@
                         <thead class="table-light">
                             <tr>
-                                <th>Nome</th>
-                                <th>Login</th>
-                                <th>Role</th>
-                                <th>Data Nasc.</th>
-                                <th class="text-center">Activo</th>
+                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Nome)</th>
+                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Apelido)</th>
+                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Email)</th>
+                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Telefone1)</th>
+                                <th>Localidade</th> @* Label manual pois vem da navegação *@
                                 <th class="text-end">Ações</th>
                             </tr>
                         </thead>
@@ -57,45 +58,25 @@
                             {
                                 <tr>
                                     <td>@Html.DisplayFor(modelItem => item.Nome)</td>
-                                    <td>@Html.DisplayFor(modelItem => item.Login)</td>
-                                    <td>@(item.Role != null ? Html.DisplayFor(modelItem => item.Role.Nome) : "N/A")</td>
-                                    <td>@item.Dtnascimento.ToString("dd/MM/yyyy")</td>
-                                    <td class="text-center">
-                                        @if (item.Activo)
-                                        {
-                                            <span class="badge bg-success">Sim</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger">Não</span>
-                                        }
+                                    <td>@Html.DisplayFor(modelItem => item.Apelido)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.Email)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.Telefone1)</td>
+                                    <td>
+                                        @* Ajusta item.LocalidadeNavigation para item.Localidade se renomeaste a prop de navegação *@
+                                        @(item.LocalidadeNavigation != null ? Html.DisplayFor(modelItem => item.LocalidadeNavigation.NomeLocalidade) : "N/A")
+                                        @* Opcional: Para mostrar o país também *@
+                                        @* @(item.LocalidadeNavigation?.Pais != null ? " (" + item.LocalidadeNavigation.Pais.NomePais + ")" : "") *@
                                     </td>
                                     <td class="text-end">
-                                        @* Formulário para alternar o estado Activo *@
-                                        <form asp-controller="Users" asp-action="ToggleUserStatus" asp-route-id="@item.UtilizadorId" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            @if (item.Activo)
-                                            {
-                                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Desativar Utilizador"
-                                                        onclick="return confirm('Tem a certeza que quer desativar este utilizador?');">
-                                                    <i class="bi bi-person-fill-slash"></i> Desativar
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Ativar Utilizador"
-                                                        onclick="return confirm('Tem a certeza que quer ativar este utilizador?');">
-                                                    <i class="bi bi-person-fill-check"></i> Ativar
-                                                </button>
-                                            }
-                                        </form>
-
-                                        @* Link para Hard Delete (se implementado e desejado) *@
-                                        @*      <a asp-controller="Users" asp-action="HardDelete" asp-route-id="@item.UtilizadorId"
-                                           class="btn btn-sm btn-danger ms-1" title="Apagar Permanentemente"
-                                           onclick="return confirm('APAGAR PERMANENTEMENTE! Esta ação não pode ser desfeita. Tem a certeza absoluta?');">
-                                            <i class="bi bi-trash-fill"></i>
-                                        </a>  *@
+                                        <a asp-controller="Client" asp-action="Edit" asp-route-id="@item.ClienteId" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a asp-controller="Client" asp-action="Details" asp-route-id="@item.ClienteId" class="btn btn-sm btn-outline-info me-1" title="Detalhes">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </a>
+                                        <a asp-controller="Client" asp-action="Delete" asp-route-id="@item.ClienteId" class="btn btn-sm btn-outline-danger" title="Apagar">
+                                            <i class="bi bi-trash3-fill"></i>
+                                        </a>
                                     </td>
                                 </tr>
                             }

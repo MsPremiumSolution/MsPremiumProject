@@ -1,0 +1,25 @@
+﻿@model MSPremiumProject.Models.Cliente
+@{
+    ViewData["Title"] = "Detalhes do Cliente";
+}
+<h1>@ViewData["Title"]</h1>
+<div>
+    <h4>@Html.DisplayFor(model => model.Nome) @Html.DisplayFor(model => model.Apelido)</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">Email</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.Email)</dd>
+        <dt class="col-sm-3">Morada</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.Morada)</dd>
+        <dt class="col-sm-3">Localidade</dt>
+        <dd class="col-sm-9">
+            @(Model.LocalidadeNavigation != null ? Model.LocalidadeNavigation.NomeLocalidade : "N/A")
+            @(Model.LocalidadeNavigation?.Pais != null ? " (" + Model.LocalidadeNavigation.Pais.NomePais + ")" : "")
+        </dd>
+        @* Adiciona outros campos aqui *@
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.ClienteId" class="btn btn-primary">Editar</a> |
+    <a asp-action="Index">Voltar à Lista</a>
+</div>
