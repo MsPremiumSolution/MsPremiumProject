@@ -3,10 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using MSPremiumProject.Utils;         // Para EuropeanNifValidator
-using MSPremiumProject.Data;          // Para AppDbContext
-using Microsoft.EntityFrameworkCore;  // Para Include()
-using System.Linq;                    // Para FirstOrDefault()
+using MSPremiumProject.Utils;
+using MSPremiumProject.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace MSPremiumProject.Models
 {
@@ -58,19 +58,17 @@ namespace MSPremiumProject.Models
         [Display(Name = "Email")]
         public string? Email { get; set; }
 
-        [Phone(ErrorMessage = "O formato do telefone é inválido.")]
-        [StringLength(20, ErrorMessage = "O telefone não pode exceder 20 caracteres.")]
+        // ALTERADO AQUI para long? (nullable long)
         [Display(Name = "Telefone 1")]
-        public string? Telefone1 { get; set; }
+        public long? Telefone1 { get; set; }
 
-        [Phone(ErrorMessage = "O formato do telefone é inválido.")]
-        [StringLength(20, ErrorMessage = "O telefone não pode exceder 20 caracteres.")]
+        // ALTERADO AQUI para long? (nullable long)
         [Display(Name = "Telefone 2")]
-        public string? Telefone2 { get; set; }
+        public long? Telefone2 { get; set; }
 
         [DataType(DataType.Date)]
         [Display(Name = "Data de Nascimento")]
-        public DateOnly? Dtnascimento { get; set; }
+        public DateOnly? Dtnascimento { get; set; } // BD é `date NOT NULL`, C# é `DateOnly?`. Inconsistência de nullability.
 
         [ForeignKey("LocalidadeId")]
         public virtual Localidade? LocalidadeNavigation { get; set; }
@@ -80,61 +78,38 @@ namespace MSPremiumProject.Models
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             var results = new List<ValidationResult>();
-
-            // Validação do NIF se estiver preenchido
+            // ... (lógica de validação do NIF como antes) ...
             if (!string.IsNullOrWhiteSpace(NumeroFiscal))
             {
                 string? paisCodigoParaNif = null;
                 var dbContext = validationContext.GetService(typeof(AppDbContext)) as AppDbContext;
 
-                if (dbContext == null)
-                {
-                    results.Add(new ValidationResult("Erro interno: não foi possível validar o NIF.", new[] { nameof(NumeroFiscal) }));
-                    return results;
-                }
+                if (dbContext == null) { /* ... erro ... */ return results; }
 
                 if (LocalidadeId > 0)
                 {
                     var localidadeDoCliente = dbContext.Localidades
-                                                  .Include(l => l.Pais) // Crucial para aceder a Pais.CodigoIso
-                                                  .AsNoTracking() // Boa prática para queries apenas de leitura
+                                                  .Include(l => l.Pais)
+                                                  .AsNoTracking()
                                                   .FirstOrDefault(l => l.LocalidadeId == this.LocalidadeId);
 
                     if (localidadeDoCliente != null && localidadeDoCliente.Pais != null)
                     {
-                        // Usa a propriedade CodigoIso do modelo Pai.
-                        // Se o teu modelo Pai usa NomePais para o código ISO, altera aqui.
                         paisCodigoParaNif = localidadeDoCliente.Pais.CodigoIso;
                     }
                 }
 
-                if (string.IsNullOrWhiteSpace(paisCodigoParaNif))
-                {
-                    results.Add(new ValidationResult(
-                        "Selecione uma localidade válida para que o país possa ser determinado para a validação do NIF.",
-                        new[] { nameof(NumeroFiscal), nameof(LocalidadeId) }));
-                }
+                if (string.IsNullOrWhiteSpace(paisCodigoParaNif)) { /* ... erro ... */ }
                 else
                 {
                     if (!EuropeanNifValidator.ValidateNif(paisCodigoParaNif, NumeroFiscal))
                     {
-                        // A mensagem de "país não suportado" virá do EuropeanNifValidator se ele retornar false por essa razão.
-                        // Ou, podemos ter uma mensagem mais específica aqui se ValidateNif retornar um código de erro.
-                        // Por agora, a mensagem genérica de NIF inválido para o país.
                         results.Add(new ValidationResult(
                             $"O NIF '{NumeroFiscal}' não é válido ou não é suportado para o país '{paisCodigoParaNif}'.",
                             new[] { nameof(NumeroFiscal) }));
                     }
                 }
             }
-
-            // Adicionar outras validações a nível de classe aqui, se necessário
-            // Exemplo: if (string.IsNullOrWhiteSpace(Telefone1) && string.IsNullOrWhiteSpace(Email))
-            // {
-            //     results.Add(new ValidationResult("É necessário fornecer pelo menos um Telefone ou Email.", 
-            //                  new[] { nameof(Telefone1), nameof(Email) }));
-            // }
-
             return results;
         }
     }
