@@ -46,9 +46,9 @@ namespace MSPremiumProject.Models
         public string? Email { get; set; } // Permitir nulo
 
         // Considerar string para telefones para flexibilidade de formato (+, espaços, etc.)
-        public string? Telefone1 { get; set; } // Se Telefone1 é long, não pode ser null por defeito. Se for opcional, use long? ou string?
+        public long? Telefone1 { get; set; } // Se Telefone1 é long, não pode ser null por defeito. Se for opcional, use long? ou string?
 
-        public string? Telefone2 { get; set; } = ""; // Idem para Telefone2
+        public long? Telefone2 { get; set; }  // Idem para Telefone2
 
         // DateOnly é bom, mas DateTime? é mais universalmente suportado por ORMs/BDs se houver problemas.
         // Se for obrigatório, use DateOnly. Se opcional, DateOnly?
