@@ -1,0 +1,223 @@
+﻿@model MSPremiumProject.ViewModels.ClienteCreateViewModel
+
+@{
+    ViewData["Title"] = "Editar Cliente"; // <<< TÍTULO ALTERADO
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    @* <<< COR ALTERADA (OPCIONAL) *@
+                    <h3 class="mb-0">@ViewData["Title"]: @Model.Cliente.Nome @Model.Cliente.Apelido</h3> @* Mostrar nome do cliente *@
+                </div>
+                <div class="card-body p-4">
+
+                    @* Mensagens TempData e Validação (igual ao Create.cshtml) *@
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty] != null)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <h5 class="alert-heading">Erros no Formulário:</h5>
+                            <div asp-validation-summary="ModelOnly" class="mb-0"></div>
+                        </div>
+                    }
+                    @if (TempData["MensagemSucesso"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["MensagemSucesso"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+                    @if (TempData["MensagemErro"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["MensagemErro"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @* Certifica-te que ClienteId é passado para a action Edit POST *@
+                    <form asp-action="Edit" asp-controller="Client" asp-route-id="@Model.Cliente.ClienteId" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Cliente.ClienteId" /> @* Importante para o binding no POST *@
+
+                        <fieldset class="mb-4">
+                            <legend class="h5 mb-3 border-bottom pb-2">Dados Pessoais</legend>
+                            @* Campos Nome, Apelido, Email, Telefones, NIF, DtNascimento - IGUAIS AO CREATE.CSHTML *@
+                            @* Exemplo para Nome: *@
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Nome" class="form-label"></label>
+                                    <input asp-for="Cliente.Nome" class="form-control" />
+                                    <span asp-validation-for="Cliente.Nome" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Apelido" class="form-label"></label>
+                                    <input asp-for="Cliente.Apelido" class="form-control" />
+                                    <span asp-validation-for="Cliente.Apelido" class="text-danger"></span>
+                                </div>
+                            </div>
+                            @* ... Repetir para os outros campos de Dados Pessoais como no Create.cshtml ... *@
+                            <div class="mt-3">
+                                <label asp-for="Cliente.Email" class="form-label"></label>
+                                <input asp-for="Cliente.Email" class="form-control" type="email" />
+                                <span asp-validation-for="Cliente.Email" class="text-danger"></span>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Telefone1" class="form-label"></label>
+                                    <input asp-for="Cliente.Telefone1" class="form-control" type="number" />
+                                    <span asp-validation-for="Cliente.Telefone1" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Telefone2" class="form-label"></label>
+                                    <input asp-for="Cliente.Telefone2" class="form-control" type="number" />
+                                    <span asp-validation-for="Cliente.Telefone2" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.NumeroFiscal" class="form-label"></label>
+                                    <input asp-for="Cliente.NumeroFiscal" class="form-control" />
+                                    <span asp-validation-for="Cliente.NumeroFiscal" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Cliente.Dtnascimento" class="form-label"></label>
+                                    <input asp-for="Cliente.Dtnascimento" class="form-control" type="date" />
+                                    <span asp-validation-for="Cliente.Dtnascimento" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="mb-4">
+                            <legend class="h5 mb-3 border-bottom pb-2">Morada</legend>
+                            @* Campos Morada, Dropdowns Regiao/Localidade, CP4, CP3 - IGUAIS AO CREATE.CSHTML *@
+                            @* Exemplo para Morada e Dropdowns: *@
+                            <div>
+                                <label asp-for="Cliente.Morada" class="form-label"></label>
+                                <input asp-for="Cliente.Morada" class="form-control" />
+                                <span asp-validation-for="Cliente.Morada" class="text-danger"></span>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-5">
+                                    <label asp-for="SelectedRegiao" class="form-label"></label>
+                                    <select asp-for="SelectedRegiao" asp-items="Model.RegioesList" class="form-select" id="regiaoDropdown">
+                                    </select>
+                                </div>
+                                <div class="col-md-7">
+                                    <label asp-for="Cliente.LocalidadeId" class="form-label">Localidade</label>
+                                    <select asp-for="Cliente.LocalidadeId" asp-items="Model.LocalidadesList" class="form-select" id="localidadeDropdown">
+                                    </select>
+                                    <span asp-validation-for="Cliente.LocalidadeId" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-4">
+                                    <label asp-for="Cliente.Cp4" class="form-label"></label>
+                                    <input asp-for="Cliente.Cp4" class="form-control" placeholder="Ex: 1234" />
+                                    <span asp-validation-for="Cliente.Cp4" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label asp-for="Cliente.Cp3" class="form-label"></label>
+                                    <input asp-for="Cliente.Cp3" class="form-control" placeholder="Ex: 567" />
+                                    <span asp-validation-for="Cliente.Cp3" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="mb-4">
+                            <legend class="h5 mb-3 border-bottom pb-2">Outras Informações</legend>
+                            @* Campo Observacoes - IGUAL AO CREATE.CSHTML *@
+                            <div>
+                                <label asp-for="Cliente.Observacoes" class="form-label"></label>
+                                <textarea asp-for="Cliente.Observacoes" class="form-control" rows="3"></textarea>
+                                <span asp-validation-for="Cliente.Observacoes" class="text-danger"></span>
+                            </div>
+                        </fieldset>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                @* <<< TEXTO E COR DO BOTÃO ALTERADOS *@
+                                <i class="bi bi-save-fill me-2"></i> Guardar Alterações
+                            </button>
+                            <a asp-action="Index" asp-controller="Client" class="btn btn-outline-secondary">
+                                <i class="bi bi-list-ul me-2"></i> Voltar à Lista
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* O SCRIPT JAVASCRIPT É EXATAMENTE O MESMO DA CREATE.CSHTML *@
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+            var localidadeDropdown = $('#localidadeDropdown');
+            var regiaoDropdown = $('#regiaoDropdown');
+
+            function updateLocalidades(selectedRegiao) {
+                localidadeDropdown.empty();
+                localidadeDropdown.prop('disabled', true);
+
+                if (selectedRegiao) {
+                    localidadeDropdown.append($('<option></option>').val('').text('-- A Carregar Localidades... --'));
+                    $.ajax({
+                        url: '@Url.Action("GetLocalidadesPorRegiao", "Client")',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: { regiao: selectedRegiao },
+                        success: function (data) {
+                            localidadeDropdown.empty();
+                            if (data && data.length > 0) {
+                                var clienteLocalidadeId = "@Model.Cliente.LocalidadeId"; // Para pré-selecionar
+                                $.each(data, function (index, item) {
+                                    var option = $('<option></option>').val(item.value).text(item.text);
+                                    if(item.value == clienteLocalidadeId && selectedRegiao == "@Model.SelectedRegiao") { // Só pré-seleciona se a região também for a do cliente
+                                        option.prop('selected', true);
+                                    }
+                                    localidadeDropdown.append(option);
+                                });
+                            } else {
+                                localidadeDropdown.append($('<option></option>').val('').text('-- Nenhuma localidade encontrada --'));
+                            }
+                            localidadeDropdown.prop('disabled', false);
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Erro ao buscar localidades: ", status, error, xhr.responseText);
+                            localidadeDropdown.empty();
+                            localidadeDropdown.append($('<option></option>').val('').text('-- Erro ao carregar localidades --'));
+                            localidadeDropdown.prop('disabled', false);
+                        }
+                    });
+                } else {
+                    localidadeDropdown.append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --'));
+                    localidadeDropdown.prop('disabled', true);
+                }
+            }
+
+            regiaoDropdown.on('change', function () {
+                var selectedRegiao = $(this).val();
+                updateLocalidades(selectedRegiao);
+            });
+
+            var initialRegiao = "@Model.SelectedRegiao"; // Usa o valor do ViewModel
+            if (initialRegiao) {
+                 regiaoDropdown.val(initialRegiao); // Define o valor do dropdown de região
+                 updateLocalidades(initialRegiao); // Dispara o carregamento das localidades
+            } else {
+                localidadeDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --')).prop('disabled', true);
+            }
+        });
+    </script>
+}
