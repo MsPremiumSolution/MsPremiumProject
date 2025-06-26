@@ -1,64 +1,62 @@
 ﻿@model IEnumerable<MSPremiumProject.Models.Cliente>
 
 @{
-    ViewData["Title"] = "Selecionar Cliente para Orçamento"; // Já definido no controller, mas pode ficar
+    ViewData["Title"] = ViewData["Title"]?.ToString() ?? "Novo Orçamento - Selecionar Cliente"; // Usa o título do controller
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>@ViewData["Title"]</h1>
-        @* Poderia ter um botão para ir para a lista de clientes normais se quisesse adicionar um novo *@
-        @* <a asp-controller="Client" asp-action="Create" class="btn btn-info">
-            <i class="bi bi-person-plus-fill me-2"></i> Gerir Clientes
-        </a> *@
+        @* Poderias ter um botão aqui para voltar ou outra ação, se necessário *@
     </div>
 
-    @* Mensagens TempData *@
-    @if (TempData["MensagemSucesso"] != null)
+    @* Mensagens ViewData (transferidas do TempData no controller) *@
+    @if (ViewData["MensagemSucesso"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["MensagemSucesso"]
+            @ViewData["MensagemSucesso"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
-    @if (TempData["MensagemErro"] != null)
+    @if (ViewData["MensagemErro"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["MensagemErro"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-    @if (TempData["MensagemInfo"] != null)
-    {
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-            @TempData["MensagemInfo"]
+            @ViewData["MensagemErro"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-
-    @* Barra de Pesquisa *@
-    <form asp-controller="Orcamento" asp-action="Index" method="get" class="mb-3">
+    @* Formulário de Pesquisa *@
+    <form asp-controller="Budget" asp-action="Index" method="get" class="mb-3">
         <div class="input-group">
-            <input type="text" name="searchString" value="@ViewData["CurrentFilter"]" class="form-control" placeholder="Pesquisar por Nome ou NIF...">
-            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Pesquisar</button>
-            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"] as string))
+            <input type="text" name="searchTerm" class="form-control" placeholder="Pesquisar cliente por nome ou apelido..." value="@ViewData["CurrentFilter"]">
+            <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i> Pesquisar</button>
+            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
             {
-                <a asp-controller="Orcamento" asp-action="Index" class="btn btn-outline-secondary">
-                    <i class="bi bi-x-lg"></i> Limpar
+                <a asp-controller="Budget" asp-action="Index" class="btn btn-outline-danger" title="Limpar Pesquisa">
+                    <i class="bi bi-x-lg"></i>
                 </a>
             }
         </div>
     </form>
 
-    @if (!Model.Any() && string.IsNullOrEmpty(ViewData["CurrentFilter"] as string) && TempData["MensagemInfo"] == null)
+    @if (!Model.Any())
     {
         <div class="alert alert-info text-center" role="alert">
-            Nenhum cliente encontrado. <a asp-controller="Client" asp-action="Create" class="alert-link">Adicione clientes primeiro</a> na gestão de clientes.
+            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+            {
+                <span>Nenhum cliente encontrado para o termo "@ViewData["CurrentFilter"]".</span>
+                <a asp-action="Index" asp-controller="Budget" class="alert-link ms-2">Ver todos os clientes.</a>
+            }
+            else
+            {
+                <span>Nenhum cliente registado.</span>
+                <a asp-action="Create" asp-controller="Client" class="alert-link ms-2">Adicione o primeiro cliente.</a>
+            }
         </div>
     }
-    else if (Model.Any())
+    else
     {
         <div class="card shadow-sm rounded-3">
             <div class="card-body p-0">
@@ -67,7 +65,10 @@
                         <thead class="table-light">
                             <tr>
                                 <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Nome)</th>
-                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().NumeroFiscal)</th>
+                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Apelido)</th>
+                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Email)</th>
+                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Telefone1)</th>
+                                <th>Localidade</th>
                                 <th class="text-end">Ações</th>
                             </tr>
                         </thead>
@@ -76,10 +77,16 @@
                             {
                                 <tr>
                                     <td>@Html.DisplayFor(modelItem => item.Nome)</td>
-                                    <td>@Html.DisplayFor(modelItem => item.NumeroFiscal)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.Apelido)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.Email)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.Telefone1)</td>
+                                    <td>
+                                        @(item.LocalidadeNavigation != null ? Html.DisplayFor(modelItem => item.LocalidadeNavigation.NomeLocalidade) : "N/A")
+                                    </td>
                                     <td class="text-end">
-                                        <a asp-controller="Orcamento" asp-action="CriarSimulacao" asp-route-id="@item.ClienteId" class="btn btn-sm btn-success">
-                                            <i class="bi bi-plus-circle-fill me-1"></i> Criar Simulação
+                                        @* Botão para criar orçamento para este cliente *@
+                                        <a asp-controller="Budget" asp-action="CreateBudgetForClient" asp-route-id="@item.ClienteId" class="btn btn-sm btn-success" title="Criar Orçamento para este Cliente">
+                                            <i class="bi bi-file-earmark-plus-fill"></i> Selecionar
                                         </a>
                                     </td>
                                 </tr>
