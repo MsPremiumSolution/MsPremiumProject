@@ -5,7 +5,7 @@ using MSPremiumProject.Data;
 using MSPremiumProject.Models;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization; // Se precisares de autorização
+using Microsoft.AspNetCore.Authorization;
 
 namespace MSPremiumProject.Controllers
 {
@@ -23,11 +23,11 @@ namespace MSPremiumProject.Controllers
         public async Task<IActionResult> Index(string searchTerm)
         {
             ViewData["Title"] = "Novo Orçamento - Selecionar Cliente";
-            ViewData["CurrentFilter"] = searchTerm; // Para manter o termo na caixa de pesquisa
+            ViewData["CurrentFilter"] = searchTerm;
 
-            var clientesQuery = _context.Clientes
-                                        .Include(c => c.LocalidadeNavigation) // Para mostrar a localidade
-                                            .ThenInclude(l => l.Pais) // Se quiseres mostrar o país também
+            IQueryable<Cliente> clientesQuery = _context.Clientes
+                                        .Include(c => c.LocalidadeNavigation)
+                                        // .ThenInclude(l => l.Pais) // Descomente se precisar do país no partial view
                                         .AsQueryable();
 
             if (!string.IsNullOrEmpty(searchTerm))
@@ -41,20 +41,22 @@ namespace MSPremiumProject.Controllers
 
             var clientes = await clientesQuery.OrderBy(c => c.Nome).ThenBy(c => c.Apelido).ToListAsync();
 
-            // Verifica se TempData tem mensagens e passa-as para ViewData ou diretamente para a View
-            // (Opcional, mas bom se quiseres manter o sistema de mensagens)
+            // Verifica se o pedido é AJAX. "X-Requested-With" é um header comum enviado por jQuery.
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("_ClientListPartial", clientes); // Retorna apenas a lista/tabela de clientes
+            }
+
+            // Para o carregamento inicial da página completa
             if (TempData["MensagemSucesso"] != null)
                 ViewData["MensagemSucesso"] = TempData["MensagemSucesso"];
             if (TempData["MensagemErro"] != null)
                 ViewData["MensagemErro"] = TempData["MensagemErro"];
 
-
-            return View(clientes);
+            return View(clientes); // Retorna a view completa
         }
 
         // GET: Budget/CreateBudgetForClient/{clientId}
-        // Esta ação será chamada quando clicares em "Criar Orçamento" para um cliente
-        // No futuro, aqui irás preparar o modelo para a página de criação do orçamento.
         public async Task<IActionResult> CreateBudgetForClient(ulong clientId)
         {
             var cliente = await _context.Clientes
@@ -67,23 +69,12 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // TODO: Aqui irias criar um ViewModel para o orçamento,
-            // preencher com dados do cliente e passar para uma nova View "CreateBudget.cshtml"
-            // Por agora, vamos apenas mostrar uma view simples de confirmação ou detalhes do cliente.
-
-            ViewData["Title"] = $"Criar Orçamento para {cliente.Nome} {cliente.Apelido}";
-            // Poderias criar um ViewModel específico aqui:
-            // var budgetViewModel = new CreateBudgetViewModel { Cliente = cliente };
-            // return View("CreateBudgetForm", budgetViewModel); // Uma nova view para o formulário do orçamento
-
-            // Por simplicidade, vamos redirecionar para uma página de detalhes do cliente (exemplo)
-            // ou apenas retornar os dados do cliente para uma view de "pré-orçamento"
-            // Para este exemplo, vou assumir que tens uma view "CreateBudget.cshtml" que recebe o Cliente.
-            TempData["MensagemSucesso"] = $"A preparar orçamento para o cliente: {cliente.Nome} {cliente.Apelido}. (ID: {cliente.ClienteId})";
-            //return View("CreateBudgetForm", cliente); // Se tiveres uma View CreateBudgetForm.cshtml que aceita um Cliente
-            return RedirectToAction("Index", "Client", new { area = "" }); // Redireciona de volta para a lista de clientes por agora
-            // Ou, melhor, redireciona para uma futura página de criação de orçamento:
-            // return RedirectToAction("New", "Orcamento", new { clienteId = clientId });
+            // TODO: Redirecionar para a página de criação de orçamento com os dados do cliente
+            // Exemplo: return View("CreateBudgetForm", cliente); // Ou um ViewModel específico
+            TempData["MensagemSucesso"] = $"Cliente '{cliente.Nome} {cliente.Apelido}' selecionado. (Próximo passo: formulário de orçamento)";
+            // Por enquanto, vamos voltar para a lista, idealmente iria para o formulário.
+            // return RedirectToAction("Index", "Client"); // Ou para uma página de criação de orçamento.
+            return View("CreateBudgetForm", cliente); // Supondo que tens ou vais criar esta View.
         }
     }
 }

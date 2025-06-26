@@ -1,17 +1,16 @@
 ﻿@model IEnumerable<MSPremiumProject.Models.Cliente>
 
 @{
-    ViewData["Title"] = ViewData["Title"]?.ToString() ?? "Novo Orçamento - Selecionar Cliente"; // Usa o título do controller
+    ViewData["Title"] = ViewData["Title"]?.ToString() ?? "Novo Orçamento - Selecionar Cliente";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>@ViewData["Title"]</h1>
-        @* Poderias ter um botão aqui para voltar ou outra ação, se necessário *@
     </div>
 
-    @* Mensagens ViewData (transferidas do TempData no controller) *@
+    @* Mensagens ViewData *@
     @if (ViewData["MensagemSucesso"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -27,74 +26,105 @@
         </div>
     }
 
-    @* Formulário de Pesquisa *@
-    <form asp-controller="Budget" asp-action="Index" method="get" class="mb-3">
+    @* Formulário de Pesquisa - o botão submit não será o principal meio, mas pode ser um fallback *@
+    <form asp-controller="Budget" asp-action="Index" method="get" class="mb-3" id="searchFormClientBudget">
         <div class="input-group">
-            <input type="text" name="searchTerm" class="form-control" placeholder="Pesquisar cliente por nome ou apelido..." value="@ViewData["CurrentFilter"]">
-            <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i> Pesquisar</button>
-            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
-            {
-                <a asp-controller="Budget" asp-action="Index" class="btn btn-outline-danger" title="Limpar Pesquisa">
-                    <i class="bi bi-x-lg"></i>
-                </a>
-            }
+            <input type="text" name="searchTerm" id="searchTermInputClientBudget" class="form-control" placeholder="Pesquisar cliente por nome ou apelido..." value="@ViewData["CurrentFilter"]">
+            @* O botão de submit pode ser mantido como fallback ou removido se a pesquisa AJAX for a única desejada *@
+            <button class="btn btn-outline-secondary" type="submit" style="display: none;">
+                @* Escondido por defeito *@
+                <i class="bi bi-search"></i> Pesquisar
+            </button>
+            <a asp-controller="Budget" asp-action="Index" class="btn btn-outline-danger" id="clearSearchClientBudget" title="Limpar Pesquisa" style="@(string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()) ? "display:none;" : "")">
+                <i class="bi bi-x-lg"></i>
+            </a>
         </div>
     </form>
 
-    @if (!Model.Any())
+    @* Div que vai conter a lista de clientes e será atualizada por AJAX *@
+    <div id="clientListContainerForBudget">
+        @* Renderiza o Partial View com o modelo inicial *@
+        @await Html.PartialAsync("_ClientListPartial", Model)
+    </div>
+
+    @* Mensagem para quando não há clientes registados (diferente da pesquisa vazia que é tratada no partial) *@
+    @if (!Model.Any() && string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
     {
-        <div class="alert alert-info text-center" role="alert">
-            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
-            {
-                <span>Nenhum cliente encontrado para o termo "@ViewData["CurrentFilter"]".</span>
-                <a asp-action="Index" asp-controller="Budget" class="alert-link ms-2">Ver todos os clientes.</a>
-            }
-            else
-            {
-                <span>Nenhum cliente registado.</span>
-                <a asp-action="Create" asp-controller="Client" class="alert-link ms-2">Adicione o primeiro cliente.</a>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="card shadow-sm rounded-3">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Nome)</th>
-                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Apelido)</th>
-                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Email)</th>
-                                <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Telefone1)</th>
-                                <th>Localidade</th>
-                                <th class="text-end">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td>@Html.DisplayFor(modelItem => item.Nome)</td>
-                                    <td>@Html.DisplayFor(modelItem => item.Apelido)</td>
-                                    <td>@Html.DisplayFor(modelItem => item.Email)</td>
-                                    <td>@Html.DisplayFor(modelItem => item.Telefone1)</td>
-                                    <td>
-                                        @(item.LocalidadeNavigation != null ? Html.DisplayFor(modelItem => item.LocalidadeNavigation.NomeLocalidade) : "N/A")
-                                    </td>
-                                    <td class="text-end">
-                                        @* Botão para criar orçamento para este cliente *@
-                                        <a asp-controller="Budget" asp-action="CreateBudgetForClient" asp-route-id="@item.ClienteId" class="btn btn-sm btn-success" title="Criar Orçamento para este Cliente">
-                                            <i class="bi bi-file-earmark-plus-fill"></i> Selecionar
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="alert alert-info text-center mt-3" role="alert">
+            Nenhum cliente registado.
+            <a asp-action="Create" asp-controller="Client" class="alert-link ms-2">Adicione o primeiro cliente.</a>
         </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let debounceTimerClientBudget;
+            const searchInput = $('#searchTermInputClientBudget');
+            const clientListContainer = $('#clientListContainerForBudget');
+            const clearButton = $('#clearSearchClientBudget');
+            const searchForm = $('#searchFormClientBudget'); // Para obter a URL da ação
+
+            function performClientSearch() {
+                const searchTerm = searchInput.val();
+                const url = searchForm.attr('action'); // Ou '@Url.Action("Index", "Budget")'
+
+                // Mostrar/esconder botão de limpar
+                if (searchTerm.length > 0) {
+                    clearButton.show();
+                } else {
+                    clearButton.hide();
+                }
+
+                // Adiciona um spinner/loading (opcional mas bom para UX)
+                clientListContainer.html('<div class="d-flex justify-content-center align-items-center" style="min-height: 200px;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">A carregar...</span></div><p class="ms-2 mb-0">A pesquisar clientes...</p></div>');
+
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    data: { searchTerm: searchTerm },
+                    // O header X-Requested-With é adicionado automaticamente pelo jQuery para pedidos AJAX
+                    success: function (result) {
+                        clientListContainer.html(result);
+                        // Atualizar URL para refletir a pesquisa (opcional, mas bom para bookmarking/refresh)
+                        if (history.pushState) {
+                            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + (searchTerm ? '?searchTerm=' + encodeURIComponent(searchTerm) : '');
+                            window.history.pushState({ path: newurl }, '', newurl);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Erro na pesquisa AJAX de clientes: ", status, error, xhr.responseText);
+                        clientListContainer.html('<div class="alert alert-danger text-center">Ocorreu um erro ao tentar pesquisar. Por favor, tente novamente.</div>');
+                    }
+                });
+            }
+
+            searchInput.on('keyup', function () {
+                clearTimeout(debounceTimerClientBudget);
+                debounceTimerClientBudget = setTimeout(performClientSearch, 400); // Atraso de 400ms
+            });
+
+            clearButton.on('click', function (e) {
+                e.preventDefault(); // Impede a navegação padrão do link
+                searchInput.val(''); // Limpa o campo de pesquisa
+                performClientSearch(); // Realiza a pesquisa com o campo vazio (mostra todos)
+            });
+
+            // Se o utilizador colar texto no campo de pesquisa
+            searchInput.on('paste', function () {
+                clearTimeout(debounceTimerClientBudget);
+                debounceTimerClientBudget = setTimeout(performClientSearch, 100); // Menor atraso para paste
+            });
+
+            // Opcional: Se quiser que a tecla Enter no campo de pesquisa também dispare a pesquisa AJAX
+            // em vez do submit tradicional do formulário (que já está escondido)
+            searchForm.on('submit', function(e){
+               e.preventDefault(); // Impede o submit tradicional
+               clearTimeout(debounceTimerClientBudget); // Cancela qualquer debounce pendente
+               performClientSearch(); // Executa a pesquisa imediatamente
+            });
+
+        });
+    </script>
+}

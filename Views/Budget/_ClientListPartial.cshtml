@@ -1,0 +1,50 @@
+﻿@model IEnumerable<MSPremiumProject.Models.Cliente>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center" role="alert">
+        @* A mensagem específica de "nenhum resultado para a pesquisa" pode ser adicionada aqui, *@
+        @* ou controlada na view principal/JS se o CurrentFilter não estiver disponível aqui. *@
+        <span>Nenhum cliente encontrado com os critérios de pesquisa.</span>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Nome)</th>
+                            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Apelido)</th>
+                            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Email)</th>
+                            <th>@Html.DisplayNameFor(model => model.FirstOrDefault().Telefone1)</th>
+                            <th>Localidade</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@Html.DisplayFor(modelItem => item.Nome)</td>
+                                <td>@Html.DisplayFor(modelItem => item.Apelido)</td>
+                                <td>@Html.DisplayFor(modelItem => item.Email)</td>
+                                <td>@Html.DisplayFor(modelItem => item.Telefone1)</td>
+                                <td>
+                                    @(item.LocalidadeNavigation != null ? Html.DisplayFor(modelItem => item.LocalidadeNavigation.NomeLocalidade) : "N/A")
+                                </td>
+                                <td class="text-end">
+                                    <a asp-controller="Budget" asp-action="CreateBudgetForClient" asp-route-id="@item.ClienteId" class="btn btn-sm btn-success" title="Criar Orçamento para este Cliente">
+                                        <i class="bi bi-file-earmark-plus-fill"></i> Selecionar
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
