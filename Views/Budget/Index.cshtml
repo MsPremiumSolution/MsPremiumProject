@@ -111,7 +111,7 @@
                 performClientSearch(); // Realiza a pesquisa com o campo vazio (mostra todos)
             });
 
-            // Se o utilizador colar texto no campo de pesquisa
+            // caso o user faã copy paste na textbox
             searchInput.on('paste', function () {
                 clearTimeout(debounceTimerClientBudget);
                 debounceTimerClientBudget = setTimeout(performClientSearch, 100); // Menor atraso para paste
