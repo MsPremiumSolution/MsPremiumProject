@@ -1,0 +1,110 @@
+﻿@model MSPremiumProject.ViewModels.ClienteCreateViewModel
+
+@* Esta Partial View contém todos os campos do formulário para Cliente *@
+
+<fieldset class="mb-4">
+    <legend class="h5 mb-3 border-bottom pb-2">Dados Pessoais</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Cliente.Nome" class="form-label"></label>
+            <input asp-for="Cliente.Nome" class="form-control" />
+            <span asp-validation-for="Cliente.Nome" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Cliente.Apelido" class="form-label"></label>
+            <input asp-for="Cliente.Apelido" class="form-control" />
+            <span asp-validation-for="Cliente.Apelido" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="mt-3">
+        <label asp-for="Cliente.Email" class="form-label"></label>
+        <input asp-for="Cliente.Email" class="form-control" type="email" />
+        <span asp-validation-for="Cliente.Email" class="text-danger"></span>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-6">
+            <label asp-for="Cliente.Telefone1" class="form-label"></label>
+            <input asp-for="Cliente.Telefone1" class="form-control" />
+            <span asp-validation-for="Cliente.Telefone1" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Cliente.Telefone2" class="form-label"></label>
+            <input asp-for="Cliente.Telefone2" class="form-control" />
+            <span asp-validation-for="Cliente.Telefone2" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-6">
+            <label asp-for="Cliente.NumeroFiscal" class="form-label"></label>
+            <input asp-for="Cliente.NumeroFiscal" class="form-control" />
+            <span asp-validation-for="Cliente.NumeroFiscal" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Cliente.Dtnascimento" class="form-label"></label>
+            <input asp-for="Cliente.Dtnascimento" class="form-control" type="date" />
+            <span asp-validation-for="Cliente.Dtnascimento" class="text-danger"></span>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="mb-4">
+    <legend class="h5 mb-3 border-bottom pb-2">Morada</legend>
+    <div>
+        <label asp-for="Cliente.Morada" class="form-label"></label>
+        <input asp-for="Cliente.Morada" class="form-control" />
+        <span asp-validation-for="Cliente.Morada" class="text-danger"></span>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-6">
+            <label asp-for="SelectedPaisId" class="form-label"></label>
+            <select asp-for="SelectedPaisId" asp-items="Model.PaisesList" class="form-select" id="paisDropdown">
+                <option value="">-- Selecione um País --</option>
+            </select>
+            <span asp-validation-for="SelectedPaisId" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="NomeLocalidade" class="form-label"></label>
+            <input asp-for="NomeLocalidade" class="form-control" placeholder="Cidade / Localidade" />
+            <span asp-validation-for="NomeLocalidade" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="row g-3 mt-1" id="regioesContainer" style="display: none;">
+        <div class="col-12">
+            <label asp-for="SelectedRegiao" class="form-label"></label>
+            <select asp-for="SelectedRegiao" class="form-select" id="regiaoDropdown">
+                <option value="">-- Selecione uma Região --</option>
+            </select>
+            <span asp-validation-for="SelectedRegiao" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-7" id="cpPortugalContainer" style="display: none;">
+            <div class="row">
+                <div class="col-7">
+                    <label asp-for="Cliente.Cp4" class="form-label"></label>
+                    <input asp-for="Cliente.Cp4" class="form-control" placeholder="Ex: 1234" />
+                    <span asp-validation-for="Cliente.Cp4" class="text-danger"></span>
+                </div>
+                <div class="col-5">
+                    <label asp-for="Cliente.Cp3" class="form-label"></label>
+                    <input asp-for="Cliente.Cp3" class="form-control" placeholder="Ex: 567" />
+                    <span asp-validation-for="Cliente.Cp3" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5" id="cpEstrangeiroContainer" style="display: none;">
+            <label asp-for="Cliente.CodigoPostalEstrangeiro" class="form-label"></label>
+            <input asp-for="Cliente.CodigoPostalEstrangeiro" class="form-control" />
+            <span asp-validation-for="Cliente.CodigoPostalEstrangeiro" class="text-danger"></span>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="mb-4">
+    <legend class="h5 mb-3 border-bottom pb-2">Outras Informações</legend>
+    <div>
+        <label asp-for="Cliente.Observacoes" class="form-label"></label>
+        <textarea asp-for="Cliente.Observacoes" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Cliente.Observacoes" class="text-danger"></span>
+    </div>
+</fieldset>

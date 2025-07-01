@@ -32,7 +32,7 @@ namespace MSPremiumProject.Controllers
                 var localidades = await _context.Localidades
                                               .Include(l => l.Pais) // Inclui a entidade Pai para aceder a NomePais
                                               .OrderBy(l => l.Pais.NomePais) // Ordena primeiro por nome do país
-                                              .ThenBy(l => l.NomeLocalidade) // Depois por nome da localidade
+                                              .ThenBy(l => l.Regiao) // Depois por nome da localidade
                                               .ToListAsync();
 
                 _logger.LogInformation("Encontradas {Count} localidades para exibir.", localidades.Count);
@@ -86,7 +86,7 @@ namespace MSPremiumProject.Controllers
             // Log detalhado dos valores recebidos IMEDIATAMENTE
             _logger.LogInformation(
                 "POST Create Localidade - Valores recebidos: NomeLocalidade='{NomeLocalidade}', Regiao='{Regiao}', PaisId={PaisId}",
-                localidade.NomeLocalidade,
+                localidade.Regiao,
                 localidade.Regiao,
                 localidade.PaisId); // VERIFIQUE ESTE VALOR NOS LOGS DO RENDER
 
@@ -124,10 +124,10 @@ namespace MSPremiumProject.Controllers
             {
                 try
                 {
-                    string nomeLocalidadeLower = localidade.NomeLocalidade.Trim().ToLower();
+                    string nomeLocalidadeLower = localidade.Regiao.Trim().ToLower();
                     // Lógica de verificação de duplicados (mantida)
                     bool localidadeJaExiste = await _context.Localidades.AnyAsync(l =>
-                        l.NomeLocalidade.ToLower() == nomeLocalidadeLower &&
+                        l.Regiao.ToLower() == nomeLocalidadeLower &&
                         ((string.IsNullOrEmpty(l.Regiao) && localidade.Regiao == null) || (l.Regiao != null && localidade.Regiao != null && l.Regiao.ToLower() == localidade.Regiao.ToLower())) &&
                         l.PaisId == localidade.PaisId);
 
@@ -135,7 +135,7 @@ namespace MSPremiumProject.Controllers
                     {
                         ModelState.AddModelError(string.Empty, "Já existe uma localidade com este nome e região para o país selecionado.");
                         _logger.LogWarning("Tentativa de criar localidade duplicada: Nome='{Nome}', Regiao='{Regiao}', PaisId={PaisId}",
-                                           localidade.NomeLocalidade, localidade.Regiao, localidade.PaisId);
+                                           localidade.Regiao, localidade.Regiao, localidade.PaisId);
                     }
                     else
                     {
@@ -144,21 +144,21 @@ namespace MSPremiumProject.Controllers
                         _context.Add(localidade);
                         await _context.SaveChangesAsync();
                         _logger.LogInformation("Localidade '{NomeLocalidade}' (ID: {LocalidadeId}) criada com sucesso para o País ID: {PaisId}.",
-                                               localidade.NomeLocalidade, localidade.LocalidadeId, localidade.PaisId);
-                        TempData["MensagemSucesso"] = $"Localidade '{localidade.NomeLocalidade}' adicionada com sucesso!";
+                                               localidade.Regiao, localidade.LocalidadeId, localidade.PaisId);
+                        TempData["MensagemSucesso"] = $"Localidade '{localidade.Regiao}' adicionada com sucesso!";
                         return RedirectToAction(nameof(Index));
                     }
                 }
                 catch (DbUpdateException dbEx)
                 {
                     _logger.LogError(dbEx, "Erro de DbUpdateException ao criar localidade '{NomeLocalidade}'. InnerException: {InnerException}",
-                                     localidade.NomeLocalidade, dbEx.InnerException?.Message);
+                                     localidade.Regiao, dbEx.InnerException?.Message);
                     ModelState.AddModelError(string.Empty, "Não foi possível guardar a localidade. Verifique se o país selecionado é válido e se os dados estão corretos. Detalhe: " + (dbEx.InnerException?.Message ?? dbEx.Message));
                     TempData["MensagemErro"] = "Erro ao adicionar localidade (Base de Dados).";
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Erro inesperado ao criar localidade '{NomeLocalidade}'.", localidade.NomeLocalidade);
+                    _logger.LogError(ex, "Erro inesperado ao criar localidade '{NomeLocalidade}'.", localidade.Regiao);
                     ModelState.AddModelError(string.Empty, "Ocorreu um erro inesperado ao tentar guardar a localidade.");
                     TempData["MensagemErro"] = "Erro inesperado ao adicionar localidade.";
                 }
@@ -174,7 +174,7 @@ namespace MSPremiumProject.Controllers
                 _logger.LogWarning(
                     "ModelState inválido ao tentar criar Localidade. Detalhes dos Erros: {ModelStateErrorsDetailed} | Valores recebidos na Localidade: Nome='{NomeLocalidade}', Regiao='{Regiao}', PaisId={PaisId}",
                     errorsJson,
-                    localidade.NomeLocalidade,
+                    localidade.Regiao,
                     localidade.Regiao,
                     localidade.PaisId);
                 TempData["MensagemErro"] = "Dados inválidos. Por favor, corrija os erros abaixo.";

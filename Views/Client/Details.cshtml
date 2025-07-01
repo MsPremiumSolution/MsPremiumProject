@@ -13,7 +13,7 @@
         <dd class="col-sm-9">@Html.DisplayFor(model => model.Morada)</dd>
         <dt class="col-sm-3">Localidade</dt>
         <dd class="col-sm-9">
-            @(Model.LocalidadeNavigation != null ? Model.LocalidadeNavigation.NomeLocalidade : "N/A")
+            @(Model.LocalidadeNavigation != null ? Model.LocalidadeNavigation.Regiao : "N/A")
             @(Model.LocalidadeNavigation?.Pais != null ? " (" + Model.LocalidadeNavigation.Pais.NomePais + ")" : "")
         </dd>
         @* Adiciona outros campos aqui *@

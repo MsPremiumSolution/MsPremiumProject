@@ -63,7 +63,7 @@
                                     <td>@Html.DisplayFor(modelItem => item.Telefone1)</td>
                                     <td>
                                         @* Ajusta item.LocalidadeNavigation para item.Localidade se renomeaste a prop de navegação *@
-                                        @(item.LocalidadeNavigation != null ? Html.DisplayFor(modelItem => item.LocalidadeNavigation.NomeLocalidade) : "N/A")
+                                        @(item.LocalidadeNavigation != null ? Html.DisplayFor(modelItem => item.LocalidadeNavigation.Regiao) : "N/A")
                                         @* Opcional: Para mostrar o país também *@
                                         @* @(item.LocalidadeNavigation?.Pais != null ? " (" + item.LocalidadeNavigation.Pais.NomePais + ")" : "") *@
                                     </td>

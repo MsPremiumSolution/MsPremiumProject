@@ -12,49 +12,29 @@
                 <div class="card-body p-4">
                     <h2 class="mb-4 text-center">@ViewData["Title"]</h2>
 
-                    @if (!ViewData.ModelState.IsValid)
-                    {
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger text-center"></div>
-                    }
-                    @if (TempData["MensagemSucesso"] != null)
-                    {
-                        <div class="alert alert-success mt-3 text-center">
-                            @TempData["MensagemSucesso"]
-                        </div>
-                    }
-                    @if (TempData["MensagemErro"] != null)
-                    {
-                        <div class="alert alert-danger mt-3 text-center">
-                            @TempData["MensagemErro"]
-                        </div>
-                    }
+                    @* ... (mensagens de erro e sucesso) ... *@
 
                     <form asp-action="Create" asp-controller="Locality" method="post">
                         @Html.AntiForgeryToken()
 
-                        @* Campo NomeLocalidade *@
+                        @* O ÚNICO CAMPO DE TEXTO AGORA É PARA 'Nome' (antiga Regiao) *@
                         <div class="form-floating mb-3">
-                            <input asp-for="NomeLocalidade" class="form-control" placeholder="Nome da Localidade" />
-                            <label asp-for="NomeLocalidade"></label>
-                            <span asp-validation-for="NomeLocalidade" class="text-danger"></span>
-                        </div>
-
-                        @* Campo Regiao *@
-                        <div class="form-floating mb-3">
-                            <input asp-for="Regiao" class="form-control" placeholder="Região" />
+                            <input asp-for="Regiao" class="form-control" placeholder="Nome da Localidade / Região" />
                             <label asp-for="Regiao"></label>
                             <span asp-validation-for="Regiao" class="text-danger"></span>
                         </div>
 
-                        @* Campo PaisId (Dropdown para selecionar o País usando Html.DropDownListFor) *@
+                        @* O campo para NomeLocalidade foi removido. *@
+
+                        @* Dropdown para o País continua igual *@
                         <div class="form-floating mb-4">
                             @Html.DropDownListFor(
-                                     m => m.PaisId,                     // A propriedade do modelo a ser vinculada (Localidade.PaisId)
-                                     ViewBag.PaisesList as SelectList,  // O SelectList vindo do controller
-                                     "-- Selecione um País --",         // O texto da opção inicial (opcional)
-                                     new { @class = "form-select" }     // Atributos HTML para o <select>
+                                     m => m.PaisId,
+                                     ViewBag.PaisesList as SelectList,
+                                     "-- Selecione um País --",
+                                     new { @class = "form-select" }
                                      )
-                            @Html.LabelFor(m => m.PaisId, "País") @* Label para o campo PaisId *@
+                            @Html.LabelFor(m => m.PaisId, "País")
                             @Html.ValidationMessageFor(m => m.PaisId, "", new { @class = "text-danger" })
                         </div>
 

@@ -1,0 +1,64 @@
+﻿@model MSPremiumProject.ViewModels.ClienteCreateViewModel
+
+<script>
+    $(document).ready(function () {
+        var paisDropdown = $('#paisDropdown');
+        var regiaoDropdown = $('#regiaoDropdown');
+        var regioesContainer = $('#regioesContainer');
+        var cpPortugalContainer = $('#cpPortugalContainer');
+        var cpEstrangeiroContainer = $('#cpEstrangeiroContainer');
+
+        var savedRegiao = "@Model.SelectedRegiao";
+
+        function toggleFieldsByCountry() {
+            var selectedPaisOption = paisDropdown.find('option:selected');
+            var selectedPaisText = selectedPaisOption.text();
+            var selectedPaisId = paisDropdown.val();
+
+            regioesContainer.hide();
+            cpPortugalContainer.hide();
+            cpEstrangeiroContainer.hide();
+
+            if (selectedPaisId) {
+                if (selectedPaisText.toLowerCase() === 'portugal') {
+                    regioesContainer.show();
+                    cpPortugalContainer.show();
+                    $('#Cliente_CodigoPostalEstrangeiro').val('');
+
+                    $.ajax({
+                        url: '@Url.Action("GetRegioesPorPais", "Client")',
+                        type: 'GET',
+                        dataType: 'json',
+                        data: { paisId: selectedPaisId },
+                        success: function (data) {
+                            regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região --'));
+                            if (data && data.length > 0) {
+                                $.each(data, function (index, item) {
+                                    var option = $('<option></option>').val(item).text(item);
+                                    if (item === savedRegiao) {
+                                        option.prop('selected', true);
+                                    }
+                                    regiaoDropdown.append(option);
+                                });
+                            }
+                        },
+                        error: function () { console.error("Erro ao buscar regiões."); }
+                    });
+                } else {
+                    cpEstrangeiroContainer.show();
+                    $('#Cliente_Cp4').val('');
+                    $('#Cliente_Cp3').val('');
+                    regiaoDropdown.empty().append($('<option></option>').val('').text('-- N/A --'));
+                }
+            }
+        }
+
+        paisDropdown.on('change', function () {
+            savedRegiao = "";
+            toggleFieldsByCountry();
+        });
+
+        // Executa a função no carregamento da página para definir o estado inicial
+        toggleFieldsByCountry();
+    });
+</script>

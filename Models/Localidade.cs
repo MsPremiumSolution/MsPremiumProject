@@ -1,8 +1,7 @@
 ﻿// File: Models/Localidade.cs
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations; // Adicione este using
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+// ... outros usings
 
 namespace MSPremiumProject.Models
 {
@@ -10,20 +9,18 @@ namespace MSPremiumProject.Models
     {
         [Key]
         public ulong LocalidadeId { get; set; }
-
-        [Required(ErrorMessage = "É obrigatório selecionar um país.")]
-        [Range(1, ulong.MaxValue, ErrorMessage = "Por favor, selecione um país válido.")] // Garante que não é 0
         public ulong PaisId { get; set; }
 
+        // ESTA É A ÚNICA PROPRIEDADE DE NOME AGORA
         [Required(ErrorMessage = "O nome da localidade é obrigatório.")]
-        [StringLength(200, ErrorMessage = "O nome da localidade não pode exceder 200 caracteres.")]
-        public string NomeLocalidade { get; set; } = null!;
+        [StringLength(200)]
+        [Display(Name = "Nome da Localidade")]
+        public string Regiao { get; set; } = null!; // Antiga 'Regiao'
 
-        [StringLength(200, ErrorMessage = "A região não pode exceder 200 caracteres.")]
-        public string Regiao { get; set; } = null!; // Tornar [Required] se a região for obrigatória
+        // A propriedade 'NomeLocalidade' foi REMOVIDA
+        // A propriedade 'Regiao' foi RENOMEADA para 'Nome'
 
         public virtual ICollection<Cliente> Clientes { get; set; } = new List<Cliente>();
-
         [ForeignKey("PaisId")]
         public virtual Pai Pais { get; set; } = null!;
     }

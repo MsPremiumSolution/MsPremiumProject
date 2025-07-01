@@ -10,140 +10,19 @@
         <div class="col-lg-8 col-md-10">
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white">
-                    <h3 class="mb-0">@ViewData["Title"]: @Model.Cliente.Nome @Model.Cliente.Apelido</h3>
+                    <h3 class="mb-0">@ViewData["Title"]: @Model.Cliente.Nome</h3>
                 </div>
                 <div class="card-body p-4">
 
-                    @* Mensagens e Validação (igual ao Create) *@
-                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty] != null)
-                    {
-                        <div class="alert alert-danger" role="alert">
-                            <h5 class="alert-heading">Erros no Formulário:</h5>
-                            <div asp-validation-summary="ModelOnly" class="mb-0"></div>
-                        </div>
-                    }
-                    @* ... (outras mensagens TempData se necessário) ... *@
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <form asp-action="Edit" asp-controller="Client" asp-route-id="@Model.Cliente.ClienteId" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="Cliente.ClienteId" />
 
-                        <fieldset class="mb-4">
-                            <legend class="h5 mb-3 border-bottom pb-2">Dados Pessoais</legend>
-                            @* A estrutura dos campos é a mesma do Create.cshtml *@
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label asp-for="Cliente.Nome" class="form-label"></label>
-                                    <input asp-for="Cliente.Nome" class="form-control" />
-                                    <span asp-validation-for="Cliente.Nome" class="text-danger"></span>
-                                </div>
-                                <div class="col-md-6">
-                                    <label asp-for="Cliente.Apelido" class="form-label"></label>
-                                    <input asp-for="Cliente.Apelido" class="form-control" />
-                                    <span asp-validation-for="Cliente.Apelido" class="text-danger"></span>
-                                </div>
-                            </div>
-                            @* ... (repetir para os outros campos: Email, Telefones, etc.) ... *@
-                            <div class="mt-3">
-                                <label asp-for="Cliente.Email" class="form-label"></label>
-                                <input asp-for="Cliente.Email" class="form-control" type="email" />
-                                <span asp-validation-for="Cliente.Email" class="text-danger"></span>
-                            </div>
+                        <partial name="_ClienteFormFields" model="Model" />
 
-                            <div class="row g-3 mt-1">
-                                <div class="col-md-6">
-                                    <label asp-for="Cliente.Telefone1" class="form-label"></label>
-                                    <input asp-for="Cliente.Telefone1" class="form-control" />
-                                    <span asp-validation-for="Cliente.Telefone1" class="text-danger"></span>
-                                </div>
-                                <div class="col-md-6">
-                                    <label asp-for="Cliente.Telefone2" class="form-label"></label>
-                                    <input asp-for="Cliente.Telefone2" class="form-control" />
-                                    <span asp-validation-for="Cliente.Telefone2" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-1">
-                                <div class="col-md-6">
-                                    <label asp-for="Cliente.NumeroFiscal" class="form-label"></label>
-                                    <input asp-for="Cliente.NumeroFiscal" class="form-control" />
-                                    <span asp-validation-for="Cliente.NumeroFiscal" class="text-danger"></span>
-                                </div>
-                                <div class="col-md-6">
-                                    <label asp-for="Cliente.Dtnascimento" class="form-label"></label>
-                                    <input asp-for="Cliente.Dtnascimento" class="form-control" type="date" />
-                                    <span asp-validation-for="Cliente.Dtnascimento" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </fieldset>
-
-                        <fieldset class="mb-4">
-                            <legend class="h5 mb-3 border-bottom pb-2">Morada</legend>
-                            <div>
-                                <label asp-for="Cliente.Morada" class="form-label"></label>
-                                <input asp-for="Cliente.Morada" class="form-control" />
-                                <span asp-validation-for="Cliente.Morada" class="text-danger"></span>
-                            </div>
-
-                            @* *** ESTA É A PARTE NOVA E CORRIGIDA *** *@
-                            <div class="row g-3 mt-1">
-                                <div class="col-md-6">
-                                    <label asp-for="SelectedPaisId" class="form-label">País</label>
-                                    <select asp-for="SelectedPaisId" asp-items="Model.PaisesList" class="form-select" id="paisDropdown">
-                                        <option value="">-- Selecione um País --</option>
-                                    </select>
-                                    <span asp-validation-for="SelectedPaisId" class="text-danger"></span>
-                                </div>
-                                <div class="col-md-6">
-                                    <label asp-for="NomeLocalidade" class="form-label"></label>
-                                    <input asp-for="NomeLocalidade" class="form-control" placeholder="Cidade / Localidade" />
-                                    <span asp-validation-for="NomeLocalidade" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-1" id="regioesContainer" style="display: none;">
-                                <div class="col-12">
-                                    <label asp-for="SelectedRegiao" class="form-label">Região (Distrito)</label>
-                                    <select asp-for="SelectedRegiao" class="form-select" id="regiaoDropdown">
-                                        <option value="">-- Selecione uma Região --</option>
-                                    </select>
-                                    <span asp-validation-for="SelectedRegiao" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-1">
-                                <div class="col-md-7" id="cpPortugalContainer" style="display: none;">
-                                    <div class="row">
-                                        <div class="col-7">
-                                            <label asp-for="Cliente.Cp4" class="form-label"></label>
-                                            <input asp-for="Cliente.Cp4" class="form-control" placeholder="Ex: 1234" />
-                                            <span asp-validation-for="Cliente.Cp4" class="text-danger"></span>
-                                        </div>
-                                        <div class="col-5">
-                                            <label asp-for="Cliente.Cp3" class="form-label"></label>
-                                            <input asp-for="Cliente.Cp3" class="form-control" placeholder="Ex: 567" />
-                                            <span asp-validation-for="Cliente.Cp3" class="text-danger"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-5" id="cpEstrangeiroContainer" style="display: none;">
-                                    <label asp-for="Cliente.CodigoPostalEstrangeiro" class="form-label">Código Postal</label>
-                                    <input asp-for="Cliente.CodigoPostalEstrangeiro" class="form-control" />
-                                    <span asp-validation-for="Cliente.CodigoPostalEstrangeiro" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </fieldset>
-
-                        <fieldset class="mb-4">
-                            <legend class="h5 mb-3 border-bottom pb-2">Outras Informações</legend>
-                            <div>
-                                <label asp-for="Cliente.Observacoes" class="form-label"></label>
-                                <textarea asp-for="Cliente.Observacoes" class="form-control" rows="3"></textarea>
-                                <span asp-validation-for="Cliente.Observacoes" class="text-danger"></span>
-                            </div>
-                        </fieldset>
-
-                        <div class="d-grid gap-2">
+                        <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-success btn-lg">
                                 <i class="bi bi-save-fill me-2"></i> Guardar Alterações
                             </button>
@@ -162,71 +41,5 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-    <script>
-        $(document).ready(function () {
-            var paisDropdown = $('#paisDropdown');
-            var regiaoDropdown = $('#regiaoDropdown');
-            var regioesContainer = $('#regioesContainer');
-            var cpPortugalContainer = $('#cpPortugalContainer');
-            var cpEstrangeiroContainer = $('#cpEstrangeiroContainer');
-
-            // Guarda o valor da região que veio do servidor para pré-selecionar
-            var savedRegiao = "@Model.SelectedRegiao";
-
-            function toggleFieldsByCountry() {
-                var selectedPaisOption = paisDropdown.find('option:selected');
-                var selectedPaisText = selectedPaisOption.text();
-                var selectedPaisId = paisDropdown.val();
-
-                regioesContainer.hide();
-                cpPortugalContainer.hide();
-                cpEstrangeiroContainer.hide();
-
-                if (selectedPaisId) {
-                    if (selectedPaisText.toLowerCase() === 'portugal') {
-                        regioesContainer.show();
-                        cpPortugalContainer.show();
-                        $('#Cliente_CodigoPostalEstrangeiro').val('');
-
-                        $.ajax({
-                            url: '@Url.Action("GetRegioesPorPais", "Client")',
-                            type: 'GET',
-                            dataType: 'json',
-                            data: { paisId: selectedPaisId },
-                            success: function (data) {
-                                regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região --'));
-                                if (data && data.length > 0) {
-                                    $.each(data, function (index, item) {
-                                        var option = $('<option></option>').val(item).text(item);
-                                        // Se a região atual for a mesma que veio do servidor, seleciona-a
-                                        if (item === savedRegiao) {
-                                            option.prop('selected', true);
-                                        }
-                                        regiaoDropdown.append(option);
-                                    });
-                                }
-                            },
-                            error: function () {
-                                console.error("Erro ao buscar regiões.");
-                            }
-                        });
-                    } else {
-                        cpEstrangeiroContainer.show();
-                        $('#Cliente_Cp4').val('');
-                        $('#Cliente_Cp3').val('');
-                        regiaoDropdown.empty().append($('<option></option>').val('').text('-- N/A --'));
-                    }
-                }
-            }
-
-            paisDropdown.on('change', function () {
-                // Ao mudar o país, já não queremos pré-selecionar a região antiga
-                savedRegiao = "";
-                toggleFieldsByCountry();
-            });
-
-            // Executa a função no carregamento da página
-            toggleFieldsByCountry();
-        });
-    </script>
+    <partial name="_ClienteFormScripts" model="Model" />
 }

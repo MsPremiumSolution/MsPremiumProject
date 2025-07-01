@@ -264,7 +264,7 @@ public partial class MspremiumSolutionsDbContext : DbContext
             entity.HasIndex(e => e.PaisId, "localidade_paisid_fk");
 
             entity.Property(e => e.LocalidadeId).HasColumnName("LocalidadeID");
-            entity.Property(e => e.NomeLocalidade).HasMaxLength(255);
+            entity.Property(e => e.Regiao).HasMaxLength(255);
             entity.Property(e => e.PaisId).HasColumnName("PaisID");
             entity.Property(e => e.Regiao).HasMaxLength(255);
 
