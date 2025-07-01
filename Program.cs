@@ -1,62 +1,51 @@
+// Ficheiro: Program.cs (Versão Simples e Funcional)
+
+// NÃO TEMOS AQUELE USING COMPLICADO AQUI
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using MSPremiumProject.Data;
-using MSPremiumProject.Services; // <<< ADICIONAR ESTE USING para IEmailSender e EmailSender
+using MSPremiumProject.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Adiciona o DbContext com MySQL
+// Adiciona o DbContext como era no início, mas com o "truque"
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         connectionString,
-        new MySqlServerVersion(new Version(8, 0, 36)) // Ajuste a versão do MySQL se necessário
+        // <<< A SOLUÇÃO SIMPLES ESTÁ AQUI
+        // Em vez de "AutoDetect" ou "new Version(8,0,36)", forçamos uma versão antiga.
+        // Isto diz ao Pomelo para gerar SQL muito simples, que a TiDB aceita
+        // sem precisar daquele PROCEDURE que deu o primeiro erro.
+        new MySqlServerVersion(new Version(5, 7, 25))
     )
 );
 
-// Adicionar serviços ao container.
+// Resto do seu código original, que estava perfeito
 builder.Services.AddControllersWithViews();
-
-// >>> INÍCIO DA CONFIGURAÇÃO DE AUTENTICAÇÃO POR COOKIES <<<
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.HttpOnly = true;
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60); // Duração da sessão
-        options.LoginPath = "/Account/Login";         // Página para onde redirecionar se não estiver logado
-        options.AccessDeniedPath = "/Account/AccessDenied"; // Página para onde redirecionar se acesso for negado (logado mas sem permissão)
-        options.SlidingExpiration = true; // Renova o cookie se o utilizador estiver ativo
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.SlidingExpiration = true;
     });
-// >>> FIM DA CONFIGURAÇÃO DE AUTENTICAÇÃO POR COOKIES <<<
-
-// **********************************************************************
-// *****         ADICIONAR ESTAS DUAS LINHAS ABAIXO                 *****
-// **********************************************************************
-builder.Services.AddTransient<IEmailSender, EmailSender>(); // Regista o serviço de email
-builder.Services.AddLogging(); // Garante que os serviços de logging estão disponíveis (ILogger)
-// **********************************************************************
-// **********************************************************************
-
-
+builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddLogging();
 var app = builder.Build();
-
-// Configure o pipeline de pedidos HTTP.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
-
 app.Run();
