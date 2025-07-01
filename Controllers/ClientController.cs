@@ -1,5 +1,4 @@
-﻿// File: Controllers/ClientController.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -9,17 +8,17 @@ using MSPremiumProject.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Intrinsics.X86;
 using System.Text.Json;
 using System.Threading.Tasks;
+
 namespace MSPremiumProject.Controllers
 {
     public class ClientController : Controller
     {
         private readonly AppDbContext _context;
         private readonly ILogger<ClientController> _logger;
-       
-    public ClientController(AppDbContext context, ILogger<ClientController> logger)
+
+        public ClientController(AppDbContext context, ILogger<ClientController> logger)
         {
             _context = context;
             _logger = logger;
@@ -32,7 +31,7 @@ namespace MSPremiumProject.Controllers
             try
             {
                 var clientes = await _context.Clientes
-                                         .Include(c => c.LocalidadeNavigation) // Ajusta para c.Localidade se renomeaste
+                                         .Include(c => c.LocalidadeNavigation)
                                              .ThenInclude(l => l.Pais)
                                          .OrderBy(c => c.Nome)
                                          .ThenBy(c => c.Apelido)
@@ -55,15 +54,13 @@ namespace MSPremiumProject.Controllers
                 _logger.LogWarning("GET Client/Details - ID nulo ou inválido.");
                 return NotFound();
             }
-
             _logger.LogInformation("Acedendo a GET Client/Details para ID: {ClienteId}", id);
             try
             {
                 var cliente = await _context.Clientes
-                    .Include(c => c.LocalidadeNavigation) // Ajusta se necessário
+                    .Include(c => c.LocalidadeNavigation)
                         .ThenInclude(l => l.Pais)
                     .FirstOrDefaultAsync(m => m.ClienteId == id);
-
                 if (cliente == null)
                 {
                     _logger.LogWarning("GET Client/Details - Cliente com ID: {ClienteId} não encontrado.", id);
@@ -80,139 +77,101 @@ namespace MSPremiumProject.Controllers
             }
         }
 
-
-        // GET: Client/Create (Já o tens, com ViewModel)
+        // GET: Client/Create
         public async Task<IActionResult> Create()
         {
-            _logger.LogInformation("Acedendo a GET Client/Create");
+            _logger.LogInformation("Acedendo a GET Client/Create (nova versão com países).");
             var viewModel = new ClienteCreateViewModel();
             try
             {
-                var regioes = await _context.Localidades.Select(l => l.Regiao).Where(r => !string.IsNullOrEmpty(r)).Distinct().OrderBy(r => r).ToListAsync();
-                viewModel.RegioesList = regioes.Select(r => new SelectListItem { Value = r, Text = r }).ToList();
-                viewModel.RegioesList.Insert(0, new SelectListItem { Value = "", Text = "-- Selecione uma Região --" });
+                viewModel.PaisesList = await _context.Paises
+                    .OrderBy(p => p.NomePais)
+                    .Select(p => new SelectListItem
+                    {
+                        Value = p.PaisId.ToString(),
+                        Text = p.NomePais
+                    })
+                    .ToListAsync();
+                var portugal = viewModel.PaisesList.FirstOrDefault(p => p.Text.Equals("Portugal", StringComparison.OrdinalIgnoreCase));
+                if (portugal != null)
+                {
+                    viewModel.SelectedPaisId = ulong.Parse(portugal.Value);
+                }
             }
-            catch (Exception ex) { _logger.LogError(ex, "Erro ao popular RegioesList em GET Create."); /* ... tratamento ... */ }
-            viewModel.LocalidadesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Região Primeiro --" } };
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao popular PaisesList em GET Create.");
+                TempData["MensagemErro"] = "Não foi possível carregar a lista de países.";
+            }
             return View(viewModel);
         }
 
-        // POST: Client/Create (Já o tens, com ViewModel)
+        // POST: Client/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ClienteCreateViewModel viewModel)
         {
-            // ... (O teu código POST Create existente, validando e guardando viewModel.Cliente) ...
-            // ... (Lógica de repopular dropdowns em caso de erro) ...
+            _logger.LogInformation("POST Client/Create. País ID: {PaisId}, Localidade: {Localidade}", viewModel.SelectedPaisId, viewModel.NomeLocalidade);
 
-            // Certifica-te que este método está completo e correto como discutimos antes
-            _logger.LogInformation("POST Client/Create. Cliente: {Nome}, LocalidadeId: {LocalidadeId}, RegiaoSelecionada: {Regiao}",
-               viewModel.Cliente.Nome, viewModel.Cliente.LocalidadeId, viewModel.SelectedRegiao);
-
-            if (viewModel.Cliente.LocalidadeId == 0)
-            {
-                ModelState.AddModelError("Cliente.LocalidadeId", "É obrigatório selecionar uma localidade válida.");
-            }
-
-            if (viewModel.Cliente.LocalidadeId > 0 && ModelState.TryGetValue(nameof(viewModel.Cliente) + "." + nameof(Models.Cliente.LocalidadeNavigation), out var navegacaoLocalidadeEntry))
-            {
-                if (navegacaoLocalidadeEntry.Errors.Any(e => e.ErrorMessage.Contains("field is required")))
-                {
-                    _logger.LogInformation("Removendo erro de ModelState para a propriedade de navegação 'Cliente.LocalidadeNavigation' pois Cliente.LocalidadeId ({LocalidadeId}) está preenchido.", viewModel.Cliente.LocalidadeId);
-                    ModelState.Remove(nameof(viewModel.Cliente) + "." + nameof(Models.Cliente.LocalidadeNavigation));
-                }
-            }
+            ModelState.Remove(nameof(viewModel.Cliente) + "." + nameof(Models.Cliente.LocalidadeNavigation));
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Clientes.Add(viewModel.Cliente);
-                    await _context.SaveChangesAsync();
-                    TempData["MensagemSucesso"] = $"Cliente '{viewModel.Cliente.Nome}' adicionado com sucesso!";
-                    return RedirectToAction(nameof(Index));
+                    var paisSelecionado = await _context.Paises.FindAsync(viewModel.SelectedPaisId);
+                    var regiaoParaBusca = (paisSelecionado?.CodigoIso == "PT") ? viewModel.SelectedRegiao : "N/A";
+
+                    if (paisSelecionado?.CodigoIso == "PT" && string.IsNullOrWhiteSpace(regiaoParaBusca))
+                    {
+                        ModelState.AddModelError("SelectedRegiao", "Para Portugal, a região é obrigatória.");
+                    }
+                    else
+                    {
+                        var localidade = await _context.Localidades.FirstOrDefaultAsync(l =>
+                            l.NomeLocalidade.ToLower() == viewModel.NomeLocalidade.ToLower() &&
+                            l.PaisId == viewModel.SelectedPaisId &&
+                            l.Regiao.ToLower() == regiaoParaBusca.ToLower());
+
+                        if (localidade == null)
+                        {
+                            localidade = new Localidade
+                            {
+                                NomeLocalidade = viewModel.NomeLocalidade,
+                                PaisId = viewModel.SelectedPaisId,
+                                Regiao = regiaoParaBusca
+                            };
+                            _context.Localidades.Add(localidade);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        viewModel.Cliente.LocalidadeId = localidade.LocalidadeId;
+                        _context.Clientes.Add(viewModel.Cliente);
+                        await _context.SaveChangesAsync();
+                        TempData["MensagemSucesso"] = $"Cliente '{viewModel.Cliente.Nome}' criado com sucesso!";
+                        return RedirectToAction(nameof(Index));
+                    }
                 }
                 catch (DbUpdateException dbEx)
-                { /* ... log e ModelState.AddModelError ... */
+                {
                     _logger.LogError(dbEx, "DbUpdateException ao criar cliente '{Nome}'. InnerException: {InnerMsg}", viewModel.Cliente.Nome, dbEx.InnerException?.Message);
-                    ModelState.AddModelError(string.Empty, "Não foi possível guardar o cliente devido a um erro na base de dados. Verifique os dados. Detalhe: " + (dbEx.InnerException?.Message ?? dbEx.Message));
+                    ModelState.AddModelError(string.Empty, "Não foi possível guardar o cliente. Detalhe: " + (dbEx.InnerException?.Message ?? dbEx.Message));
                 }
                 catch (Exception ex)
-                { /* ... log e ModelState.AddModelError ... */
+                {
                     _logger.LogError(ex, "Erro inesperado ao criar cliente '{Nome}'.", viewModel.Cliente.Nome);
                     ModelState.AddModelError(string.Empty, "Ocorreu um erro inesperado ao tentar guardar o cliente.");
                 }
             }
-            else
-            { /* ... log de erros do ModelState ... */
-                var errors = ModelState
-                    .Where(ms => ms.Value.Errors.Any())
-                    .Select(ms => new { Field = ms.Key, Errors = ms.Value.Errors.Select(e => e.ErrorMessage).ToList() });
-                _logger.LogWarning("ModelState inválido ao tentar criar Cliente. Erros: {ModelStateErrorsJson}", JsonSerializer.Serialize(errors));
-                TempData["MensagemErro"] = "Dados inválidos. Por favor, corrija os erros sinalizados.";
-            }
 
-            // Repopular dropdowns
-            try
-            {
-                var regioesDb = await _context.Localidades.Select(l => l.Regiao).Where(r => !string.IsNullOrEmpty(r)).Distinct().OrderBy(r => r).ToListAsync();
-                viewModel.RegioesList = regioesDb.Select(r => new SelectListItem { Value = r, Text = r }).ToList();
-                viewModel.RegioesList.Insert(0, new SelectListItem { Value = "", Text = "-- Selecione uma Região --" });
+            _logger.LogWarning("ModelState inválido ao tentar criar Cliente. Erros: {ModelStateErrorsJson}", JsonSerializer.Serialize(ModelState.Values.SelectMany(v => v.Errors)));
 
-                if (!string.IsNullOrEmpty(viewModel.SelectedRegiao))
-                {
-                    var localidadesDb = await _context.Localidades
-                                                .Where(l => l.Regiao == viewModel.SelectedRegiao)
-                                                .OrderBy(l => l.NomeLocalidade)
-                                                .Select(l => new SelectListItem { Value = l.LocalidadeId.ToString(), Text = l.NomeLocalidade })
-                                                .ToListAsync();
-                    var localidadesParaDropdown = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Localidade --" } };
-                    localidadesParaDropdown.AddRange(localidadesDb);
-                    viewModel.LocalidadesList = localidadesParaDropdown;
-                    // Tenta pré-selecionar a localidade se LocalidadeId estiver no cliente do viewmodel
-                    foreach (var item in viewModel.LocalidadesList.Where(x => x.Value == viewModel.Cliente.LocalidadeId.ToString())) { item.Selected = true; }
-                }
-                else
-                {
-                    viewModel.LocalidadesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Região Primeiro --" } };
-                }
-            }
-            catch (Exception ex) { _logger.LogError(ex, "Erro ao REpopular dropdowns em POST Create."); /* ... tratamento ... */ }
-
+            viewModel.PaisesList = await _context.Paises
+                .OrderBy(p => p.NomePais)
+                .Select(p => new SelectListItem { Value = p.PaisId.ToString(), Text = p.NomePais })
+                .ToListAsync();
             return View(viewModel);
         }
-
-        // Action para AJAX (Já a tens)
-        [HttpGet]
-        public async Task<JsonResult> GetLocalidadesPorRegiao(string regiao)
-        {
-            // ... (O teu código GetLocalidadesPorRegiao existente) ...
-            _logger.LogInformation("GetLocalidadesPorRegiao chamada para Regiao: {Regiao}", regiao);
-            var localidadesList = new List<SelectListItem>();
-
-            if (string.IsNullOrEmpty(regiao))
-            {
-                localidadesList.Add(new SelectListItem { Value = "", Text = "-- Selecione uma Região Primeiro --" });
-                return Json(localidadesList);
-            }
-            try
-            {
-                var localidades = await _context.Localidades
-                                            .Where(l => l.Regiao == regiao)
-                                            .OrderBy(l => l.NomeLocalidade)
-                                            .Select(l => new SelectListItem
-                                            {
-                                                Value = l.LocalidadeId.ToString(),
-                                                Text = l.NomeLocalidade
-                                            })
-                                            .ToListAsync();
-                if (localidades.Any()) { localidadesList.Add(new SelectListItem { Value = "", Text = "-- Selecione uma Localidade --" }); localidadesList.AddRange(localidades); }
-                else { localidadesList.Add(new SelectListItem { Value = "", Text = "-- Nenhuma localidade para esta região --" }); }
-            }
-            catch (Exception ex) { /* ... log ... */ }
-            return Json(localidadesList);
-        }
-
 
         // GET: Client/Edit/5
         public async Task<IActionResult> Edit(ulong? id)
@@ -220,7 +179,11 @@ namespace MSPremiumProject.Controllers
             if (id == null || id == 0) return NotFound();
             _logger.LogInformation("Acedendo a GET Client/Edit para ID: {ClienteId}", id);
 
-            var cliente = await _context.Clientes.FindAsync(id);
+            var cliente = await _context.Clientes
+                            .Include(c => c.LocalidadeNavigation)
+                            .ThenInclude(l => l.Pais)
+                            .FirstOrDefaultAsync(c => c.ClienteId == id);
+
             if (cliente == null)
             {
                 _logger.LogWarning("GET Client/Edit - Cliente com ID: {ClienteId} não encontrado.", id);
@@ -228,48 +191,32 @@ namespace MSPremiumProject.Controllers
                 return NotFound();
             }
 
-            // Para o Edit, vamos precisar do ClienteCreateViewModel para popular os dropdowns
-            // e pré-selecionar os valores corretos.
-            var viewModel = new ClienteCreateViewModel
-            {
-                Cliente = cliente
-            };
-
+            var viewModel = new ClienteCreateViewModel { Cliente = cliente };
             try
             {
-                // Popular Regiões
-                var regioes = await _context.Localidades.Select(l => l.Regiao).Where(r => !string.IsNullOrEmpty(r)).Distinct().OrderBy(r => r).ToListAsync();
-                viewModel.RegioesList = regioes.Select(r => new SelectListItem { Value = r, Text = r }).ToList();
-                viewModel.RegioesList.Insert(0, new SelectListItem { Value = "", Text = "-- Selecione uma Região --" });
+                viewModel.PaisesList = await _context.Paises
+                    .OrderBy(p => p.NomePais)
+                    .Select(p => new SelectListItem { Value = p.PaisId.ToString(), Text = p.NomePais })
+                    .ToListAsync();
 
-                // Pré-selecionar a região do cliente (se a localidade estiver carregada)
-                var localidadeDoCliente = await _context.Localidades.FindAsync(cliente.LocalidadeId);
-                if (localidadeDoCliente != null)
+                if (cliente.LocalidadeNavigation?.PaisId != null)
                 {
-                    viewModel.SelectedRegiao = localidadeDoCliente.Regiao;
-                    // Popular Localidades para a região pré-selecionada
-                    var localidadesDaRegiao = await _context.Localidades
-                                                       .Where(l => l.Regiao == localidadeDoCliente.Regiao)
-                                                       .OrderBy(l => l.NomeLocalidade)
-                                                       .Select(l => new SelectListItem { Value = l.LocalidadeId.ToString(), Text = l.NomeLocalidade })
-                                                       .ToListAsync();
-                    var localidadesParaDropdown = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Localidade --" } };
-                    localidadesParaDropdown.AddRange(localidadesDaRegiao);
-                    viewModel.LocalidadesList = localidadesParaDropdown;
-                    // Pré-selecionar a localidade no dropdown
-                    foreach (var item in viewModel.LocalidadesList.Where(x => x.Value == cliente.LocalidadeId.ToString())) { item.Selected = true; }
+                    viewModel.SelectedPaisId = cliente.LocalidadeNavigation.PaisId;
+                    if (cliente.LocalidadeNavigation.Pais.CodigoIso == "PT")
+                    {
+                        viewModel.SelectedRegiao = cliente.LocalidadeNavigation.Regiao;
+                    }
                 }
-                else
-                {
-                    viewModel.LocalidadesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Região Primeiro --" } };
-                }
+
+                viewModel.NomeLocalidade = cliente.LocalidadeNavigation?.NomeLocalidade ?? "";
             }
-            catch (Exception ex) { _logger.LogError(ex, "Erro ao popular dropdowns em GET Client/Edit."); /* ... tratamento ... */ }
-
-            return View(viewModel); // Usaremos a mesma view Create.cshtml para o Edit, ou uma view Edit.cshtml similar.
-                                    // Se usares a mesma view Create.cshtml, ela precisa de ser adaptada para lidar com edição.
-                                    // É mais comum ter uma Edit.cshtml separada.
-                                    // Por simplicidade, vou assumir que tens uma View/Client/Edit.cshtml que aceita ClienteCreateViewModel
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao popular o ViewModel em GET Client/Edit.");
+                TempData["MensagemErro"] = "Ocorreu um erro ao carregar os dados para edição.";
+                return RedirectToAction(nameof(Index));
+            }
+            return View(viewModel);
         }
 
         // POST: Client/Edit/5
@@ -279,88 +226,88 @@ namespace MSPremiumProject.Controllers
         {
             if (id != viewModel.Cliente.ClienteId)
             {
-                _logger.LogWarning("POST Client/Edit - ID de rota ({RouteId}) não corresponde ao ID do modelo ({ModelId}).", id, viewModel.Cliente.ClienteId);
                 return NotFound();
             }
-            _logger.LogInformation("POST Client/Edit para Cliente ID: {ClienteId}. LocalidadeId: {LocalidadeId}, RegiaoSelecionada: {Regiao}",
-               viewModel.Cliente.ClienteId, viewModel.Cliente.LocalidadeId, viewModel.SelectedRegiao);
 
-
-            if (viewModel.Cliente.LocalidadeId == 0)
-            {
-                ModelState.AddModelError("Cliente.LocalidadeId", "É obrigatório selecionar uma localidade válida.");
-            }
-
-            if (viewModel.Cliente.LocalidadeId > 0 && ModelState.TryGetValue(nameof(viewModel.Cliente) + "." + nameof(Models.Cliente.LocalidadeNavigation), out var navegacaoLocalidadeEntry))
-            {
-                if (navegacaoLocalidadeEntry.Errors.Any(e => e.ErrorMessage.Contains("field is required")))
-                {
-                    ModelState.Remove(nameof(viewModel.Cliente) + "." + nameof(Models.Cliente.LocalidadeNavigation));
-                }
-            }
+            ModelState.Remove(nameof(viewModel.Cliente) + "." + nameof(Models.Cliente.LocalidadeNavigation));
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(viewModel.Cliente);
-                    await _context.SaveChangesAsync();
-                    _logger.LogInformation("Cliente '{Nome}' (ID: {ClienteId}) atualizado com sucesso.", viewModel.Cliente.Nome, viewModel.Cliente.ClienteId);
-                    TempData["MensagemSucesso"] = $"Cliente '{viewModel.Cliente.Nome}' atualizado com sucesso!";
-                    return RedirectToAction(nameof(Index));
+                    var paisSelecionado = await _context.Paises.FindAsync(viewModel.SelectedPaisId);
+                    var regiaoParaBusca = (paisSelecionado?.CodigoIso == "PT") ? viewModel.SelectedRegiao : "N/A";
+
+                    if (paisSelecionado?.CodigoIso == "PT" && string.IsNullOrWhiteSpace(regiaoParaBusca))
+                    {
+                        ModelState.AddModelError("SelectedRegiao", "Para Portugal, a região é obrigatória.");
+                    }
+                    else
+                    {
+                        var localidade = await _context.Localidades.FirstOrDefaultAsync(l =>
+                            l.NomeLocalidade.ToLower() == viewModel.NomeLocalidade.ToLower() &&
+                            l.PaisId == viewModel.SelectedPaisId &&
+                            l.Regiao.ToLower() == regiaoParaBusca.ToLower());
+
+                        if (localidade == null)
+                        {
+                            localidade = new Localidade
+                            {
+                                NomeLocalidade = viewModel.NomeLocalidade,
+                                PaisId = viewModel.SelectedPaisId,
+                                Regiao = regiaoParaBusca
+                            };
+                            _context.Localidades.Add(localidade);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        viewModel.Cliente.LocalidadeId = localidade.LocalidadeId;
+                        _context.Update(viewModel.Cliente);
+                        await _context.SaveChangesAsync();
+                        TempData["MensagemSucesso"] = $"Cliente '{viewModel.Cliente.Nome}' atualizado com sucesso!";
+                        return RedirectToAction(nameof(Index));
+                    }
                 }
-                catch (DbUpdateConcurrencyException dbUcEx)
+                catch (DbUpdateConcurrencyException)
                 {
-                    _logger.LogError(dbUcEx, "DbUpdateConcurrencyException ao editar cliente ID: {ClienteId}.", viewModel.Cliente.ClienteId);
                     if (!await ClienteExists(viewModel.Cliente.ClienteId)) { return NotFound(); } else { throw; }
                 }
-                catch (DbUpdateException dbEx)
-                { /* ... log e ModelState.AddModelError ... */
-                    _logger.LogError(dbEx, "DbUpdateException ao editar cliente '{Nome}'. InnerException: {InnerMsg}", viewModel.Cliente.Nome, dbEx.InnerException?.Message);
-                    ModelState.AddModelError(string.Empty, "Não foi possível atualizar o cliente. Verifique os dados. Detalhe: " + (dbEx.InnerException?.Message ?? dbEx.Message));
-                }
                 catch (Exception ex)
-                { /* ... log e ModelState.AddModelError ... */
+                {
                     _logger.LogError(ex, "Erro inesperado ao editar cliente '{Nome}'.", viewModel.Cliente.Nome);
                     ModelState.AddModelError(string.Empty, "Ocorreu um erro inesperado ao tentar atualizar o cliente.");
                 }
             }
-            else
-            {
-                var errors = ModelState
-                    .Where(ms => ms.Value.Errors.Any())
-                    .Select(ms => new { Field = ms.Key, Errors = ms.Value.Errors.Select(e => e.ErrorMessage).ToList() });
-                _logger.LogWarning("ModelState inválido ao tentar editar Cliente ID: {ClienteId}. Erros: {ModelStateErrorsJson}", viewModel.Cliente.ClienteId, JsonSerializer.Serialize(errors));
-                TempData["MensagemErro"] = "Dados inválidos. Por favor, corrija os erros sinalizados.";
-            }
 
-            // Repopular dropdowns em caso de erro
+            _logger.LogWarning("ModelState inválido ao tentar editar Cliente ID: {ClienteId}", viewModel.Cliente.ClienteId);
+            viewModel.PaisesList = await _context.Paises
+                .OrderBy(p => p.NomePais)
+                .Select(p => new SelectListItem { Value = p.PaisId.ToString(), Text = p.NomePais })
+                .ToListAsync();
+            return View(viewModel);
+        }
+
+        // NOVA ACTION PARA AJAX: Obter Regiões de um País
+        [HttpGet]
+        public async Task<JsonResult> GetRegioesPorPais(ulong paisId)
+        {
+            _logger.LogInformation("GetRegioesPorPais chamada para PaisId: {PaisId}", paisId);
             try
             {
-                var regioesDb = await _context.Localidades.Select(l => l.Regiao).Where(r => !string.IsNullOrEmpty(r)).Distinct().OrderBy(r => r).ToListAsync();
-                viewModel.RegioesList = regioesDb.Select(r => new SelectListItem { Value = r, Text = r }).ToList();
-                viewModel.RegioesList.Insert(0, new SelectListItem { Value = "", Text = "-- Selecione uma Região --" });
+                var regioes = await _context.Localidades
+                    .Where(l => l.PaisId == paisId && !string.IsNullOrEmpty(l.Regiao) && l.Regiao != "N/A")
+                    .Select(l => l.Regiao)
+                    .Distinct()
+                    .OrderBy(r => r)
+                    .ToListAsync();
 
-                if (!string.IsNullOrEmpty(viewModel.SelectedRegiao))
-                {
-                    var localidadesDb = await _context.Localidades
-                                                .Where(l => l.Regiao == viewModel.SelectedRegiao)
-                                                .OrderBy(l => l.NomeLocalidade)
-                                                .Select(l => new SelectListItem { Value = l.LocalidadeId.ToString(), Text = l.NomeLocalidade })
-                                                .ToListAsync();
-                    var localidadesParaDropdown = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Localidade --" } };
-                    localidadesParaDropdown.AddRange(localidadesDb);
-                    viewModel.LocalidadesList = localidadesParaDropdown;
-                    foreach (var item in viewModel.LocalidadesList.Where(x => x.Value == viewModel.Cliente.LocalidadeId.ToString())) { item.Selected = true; }
-                }
-                else
-                {
-                    viewModel.LocalidadesList = new List<SelectListItem> { new SelectListItem { Value = "", Text = "-- Selecione uma Região Primeiro --" } };
-                }
+                return Json(regioes);
             }
-            catch (Exception ex) { _logger.LogError(ex, "Erro ao REpopular dropdowns em POST Edit."); /* ... tratamento ... */ }
-
-            return View(viewModel); // Retorna para a view Edit (que deve ser similar à Create)
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar regiões para o PaisId: {PaisId}", paisId);
+                return Json(new List<string>());
+            }
         }
 
         // GET: Client/Delete/5
@@ -368,14 +315,12 @@ namespace MSPremiumProject.Controllers
         {
             if (id == null || id == 0) return NotFound();
             _logger.LogInformation("Acedendo a GET Client/Delete para ID: {ClienteId}", id);
-
             try
             {
                 var cliente = await _context.Clientes
-                    .Include(c => c.LocalidadeNavigation) // Ajusta se necessário
+                    .Include(c => c.LocalidadeNavigation)
                         .ThenInclude(l => l.Pais)
                     .FirstOrDefaultAsync(m => m.ClienteId == id);
-
                 if (cliente == null)
                 {
                     _logger.LogWarning("GET Client/Delete - Cliente com ID: {ClienteId} não encontrado.", id);
@@ -398,8 +343,7 @@ namespace MSPremiumProject.Controllers
         public async Task<IActionResult> DeleteConfirmed(ulong id)
         {
             _logger.LogInformation("Acedendo a POST Client/DeleteConfirmed para ID: {ClienteId}", id);
-            if (id == 0) return NotFound(); // Ou BadRequest
-
+            if (id == 0) return NotFound();
             try
             {
                 var cliente = await _context.Clientes.FindAsync(id);
@@ -416,11 +360,11 @@ namespace MSPremiumProject.Controllers
                     TempData["MensagemErro"] = "Cliente não encontrado para apagar.";
                 }
             }
-            catch (DbUpdateException dbEx) // Captura erros específicos de FK se ON DELETE RESTRICT estiver ativo
+            catch (DbUpdateException dbEx)
             {
                 _logger.LogError(dbEx, "DbUpdateException ao apagar cliente ID: {ClienteId}. InnerException: {InnerMsg}", id, dbEx.InnerException?.Message);
-                TempData["MensagemErro"] = "Não foi possível apagar o cliente. Pode estar associado a outros registos (ex: Propostas). Detalhe: " + (dbEx.InnerException?.Message ?? dbEx.Message);
-                return RedirectToAction(nameof(Delete), new { id = id }); // Volta para a página de confirmação com erro
+                TempData["MensagemErro"] = "Não foi possível apagar o cliente. Pode estar associado a outros registos.";
+                return RedirectToAction(nameof(Delete), new { id = id });
             }
             catch (Exception ex)
             {
@@ -434,6 +378,5 @@ namespace MSPremiumProject.Controllers
         {
             return await _context.Clientes.AnyAsync(e => e.ClienteId == id);
         }
-}
-
     }
+}

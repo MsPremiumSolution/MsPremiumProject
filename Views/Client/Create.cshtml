@@ -37,7 +37,6 @@
                     }
 
                     <form asp-action="Create" asp-controller="Client" method="post">
-                        @* <<< ALTERADO PARA "Client" *@
                         @Html.AntiForgeryToken()
 
                         <fieldset class="mb-4">
@@ -97,29 +96,51 @@
                             </div>
 
                             <div class="row g-3 mt-1">
-                                <div class="col-md-5">
-                                    <label asp-for="SelectedRegiao" class="form-label"></label>
-                                    <select asp-for="SelectedRegiao" asp-items="Model.RegioesList" class="form-select" id="regiaoDropdown">
+                                <div class="col-md-6">
+                                    <label asp-for="SelectedPaisId" class="form-label">País</label>
+                                    <select asp-for="SelectedPaisId" asp-items="Model.PaisesList" class="form-select" id="paisDropdown">
+                                        <option value="">-- Selecione um País --</option>
                                     </select>
+                                    <span asp-validation-for="SelectedPaisId" class="text-danger"></span>
                                 </div>
-                                <div class="col-md-7">
-                                    <label asp-for="Cliente.LocalidadeId" class="form-label">Localidade</label>
-                                    <select asp-for="Cliente.LocalidadeId" asp-items="Model.LocalidadesList" class="form-select" id="localidadeDropdown">
+                                <div class="col-md-6">
+                                    <label asp-for="NomeLocalidade" class="form-label"></label>
+                                    <input asp-for="NomeLocalidade" class="form-control" placeholder="Cidade / Localidade" />
+                                    <span asp-validation-for="NomeLocalidade" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-1" id="regioesContainer" style="display: none;">
+                                <div class="col-12">
+                                    <label asp-for="SelectedRegiao" class="form-label">Região (Distrito)</label>
+                                    <select asp-for="SelectedRegiao" class="form-select" id="regiaoDropdown">
+                                        <option value="">-- Selecione uma Região --</option>
                                     </select>
-                                    <span asp-validation-for="Cliente.LocalidadeId" class="text-danger"></span>
+                                    <span asp-validation-for="SelectedRegiao" class="text-danger"></span>
                                 </div>
                             </div>
 
                             <div class="row g-3 mt-1">
-                                <div class="col-md-4">
-                                    <label asp-for="Cliente.Cp4" class="form-label"></label>
-                                    <input asp-for="Cliente.Cp4" class="form-control" placeholder="Ex: 1234" />
-                                    <span asp-validation-for="Cliente.Cp4" class="text-danger"></span>
+                                <div class="col-md-7" id="cpPortugalContainer" style="display: none;">
+                                    <div class="row">
+                                        <div class="col-7">
+                                            <label asp-for="Cliente.Cp4" class="form-label"></label>
+                                            <input asp-for="Cliente.Cp4" class="form-control" placeholder="Ex: 1234" />
+                                            <span asp-validation-for="Cliente.Cp4" class="text-danger"></span>
+                                        </div>
+                                        <div class="col-5">
+                                            <label asp-for="Cliente.Cp3" class="form-label"></label>
+                                            <input asp-for="Cliente.Cp3" class="form-control" placeholder="Ex: 567" />
+                                            <span asp-validation-for="Cliente.Cp3" class="text-danger"></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <label asp-for="Cliente.Cp3" class="form-label"></label>
-                                    <input asp-for="Cliente.Cp3" class="form-control" placeholder="Ex: 567" />
-                                    <span asp-validation-for="Cliente.Cp3" class="text-danger"></span>
+                                <div class="col-md-5" id="cpEstrangeiroContainer" style="display: none;">
+                                    @* Assumindo que você adicionou CodigoPostalEstrangeiro ao Cliente.cs *@
+                                    @* Se o campo estiver no ViewModel, use asp-for="CodigoPostalEstrangeiro" *@
+                                    <label asp-for="Cliente.CodigoPostalEstrangeiro" class="form-label">Código Postal</label>
+                                    <input asp-for="Cliente.CodigoPostalEstrangeiro" class="form-control" />
+                                    <span asp-validation-for="Cliente.CodigoPostalEstrangeiro" class="text-danger"></span>
                                 </div>
                             </div>
                         </fieldset>
@@ -138,7 +159,6 @@
                                 <i class="bi bi-save me-2"></i> Guardar Cliente
                             </button>
                             <a asp-action="Index" asp-controller="Client" class="btn btn-outline-secondary">
-                                @* <<< ALTERADO PARA "Client" *@
                                 <i class="bi bi-list-ul me-2"></i> Voltar à Lista
                             </a>
                         </div>
@@ -155,55 +175,69 @@
     }
     <script>
         $(document).ready(function () {
-            var localidadeDropdown = $('#localidadeDropdown');
+            var paisDropdown = $('#paisDropdown');
             var regiaoDropdown = $('#regiaoDropdown');
+            var regioesContainer = $('#regioesContainer');
+            var cpPortugalContainer = $('#cpPortugalContainer');
+            var cpEstrangeiroContainer = $('#cpEstrangeiroContainer');
 
-            function updateLocalidades(selectedRegiao) {
-                localidadeDropdown.empty();
-                localidadeDropdown.prop('disabled', true);
+            function toggleFieldsByCountry() {
+                var selectedPaisOption = paisDropdown.find('option:selected');
+                var selectedPaisText = selectedPaisOption.text();
+                var selectedPaisId = paisDropdown.val();
 
-                if (selectedRegiao) {
-                    localidadeDropdown.append($('<option></option>').val('').text('-- A Carregar Localidades... --'));
-                    $.ajax({
-                        url: '@Url.Action("GetLocalidadesPorRegiao", "Client")', // <<< ALTERADO PARA "Client"
-                        type: 'GET',
-                        dataType: 'json',
-                        data: { regiao: selectedRegiao },
-                        success: function (data) {
-                            localidadeDropdown.empty();
-                            if (data && data.length > 0) {
-                                $.each(data, function (index, item) {
-                                    localidadeDropdown.append($('<option></option>').val(item.value).text(item.text));
-                                });
-                            } else {
-                                localidadeDropdown.append($('<option></option>').val('').text('-- Nenhuma localidade encontrada --'));
+                // Esconde tudo por defeito para começar do zero
+                regioesContainer.hide();
+                cpPortugalContainer.hide();
+                cpEstrangeiroContainer.hide();
+
+                if (selectedPaisId) {
+                    if (selectedPaisText.toLowerCase() === 'portugal') {
+                        // É Portugal: mostra os campos de PT
+                        regioesContainer.show();
+                        cpPortugalContainer.show();
+                        
+                        // Limpa o campo de CP estrangeiro
+                        $('#Cliente_CodigoPostalEstrangeiro').val('');
+
+                        // Carrega as regiões de Portugal via AJAX
+                        $.ajax({
+                            url: '@Url.Action("GetRegioesPorPais", "Client")',
+                            type: 'GET',
+                            dataType: 'json',
+                            data: { paisId: selectedPaisId },
+                            success: function (data) {
+                                regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região --'));
+                                if (data && data.length > 0) {
+                                    $.each(data, function (index, item) {
+                                        regiaoDropdown.append($('<option></option>').val(item).text(item));
+                                    });
+                                }
+                            },
+                            error: function (xhr, status, error) {
+                                console.error("Erro ao buscar regiões: ", status, error);
+                                regiaoDropdown.empty().append($('<option></option>').val('').text('-- Erro ao carregar --'));
                             }
-                            localidadeDropdown.prop('disabled', false);
-                        },
-                        error: function (xhr, status, error) {
-                            console.error("Erro ao buscar localidades: ", status, error, xhr.responseText);
-                            localidadeDropdown.empty();
-                            localidadeDropdown.append($('<option></option>').val('').text('-- Erro ao carregar localidades --'));
-                            localidadeDropdown.prop('disabled', false);
-                        }
-                    });
-                } else {
-                    localidadeDropdown.append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --'));
-                    localidadeDropdown.prop('disabled', true);
+                        });
+                    } else {
+                        // É outro país: mostra o campo de CP estrangeiro
+                        cpEstrangeiroContainer.show();
+
+                        // Limpa os campos de PT
+                        $('#Cliente_Cp4').val('');
+                        $('#Cliente_Cp3').val('');
+                        regiaoDropdown.empty().append($('<option></option>').val('').text('-- N/A --'));
+                    }
                 }
             }
 
-            regiaoDropdown.on('change', function () {
-                var selectedRegiao = $(this).val();
-                updateLocalidades(selectedRegiao);
+            // Adiciona o evento 'change' à dropdown de país
+            paisDropdown.on('change', function () {
+                toggleFieldsByCountry();
             });
 
-            var initialRegiao = regiaoDropdown.val();
-            if (initialRegiao) {
-                 regiaoDropdown.trigger('change');
-            } else {
-                localidadeDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região Primeiro --')).prop('disabled', true);
-            }
+            // Executa a função no carregamento da página para definir o estado inicial correto
+            toggleFieldsByCountry();
         });
-    </script>
+    </s cript>
 }
