@@ -1,15 +1,17 @@
-﻿// File: Models/Cliente.cs
+﻿// Ficheiro: Models/Cliente.cs
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using MSPremiumProject.Utils;
-using MSPremiumProject.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Linq;
+using MSPremiumProject.Data; // Necessário para aceder ao AppDbContext
+using Microsoft.EntityFrameworkCore; // Necessário para o Include() e AsNoTracking()
+using System.Linq; // Necessário para o FirstOrDefault()
+using MSPremiumProject.Utils; // Supondo que o seu validador de NIF está aqui
 
 namespace MSPremiumProject.Models
 {
+    [Table("Clientes")]
     public partial class Cliente : IValidatableObject
     {
         [Key]
@@ -24,42 +26,44 @@ namespace MSPremiumProject.Models
         [Display(Name = "Apelido")]
         public string? Apelido { get; set; }
 
+        [StringLength(150, ErrorMessage = "O Nome da Empresa deve ter no máximo 150 caracteres.")]
+        [Display(Name = "Empresa (Opcional)")]
+        public string? Empresa { get; set; } // Campo Empresa já incluído
+
         [Required(ErrorMessage = "A morada é obrigatória.")]
         [StringLength(255, ErrorMessage = "A morada não pode exceder 255 caracteres.")]
         [Display(Name = "Morada")]
         public string Morada { get; set; } = null!;
 
-        // ***** ALTERAÇÃO 1: REMOVIDO [Required] *****
         [RegularExpression(@"^\d{4}$", ErrorMessage = "O CP4 deve ter 4 dígitos.")]
         [StringLength(4)]
         [Display(Name = "CP (4 Dígitos)")]
-        public string? Cp4 { get; set; } // Alterado para string? para permitir nulo
+        public string? Cp4 { get; set; }
 
-        // ***** ALTERAÇÃO 1: REMOVIDO [Required] *****
         [RegularExpression(@"^\d{3}$", ErrorMessage = "O CP3 deve ter 3 dígitos.")]
         [StringLength(3)]
         [Display(Name = "CP (3 Dígitos)")]
-        public string? Cp3 { get; set; } // Alterado para string? para permitir nulo
+        public string? Cp3 { get; set; }
 
-        // ***** ALTERAÇÃO 2: ADICIONADO NOVO CAMPO *****
         [StringLength(20, ErrorMessage = "O código postal não pode exceder 20 caracteres.")]
-        [Display(Name = "Código Postal")]
+        [Display(Name = "Código Postal Estrangeiro")]
         public string? CodigoPostalEstrangeiro { get; set; }
 
         [Required(ErrorMessage = "A localidade é obrigatória.")]
-        [Display(Name = "ID da Localidade")]
+        [Display(Name = "Localidade")]
         public ulong LocalidadeId { get; set; }
 
         [Display(Name = "Número Fiscal (NIF)")]
         [StringLength(50, ErrorMessage = "O NIF não pode exceder 50 caracteres.")]
         public string? NumeroFiscal { get; set; }
 
+        // --- CAMPO OBSERVAÇÕES CORRIGIDO ---
         [DataType(DataType.MultilineText)]
         [Display(Name = "Observações")]
-        public string? Observacoes { get; set; }
+        public string? Observacoes { get; set; } // Apenas o '?' já o torna opcional (nullable)
 
         [EmailAddress(ErrorMessage = "O formato do email é inválido.")]
-        [StringLength(255, ErrorMessage = "O email não pode exceder 255 caracteres.")]
+        [StringLength(255)]
         [Display(Name = "Email")]
         public string? Email { get; set; }
 
@@ -71,79 +75,75 @@ namespace MSPremiumProject.Models
 
         [DataType(DataType.Date)]
         [Display(Name = "Data de Nascimento")]
-        public DateOnly? Dtnascimento { get; set; }
+        public DateOnly? Dtnascimento { get; set; } // Usar DateOnly é mais apropriado se não precisar da hora
 
+        // --- Propriedades de Navegação ---
         [ForeignKey("LocalidadeId")]
-        public virtual Localidade? LocalidadeNavigation { get; set; }
-
+        public virtual Localidade? LocalidadeNavigation { get; set; } // Nome corrigido para seguir convenção
         public virtual ICollection<Proposta> Proposta { get; set; } = new List<Proposta>();
 
-        // ***** ALTERAÇÃO 3: MÉTODO VALIDATE ATUALIZADO *****
+
+        // --- Método de Validação Personalizada ---
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            var results = new List<ValidationResult>();
-            var dbContext = validationContext.GetService(typeof(AppDbContext)) as AppDbContext;
+            // Obtém a instância do DbContext para fazer validações contra a base de dados
+            var dbContext = (AppDbContext?)validationContext.GetService(typeof(AppDbContext));
             if (dbContext == null)
             {
-                // Não é possível validar sem o contexto, retorna sem erros para não bloquear
+                // Se não conseguirmos obter o contexto (ex: em testes unitários), não podemos validar.
+                // Retornar sem erros é uma abordagem segura para não bloquear o fluxo.
                 yield break;
             }
 
+            // Descobre o código do país com base na LocalidadeId selecionada
             string? paisCodigoIso = null;
-            if (LocalidadeId > 0)
+            if (this.LocalidadeId > 0)
             {
-                var localidadeDoCliente = dbContext.Localidades
-                                              .Include(l => l.Pais)
-                                              .AsNoTracking()
-                                              .FirstOrDefault(l => l.LocalidadeId == this.LocalidadeId);
-                if (localidadeDoCliente?.Pais != null)
-                {
-                    paisCodigoIso = localidadeDoCliente.Pais.CodigoIso;
-                }
+                var pais = dbContext.Localidades
+                                    .Where(l => l.LocalidadeId == this.LocalidadeId)
+                                    .Select(l => l.Pais.CodigoIso)
+                                    .AsNoTracking()
+                                    .FirstOrDefault();
+                paisCodigoIso = pais;
             }
 
-            // Validação do NIF (código que você já tinha)
+            // 1. Validação do NIF com base no país
             if (!string.IsNullOrWhiteSpace(NumeroFiscal))
             {
                 if (string.IsNullOrWhiteSpace(paisCodigoIso))
                 {
-                    // Não foi possível determinar o país, talvez adicionar um erro?
+                    yield return new ValidationResult(
+                        "Não foi possível validar o NIF porque a localidade (e o país) não foi selecionada.",
+                        new[] { nameof(NumeroFiscal) });
                 }
-                else if (!EuropeanNifValidator.ValidateNif(paisCodigoIso, NumeroFiscal))
+                else if (!EuropeanNifValidator.ValidateNif(paisCodigoIso, NumeroFiscal)) // Supondo que o seu validador existe
                 {
-                    results.Add(new ValidationResult(
-                        $"O NIF '{NumeroFiscal}' não é válido para o país '{paisCodigoIso}'.",
-                        new[] { nameof(NumeroFiscal) }));
+                    yield return new ValidationResult(
+                        $"O NIF '{NumeroFiscal}' não é válido para o país selecionado.",
+                        new[] { nameof(NumeroFiscal) });
                 }
             }
 
-            // Nova validação para os Códigos Postais
+            // 2. Validação condicional do Código Postal
             if (paisCodigoIso == "PT")
             {
-                if (string.IsNullOrWhiteSpace(Cp4))
+                // Se o país é Portugal, os campos Cp4 e Cp3 são obrigatórios
+                if (string.IsNullOrWhiteSpace(this.Cp4))
                 {
-                    results.Add(new ValidationResult("O CP (4 dígitos) é obrigatório para Portugal.", new[] { nameof(Cp4) }));
+                    yield return new ValidationResult("O CP (4 dígitos) é obrigatório para Portugal.", new[] { nameof(Cp4) });
                 }
-                if (string.IsNullOrWhiteSpace(Cp3))
+                if (string.IsNullOrWhiteSpace(this.Cp3))
                 {
-                    results.Add(new ValidationResult("O CP (3 dígitos) é obrigatório para Portugal.", new[] { nameof(Cp3) }));
-                }
-                if (!string.IsNullOrWhiteSpace(CodigoPostalEstrangeiro))
-                {
-                    // Opcional: pode querer limpar este campo no controller ou aqui.
+                    yield return new ValidationResult("O CP (3 dígitos) é obrigatório para Portugal.", new[] { nameof(Cp3) });
                 }
             }
-            else if (!string.IsNullOrWhiteSpace(paisCodigoIso)) // Se for estrangeiro mas não Portugal
+            else if (!string.IsNullOrWhiteSpace(paisCodigoIso)) // Se for um país estrangeiro conhecido
             {
-                if (string.IsNullOrWhiteSpace(CodigoPostalEstrangeiro))
+                // Se for estrangeiro, o CodigoPostalEstrangeiro é obrigatório
+                if (string.IsNullOrWhiteSpace(this.CodigoPostalEstrangeiro))
                 {
-                    results.Add(new ValidationResult("O Código Postal é obrigatório.", new[] { nameof(CodigoPostalEstrangeiro) }));
+                    yield return new ValidationResult("O Código Postal é obrigatório para países estrangeiros.", new[] { nameof(CodigoPostalEstrangeiro) });
                 }
-            }
-
-            foreach (var result in results)
-            {
-                yield return result;
             }
         }
     }

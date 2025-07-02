@@ -37,12 +37,7 @@
                             @Html.ValidationMessageFor(m => m.Nome, "", new { @class = "text-danger" })
                         </div>
 
-                        @* --- NOVO CAMPO EMPRESA ADICIONADO AQUI --- *@
-                        <div class="form-floating mb-3">
-                            @Html.TextBoxFor(m => m.Empresa, new { @class = "form-control", placeholder = "Empresa (Opcional)" })
-                            @Html.LabelFor(m => m.Empresa)
-                            @Html.ValidationMessageFor(m => m.Empresa, "", new { @class = "text-danger" })
-                        </div>
+                      
 
                         @* Campo Login (Email) *@
                         <div class="form-floating mb-3">

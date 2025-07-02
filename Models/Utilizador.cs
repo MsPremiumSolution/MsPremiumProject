@@ -1,5 +1,4 @@
-﻿// Ficheiro: Models/Utilizador.cs
-
+﻿// Ficheiro: Models/Utilizador.cs (Corrigido - Sem Empresa)
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -20,14 +19,9 @@ namespace MSPremiumProject.Models
         public ulong RoleId { get; set; }
 
         [Required(ErrorMessage = "O Nome é obrigatório.")]
-        [StringLength(100, ErrorMessage = "O Nome deve ter no máximo 100 caracteres.")]
+        [StringLength(100)]
         [Display(Name = "Nome Completo")]
         public string Nome { get; set; } = null!;
-
-        // --- NOVO CAMPO EMPRESA ---
-        [StringLength(150, ErrorMessage = "O Nome da Empresa deve ter no máximo 150 caracteres.")]
-        [Display(Name = "Empresa (Opcional)")]
-        public string? Empresa { get; set; } // O '?' torna o campo opcional (nullable)
 
         [Required(ErrorMessage = "O Login (Email) é obrigatório.")]
         [StringLength(255)]
@@ -47,13 +41,11 @@ namespace MSPremiumProject.Models
 
         public bool Activo { get; set; } = true;
 
-        // --- Propriedades de Navegação ---
         [ForeignKey("RoleId")]
         public virtual Role Role { get; set; } = null!;
         public virtual ICollection<Proposta> Proposta { get; set; }
         public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; }
 
-        // Construtor
         public Utilizador()
         {
             Proposta = new HashSet<Proposta>();
