@@ -32,10 +32,11 @@ namespace MSPremiumProject.Controllers
 
         // GET: /Country/Create
         // Esta ação mostra o formulário para criar um novo país.
+        // GET: /Country/Create
         public IActionResult Create()
         {
-            // O nome do ficheiro da view deve ser Views/Country/Create.cshtml
-            return View("CreateCountry", new Pai());
+            // Agora o ASP.NET vai procurar automaticamente por Views/Country/Create.cshtml
+            return View(new Pai());
         }
 
         // POST: /Country/Create
@@ -49,7 +50,7 @@ namespace MSPremiumProject.Controllers
                 if (await _context.Paises.AnyAsync(p => p.NomePais.ToLower() == pais.NomePais.ToLower()))
                 {
                     ModelState.AddModelError("NomePais", "Já existe um país com este nome.");
-                    return View("CreateCountry", pais); // Retorna para o formulário com o erro
+                    return View(pais); // Retorna para o formulário com o erro
                 }
 
                 try
@@ -69,7 +70,7 @@ namespace MSPremiumProject.Controllers
             }
 
             // Se o modelo não for válido, retorna à view com os erros
-            return View("CreateCountry", pais);
+            return View(pais);
         }
     }
 }
