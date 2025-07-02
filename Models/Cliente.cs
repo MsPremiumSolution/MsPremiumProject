@@ -45,8 +45,13 @@ namespace MSPremiumProject.Models
         [Display(Name = "Código Postal Estrangeiro")]
         public string? CodigoPostalEstrangeiro { get; set; }
 
-        [Required(ErrorMessage = "A localidade é obrigatória.")]
-        [Display(Name = "Localidade")]
+        [Required(ErrorMessage = "O nome da localidade (cidade/concelho) é obrigatório.")]
+        [StringLength(200, ErrorMessage = "A localidade não pode exceder 200 caracteres.")]
+        [Display(Name = "Localidade (Cidade/Concelho)")]
+        public string Localidade { get; set; } = null!; // Este campo vai guardar o texto da textbox
+
+        [Required(ErrorMessage = "O distrito é obrigatório.")]
+        [Display(Name = "Distrito")]
         public ulong LocalidadeId { get; set; }
 
         [Display(Name = "Número Fiscal (NIF)")]

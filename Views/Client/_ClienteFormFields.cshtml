@@ -17,7 +17,6 @@
         </div>
     </div>
 
-    @* --- NOVO CAMPO EMPRESA ADICIONADO AQUI --- *@
     <div class="mt-3">
         <label asp-for="Cliente.Empresa" class="form-label"></label>
         <input asp-for="Cliente.Empresa" class="form-control" placeholder="Opcional" />
@@ -62,43 +61,43 @@
         <input asp-for="Cliente.Morada" class="form-control" />
         <span asp-validation-for="Cliente.Morada" class="text-danger"></span>
     </div>
+
     <div class="row g-3 mt-1">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label asp-for="SelectedPaisId" class="form-label">País</label>
             <select asp-for="SelectedPaisId" asp-items="Model.PaisesList" class="form-select" id="paisDropdown">
                 <option value="">-- Selecione um País --</option>
             </select>
             <span asp-validation-for="SelectedPaisId" class="text-danger"></span>
         </div>
-        <div class="col-md-6">
-            <label asp-for="NomeLocalidade" class="form-label">Localidade</label>
-            <input asp-for="NomeLocalidade" class="form-control" placeholder="Cidade / Vila" />
-            <span asp-validation-for="NomeLocalidade" class="text-danger"></span>
-        </div>
-    </div>
-    <div class="row g-3 mt-1" id="regioesContainer" style="display: none;">
-        <div class="col-12">
-            <label asp-for="SelectedRegiao" class="form-label">Região / Distrito</label>
-            <select asp-for="SelectedRegiao" class="form-select" id="regiaoDropdown">
-                <option value="">-- Selecione uma Região --</option>
+
+        <!-- DROPDOWN PARA O DISTRITO -->
+        <div class="col-md-4" id="distritoContainer">
+            <label asp-for="Cliente.LocalidadeId" class="form-label"></label>
+            <select asp-for="Cliente.LocalidadeId" asp-items="Model.DistritosList" class="form-select" id="distritoDropdown">
+                <option value="">-- Selecione um Distrito --</option>
             </select>
-            <span asp-validation-for="SelectedRegiao" class="text-danger"></span>
+            <span asp-validation-for="Cliente.LocalidadeId" class="text-danger"></span>
+        </div>
+
+        <!-- TEXTBOX PARA A CIDADE/CONCELHO -->
+        <div class="col-md-4">
+            <label asp-for="Cliente.Localidade" class="form-label"></label>
+            <input asp-for="Cliente.Localidade" class="form-control" placeholder="Ex: Sintra, Cascais" />
+            <span asp-validation-for="Cliente.Localidade" class="text-danger"></span>
         </div>
     </div>
+
     <div class="row g-3 mt-1">
         <div class="col-md-7" id="cpPortugalContainer" style="display: none;">
-            <div class="row">
-                <div class="col-7">
-                    <label asp-for="Cliente.Cp4" class="form-label">Código Postal</label>
-                    <input asp-for="Cliente.Cp4" class="form-control" placeholder="Ex: 1234" />
-                    <span asp-validation-for="Cliente.Cp4" class="text-danger"></span>
-                </div>
-                <div class="col-5">
-                    <label asp-for="Cliente.Cp3" class="form-label"> </label>
-                    <input asp-for="Cliente.Cp3" class="form-control" placeholder="Ex: 567" />
-                    <span asp-validation-for="Cliente.Cp3" class="text-danger"></span>
-                </div>
+            <label class="form-label">Código Postal</label>
+            <div class="input-group">
+                <input asp-for="Cliente.Cp4" class="form-control" placeholder="1234" />
+                <span class="input-group-text">-</span>
+                <input asp-for="Cliente.Cp3" class="form-control" placeholder="567" />
             </div>
+            <span asp-validation-for="Cliente.Cp4" class="text-danger d-block"></span>
+            <span asp-validation-for="Cliente.Cp3" class="text-danger d-block"></span>
         </div>
         <div class="col-md-5" id="cpEstrangeiroContainer" style="display: none;">
             <label asp-for="Cliente.CodigoPostalEstrangeiro" class="form-label">Código Postal</label>

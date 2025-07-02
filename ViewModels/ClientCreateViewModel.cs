@@ -1,34 +1,51 @@
-﻿// File: ViewModels/ClienteCreateViewModel.cs
+﻿// Ficheiro: ViewModels/ClienteCreateViewModel.cs
+
 using Microsoft.AspNetCore.Mvc.Rendering;
 using MSPremiumProject.Models;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations; // Adicionar este using
+using System.ComponentModel.DataAnnotations;
 
 namespace MSPremiumProject.ViewModels
 {
     public class ClienteCreateViewModel
     {
+        /// <summary>
+        /// A instância do Cliente que está a ser criada ou editada.
+        /// </summary>
         public Cliente Cliente { get; set; } = new Cliente();
 
-        // Para a dropdown de Países
+        // --- DADOS PARA AS DROPDOWNS E LÓGICA DO FORMULÁRIO ---
+
+        /// <summary>
+        /// Guarda o ID do país selecionado.
+        /// </summary>
         [Required(ErrorMessage = "É obrigatório selecionar um país.")]
         [Display(Name = "País")]
         public ulong SelectedPaisId { get; set; }
+
+        /// <summary>
+        /// Lista de países para a dropdown.
+        /// </summary>
         public IEnumerable<SelectListItem> PaisesList { get; set; } = new List<SelectListItem>();
 
-        // Para a dropdown de Regiões (só para Portugal)
-        [Display(Name = "Região / Distrito")]
+        /// <summary>
+        /// Guarda o texto do DISTRITO selecionado na dropdown (ex: "Lisboa").
+        /// </summary>
+        [Display(Name = "Distrito")]
         public string? SelectedRegiao { get; set; }
 
-        // NOVO: Campo de texto para o nome da localidade
-        [Required(ErrorMessage = "O nome da localidade é obrigatório.")]
-        [StringLength(200)]
-        [Display(Name = "Localidade / Cidade")]
-        public string NomeLocalidade { get; set; } = null!;
+        /// <summary>
+        /// Lista de distritos para a dropdown.
+        /// **ESTA ERA A PROPRIEDADE EM FALTA.**
+        /// </summary>
+        public IEnumerable<SelectListItem> DistritosList { get; set; } = new List<SelectListItem>();
 
-        // Campo para o código postal estrangeiro (opcional)
-        [StringLength(20)]
-        [Display(Name = "Código Postal")]
-        public string? CodigoPostalEstrangeiro { get; set; }
+        /// <summary>
+        /// Guarda o texto da CIDADE/CONCELHO que o utilizador digita.
+        /// </summary>
+        [Required(ErrorMessage = "O nome da localidade (cidade/concelho) é obrigatório.")]
+        [StringLength(200)]
+        [Display(Name = "Localidade (Cidade/Concelho)")]
+        public string NomeLocalidade { get; set; } = string.Empty;
     }
 }

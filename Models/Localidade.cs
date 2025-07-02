@@ -12,7 +12,7 @@ namespace MSPremiumProject.Models
         public ulong PaisId { get; set; }
 
         // ESTA É A ÚNICA PROPRIEDADE DE NOME AGORA
-        [Required(ErrorMessage = "O nome da localidade é obrigatório.")]
+        [Required(ErrorMessage = "O nome do Distrito é obrigatório.")]
         [StringLength(200)]
         [Display(Name = "Nome da Localidade")]
         public string Regiao { get; set; } = null!; // Antiga 'Regiao'
