@@ -1,22 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// Ficheiro: Controllers/CountryController.cs
+
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MSPremiumProject.Data;
 using MSPremiumProject.Models;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 namespace MSPremiumProject.Controllers
 {
     public class CountryController : Controller
     {
-        public async Task<IActionResult> Index()
-        {
-            // Busca todos os países, ordenados por nome, e envia para a view
-            var paises = await _context.Paises  // Assumindo que o seu DbSet se chama Paises
-                                   .OrderBy(p => p.NomePais)
-                                   .ToListAsync();
-            return View(paises); // Passa a lista de países para a view Paises/Index.cshtml
-        }
-
-
         private readonly AppDbContext _context;
         private readonly ILogger<CountryController> _logger;
 
@@ -26,58 +20,56 @@ namespace MSPremiumProject.Controllers
             _logger = logger;
         }
 
-        // GET: Paises/Create
-        public IActionResult Create()
+        // GET: /Country ou /Country/Index
+        // Esta ação mostra a lista de todos os países.
+        public async Task<IActionResult> Index()
         {
-            return View(new Pai()); // Passa um novo objeto Pai para o formulário
+            var paises = await _context.Paises
+                                       .OrderBy(p => p.NomePais)
+                                       .ToListAsync();
+            return View(paises); // Precisa de uma View chamada Views/Country/Index.cshtml
         }
 
-        // POST: Paises/Create
+        // GET: /Country/Create
+        // Esta ação mostra o formulário para criar um novo país.
+        public IActionResult Create()
+        {
+            // O nome do ficheiro da view deve ser Views/Country/Create.cshtml
+            return View("CreateCountry", new Pai());
+        }
+
+        // POST: /Country/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("NomePais")] Pai pais) // Adicione PaisId se não for auto-incremento e precisar ser inserido
+        public async Task<IActionResult> Create([Bind("NomePais, CodigoIso")] Pai pais) // Adicionado CodigoIso ao Bind
         {
-            // Remove PaisId da validação do ModelState se for gerado pelo banco
-            // ModelState.Remove("PaisId"); // Descomente se PaisId estiver no Bind mas não deve ser validado como input
-
-            // Verifica se já existe um país com o mesmo nome (opcional, mas bom para evitar duplicados)
-            if (await _context.Paises.AnyAsync(p => p.NomePais.ToLower() == pais.NomePais.ToLower()))
-            {
-                ModelState.AddModelError("NomePais", "Já existe um país com este nome.");
-            }
-
             if (ModelState.IsValid)
             {
+                // Verifica se já existe um país com o mesmo nome
+                if (await _context.Paises.AnyAsync(p => p.NomePais.ToLower() == pais.NomePais.ToLower()))
+                {
+                    ModelState.AddModelError("NomePais", "Já existe um país com este nome.");
+                    return View("CreateCountry", pais); // Retorna para o formulário com o erro
+                }
+
                 try
                 {
                     _context.Add(pais);
                     await _context.SaveChangesAsync();
                     _logger.LogInformation($"País '{pais.NomePais}' criado com sucesso com ID: {pais.PaisId}.");
                     TempData["MensagemSucesso"] = $"País '{pais.NomePais}' adicionado com sucesso!";
-                    // return RedirectToAction(nameof(Index)); // Se tiver uma lista de países
-                    return RedirectToAction(nameof(Index)); // Redireciona para criar outro, com mensagem de sucesso
+                    return RedirectToAction(nameof(Index)); // Redireciona para a lista de países
                 }
                 catch (DbUpdateException ex)
                 {
                     _logger.LogError(ex, $"Erro ao criar país '{pais.NomePais}'.");
-                    ModelState.AddModelError(string.Empty, "Não foi possível guardar o país. Verifique se já existe ou tente novamente. Se o problema persistir, contacte o suporte.");
+                    ModelState.AddModelError(string.Empty, "Não foi possível guardar o país. Tente novamente.");
                     TempData["MensagemErro"] = "Erro ao adicionar o país.";
                 }
             }
 
-            // Se ModelState não for válido ou ocorrer um erro, retorna à view com o objeto pais e os erros
-            return View(pais);
+            // Se o modelo não for válido, retorna à view com os erros
+            return View("CreateCountry", pais);
         }
-
-        public IActionResult GoToViewCreate()
-        {
-            return View("~/Views/Country/CreateCountry.cshtml");
-        }
-
-        // GET: Paises (Opcional: Uma view para listar os países)
-        // public async Task<IActionResult> Index()
-        // {
-        //     return View(await _context.Paises.OrderBy(p => p.NomePais).ToListAsync());
-        // }
     }
 }
