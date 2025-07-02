@@ -219,5 +219,38 @@ namespace MSPremiumProject.Controllers
         {
             return await _context.Clientes.AnyAsync(e => e.ClienteId == id);
         }
+
+        [HttpGet] // É uma requisição GET feita via AJAX
+        public async Task<IActionResult> GetDistritosPorPais(ulong paisId)
+        {
+            _logger.LogInformation("Recebido pedido AJAX para GetDistritosPorPais para PaisId: {PaisId}", paisId);
+
+            try
+            {
+                // Busca as localidades (distritos) associadas ao PaísId fornecido
+                // Ordena por nome para uma melhor experiência do utilizador
+                var distritos = await _context.Localidades
+                                              .Where(l => l.PaisId == paisId)
+                                              .OrderBy(l => l.Regiao) // Ordenar pelo nome da Região
+                                              .Select(l => new { value = l.LocalidadeId, text = l.Regiao })
+                                              .AsNoTracking() // Boa prática para dados de somente leitura
+                                              .ToListAsync();
+
+                _logger.LogInformation("Encontrados {Count} distritos para o PaísId: {PaisId}", distritos.Count, paisId);
+
+                // Retorna os dados como JSON. O JavaScript espera um array de objetos { value: ..., text: ... }
+                return Json(distritos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao obter distritos para o PaísId: {PaisId}", paisId);
+                // Em caso de erro, pode retornar um array vazio ou um status de erro.
+                // Para o JavaScript atual, um array vazio fará a dropdown mostrar "Nenhum distrito disponível".
+                return StatusCode(500, "Erro interno do servidor ao carregar distritos.");
+                // Ou simplesmente: return Json(new List<object>());
+            }
+        }
+
+        // ... (Seus outros métodos FindOrCreateLocalidade, ValidateClienteData, PopulateViewModelDropdowns, ClienteExists) ...
     }
 }
