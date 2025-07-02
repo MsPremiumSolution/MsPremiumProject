@@ -76,7 +76,7 @@ namespace MSPremiumProject.Models
         [ForeignKey("LocalidadeId")]
         public virtual Localidade? LocalidadeNavigation { get; set; }
 
-        public virtual ICollection<Propostum> Proposta { get; set; } = new List<Propostum>();
+        public virtual ICollection<Proposta> Proposta { get; set; } = new List<Proposta>();
 
         // ***** ALTERAÇÃO 3: MÉTODO VALIDATE ATUALIZADO *****
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

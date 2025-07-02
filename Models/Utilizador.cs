@@ -42,14 +42,14 @@ namespace MSPremiumProject.Models
         [ForeignKey("RoleId")]
         public virtual Role Role { get; set; } = null!;
 
-        public virtual ICollection<Propostum> Proposta { get; set; }
+        public virtual ICollection<Proposta> Proposta { get; set; }
 
         public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; }
 
         // Construtor
         public Utilizador()
         {
-            Proposta = new HashSet<Propostum>();
+            Proposta = new HashSet<Proposta>();
             PasswordResetTokens = new HashSet<PasswordResetToken>();
         }
     }

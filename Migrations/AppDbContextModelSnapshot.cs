@@ -22,37 +22,6 @@ namespace MSPremiumProject.Migrations
 
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
 
-            modelBuilder.Entity("MSPremiumProject.Models.Calculovolume", b =>
-                {
-                    b.Property<ulong>("CalculoVolumeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned");
-
-                    b.Property<decimal>("AlturaMetros")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("Comprimento")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("Estadia1")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("EstadiaDireta")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("Largura")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<ulong>("VolumeId")
-                        .HasColumnType("bigint unsigned");
-
-                    b.HasKey("CalculoVolumeId");
-
-                    b.HasIndex("VolumeId");
-
-                    b.ToTable("calculovolume", (string)null);
-                });
-
             modelBuilder.Entity("MSPremiumProject.Models.Cliente", b =>
                 {
                     b.Property<ulong>("ClienteId")
@@ -112,201 +81,187 @@ namespace MSPremiumProject.Migrations
 
                     b.HasIndex("LocalidadeId");
 
-                    b.ToTable("Clientes", (string)null);
+                    b.ToTable("Clientes");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Construtivo", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.DadosConstrutivos", b =>
                 {
-                    b.Property<ulong>("ConstrutivoId")
+                    b.Property<ulong>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<bool>("Altitude")
-                        .HasColumnType("tinyint(1)");
+                    b.Property<int?>("Altitude")
+                        .HasColumnType("int");
 
-                    b.Property<decimal>("AnoConstrucao")
+                    b.Property<int?>("AnoConstrucao")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("AreaM2")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<decimal>("Area")
-                        .HasColumnType("decimal(65,30)");
+                    b.Property<string>("CoberturaFachadaPosterior")
+                        .HasColumnType("longtext");
 
-                    b.Property<DateTime>("Data")
+                    b.Property<string>("CoberturaFachadaPrincipal")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("DataVisita")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("FechamentoCobertura")
-                        .IsRequired()
+                    b.Property<string>("IsolamentoCamara")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("FechamentoCoberturaPosterior")
-                        .IsRequired()
+                    b.Property<string>("IsolamentoInterno")
                         .HasColumnType("longtext");
-
-                    b.Property<string>("FechamentoOrientacao")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("FechamentoTipoFachada")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("FechamentoTratHidrofugacao")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Localidade")
-                        .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<decimal>("Nandares")
-                        .HasColumnType("decimal(65,30)");
+                    b.Property<int?>("NumeroAndares")
+                        .HasColumnType("int");
 
-                    b.Property<decimal>("Nhabitantes")
-                        .HasColumnType("decimal(65,30)");
+                    b.Property<int?>("NumeroHabitantes")
+                        .HasColumnType("int");
 
-                    b.Property<ulong>("PropostaId")
-                        .HasColumnType("bigint unsigned");
+                    b.Property<string>("OrientacaoFachada")
+                        .HasColumnType("longtext");
 
-                    b.HasKey("ConstrutivoId");
+                    b.Property<string>("TipoAquecimento")
+                        .HasColumnType("longtext");
 
-                    b.HasIndex("PropostaId");
+                    b.Property<string>("TipoFachada")
+                        .HasColumnType("longtext");
 
-                    b.ToTable("construtivo", (string)null);
+                    b.Property<bool>("TratamentoHidrofugacao")
+                        .HasColumnType("tinyint(1)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DadosConstrutivos");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Dadosgeral", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.DadosGerais", b =>
                 {
-                    b.Property<ulong>("DadosGeralId")
+                    b.Property<ulong>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<string>("DgCoberturaFposterior")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DgCoberturaFprincipal")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DgIsolamentoAquecimento")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DgIsolamentoCamera")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DgIsolamentoInterno")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DgOrientacao")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DgTipoFachada")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("DgTipoJanelaCaixasPersiana")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("DgTipoJanelaDuplas")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<ulong>("DgTipoJanelaId")
+                    b.Property<ulong>("DadosConstrutivosId")
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<string>("DgTipoJanelaMaterial")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("DgTipoJanelaRpt")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<decimal>("DgTipoJanelaUnidades")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<string>("DgTipoJanelaVidro")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("DgTratamentoHidrofugacao")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<ulong>("PropostaId")
+                    b.Property<ulong>("HigrometriaId")
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<ulong>("TipoObraId")
+                    b.Property<ulong>("SintomalogiaId")
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<ulong>("TipoTratamentoId")
+                    b.Property<ulong?>("TipoObraId")
                         .HasColumnType("bigint unsigned");
 
-                    b.HasKey("DadosGeralId");
+                    b.Property<ulong?>("TipoTratamentoId")
+                        .HasColumnType("bigint unsigned");
 
-                    b.HasIndex("DgTipoJanelaId");
+                    b.HasKey("Id");
 
-                    b.HasIndex("PropostaId");
+                    b.HasIndex("DadosConstrutivosId")
+                        .IsUnique();
+
+                    b.HasIndex("HigrometriaId")
+                        .IsUnique();
+
+                    b.HasIndex("SintomalogiaId")
+                        .IsUnique();
 
                     b.HasIndex("TipoObraId");
 
                     b.HasIndex("TipoTratamentoId");
 
-                    b.ToTable("dadosgeral", (string)null);
+                    b.ToTable("DadosGerais");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Higrometrium", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.Higrometria", b =>
                 {
-                    b.Property<ulong>("HigrometriaId")
+                    b.Property<ulong>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<ulong>("DadosGeralId")
-                        .HasColumnType("bigint unsigned");
-
-                    b.Property<string>("DataLogger")
-                        .IsRequired()
+                    b.Property<string>("DataLoggerSensores")
                         .HasColumnType("longtext");
 
-                    b.Property<decimal>("HumidadeExterior")
+                    b.Property<decimal?>("HumidadeRelativaExterior")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<decimal>("HumidadeInterior")
+                    b.Property<decimal?>("HumidadeRelativaInterior")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<decimal>("NivelCo2")
+                    b.Property<decimal?>("NivelCO2")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<decimal>("NivelHcho")
+                    b.Property<decimal?>("NivelHCHO")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<decimal>("NivelTcov")
+                    b.Property<decimal?>("NivelTCOV")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<decimal>("PontoOrvalho")
+                    b.Property<decimal?>("PontoDeOrvalho")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<ulong>("PropostaId")
+                    b.Property<decimal?>("PontosFrios")
+                        .HasColumnType("decimal(65,30)")
+                        .HasColumnName("pontos_frios");
+
+                    b.Property<decimal?>("TemperaturaExterior")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal?>("TemperaturaInterior")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal?>("TemperaturaParedesInternas")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal?>("TemperaturaPontoOrvalho")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Higrometria");
+                });
+
+            modelBuilder.Entity("MSPremiumProject.Models.Janela", b =>
+                {
+                    b.Property<ulong>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<decimal>("TempExterior")
-                        .HasColumnType("decimal(65,30)");
+                    b.Property<ulong>("DadosConstrutivosId")
+                        .HasColumnType("bigint unsigned");
 
-                    b.Property<decimal>("TempInterior")
-                        .HasColumnType("decimal(65,30)");
+                    b.Property<string>("Material")
+                        .HasColumnType("longtext");
 
-                    b.Property<decimal>("TempParedesInt")
-                        .HasColumnType("decimal(65,30)");
+                    b.Property<int?>("NumeroUnidades")
+                        .HasColumnType("int");
 
-                    b.Property<decimal>("TempPontosFrios")
-                        .HasColumnType("decimal(65,30)");
+                    b.Property<bool?>("PossuiCaixaPersiana")
+                        .HasColumnType("tinyint(1)");
 
-                    b.HasKey("HigrometriaId");
+                    b.Property<bool?>("PossuiJanelasDuplas")
+                        .HasColumnType("tinyint(1)");
 
-                    b.HasIndex("DadosGeralId");
+                    b.Property<bool?>("PossuiRPT")
+                        .HasColumnType("tinyint(1)");
 
-                    b.HasIndex("PropostaId");
+                    b.Property<string>("TipoJanela")
+                        .HasColumnType("longtext");
 
-                    b.ToTable("higrometria", (string)null);
+                    b.Property<string>("TipoVidro")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DadosConstrutivosId");
+
+                    b.ToTable("Janelas");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Localidade", b =>
@@ -327,15 +282,81 @@ namespace MSPremiumProject.Migrations
 
                     b.HasIndex("PaisId");
 
-                    b.ToTable("Localidades", (string)null);
+                    b.ToTable("Localidades");
+                });
+
+            modelBuilder.Entity("MSPremiumProject.Models.Objetivos", b =>
+                {
+                    b.Property<ulong>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint unsigned");
+
+                    b.Property<bool>("AplicacaoTintaTermica")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("EvacuacaoHumidadeExcesso")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("ImpermeabilizacaoFachadas")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("InjeccaoCamaraArPoliuretano")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("InjeccaoParedesAccaoCapilar")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsolamentoExternoSATE")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsolamentoInteriorPladur")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("TrituracaoCorticaTriturada")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("TubagemParedesInfiltracao")
+                        .HasColumnType("tinyint(1)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Objetivos");
+                });
+
+            modelBuilder.Entity("MSPremiumProject.Models.OrcamentoAr", b =>
+                {
+                    b.Property<ulong>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint unsigned");
+
+                    b.Property<decimal>("ConfiguracaoFabricacao")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("ImplementacaoTrabalho")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("Manutencao")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("Personalizacao")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("ValorFabricacao")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<decimal>("ValorProjeto")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrcamentoAr");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Pai", b =>
                 {
                     b.Property<ulong>("PaisId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned")
-                        .HasColumnName("PaisID");
+                        .HasColumnType("bigint unsigned");
 
                     b.Property<string>("CodigoIso")
                         .IsRequired()
@@ -345,12 +366,11 @@ namespace MSPremiumProject.Migrations
                     b.Property<string>("NomePais")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("NomePais");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("PaisId");
 
-                    b.ToTable("pais", (string)null);
+                    b.ToTable("Paises");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.PasswordResetToken", b =>
@@ -371,20 +391,16 @@ namespace MSPremiumProject.Migrations
                         .HasColumnType("varchar(256)");
 
                     b.Property<ulong>("UtilizadorId")
-                        .HasColumnType("bigint unsigned")
-                        .HasColumnName("UtilizadorID");
+                        .HasColumnType("bigint unsigned");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TokenValue")
-                        .IsUnique();
-
                     b.HasIndex("UtilizadorId");
 
-                    b.ToTable("PasswordResetToken", (string)null);
+                    b.ToTable("PasswordResetTokens");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Propostum", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.Proposta", b =>
                 {
                     b.Property<ulong>("PropostaId")
                         .ValueGeneratedOnAdd()
@@ -407,6 +423,12 @@ namespace MSPremiumProject.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<ulong?>("QualidadeDoArId")
+                        .HasColumnType("bigint unsigned");
+
+                    b.Property<ulong?>("TratamentoEstruturalId")
+                        .HasColumnType("bigint unsigned");
+
                     b.Property<ulong>("UtilizadorId")
                         .HasColumnType("bigint unsigned");
 
@@ -417,33 +439,41 @@ namespace MSPremiumProject.Migrations
 
                     b.HasIndex("ClienteId");
 
+                    b.HasIndex("QualidadeDoArId")
+                        .IsUnique();
+
                     b.HasIndex("UtilizadorId");
 
-                    b.ToTable("proposta", (string)null);
+                    b.ToTable("Proposta");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Qualidadear", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.QualidadeDoAr", b =>
                 {
-                    b.Property<ulong>("QualidadeArId")
+                    b.Property<ulong>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<ulong>("DadosGeralId")
+                    b.Property<ulong>("DadosGeraisId")
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<ulong>("ObjetivoId")
+                    b.Property<ulong>("ObjetivosId")
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<ulong>("VolumeId")
+                    b.Property<ulong>("OrcamentoArId")
                         .HasColumnType("bigint unsigned");
 
-                    b.HasKey("QualidadeArId");
+                    b.HasKey("Id");
 
-                    b.HasIndex("DadosGeralId");
+                    b.HasIndex("DadosGeraisId")
+                        .IsUnique();
 
-                    b.HasIndex("VolumeId");
+                    b.HasIndex("ObjetivosId")
+                        .IsUnique();
 
-                    b.ToTable("qualidadear", (string)null);
+                    b.HasIndex("OrcamentoArId")
+                        .IsUnique();
+
+                    b.ToTable("QualidadeDoAr");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Role", b =>
@@ -454,6 +484,7 @@ namespace MSPremiumProject.Migrations
                         .HasColumnName("RoleID");
 
                     b.Property<string>("Descricao")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
@@ -464,12 +495,12 @@ namespace MSPremiumProject.Migrations
 
                     b.HasKey("RoleId");
 
-                    b.ToTable("role", (string)null);
+                    b.ToTable("Roles");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Sintoma", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.Sintomatologia", b =>
                 {
-                    b.Property<ulong>("SintomaId")
+                    b.Property<ulong>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint unsigned");
 
@@ -479,56 +510,30 @@ namespace MSPremiumProject.Migrations
                     b.Property<bool>("Cheiros")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("CondensacaoJanelas")
+                    b.Property<bool>("CondensacaoNasJanelas")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<ulong>("DadosGeralId")
-                        .HasColumnType("bigint unsigned");
-
-                    b.Property<bool>("Esporos")
+                    b.Property<bool>("ConsumoExcessivoAquecimento")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("ExcessoAquecimento")
+                    b.Property<bool>("EsporosEmSuperficies")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("Fungos")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("GasRadon")
+                    b.Property<bool>("GasRadao")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("MofosRoupasArmario")
+                    b.Property<bool>("MofoEmRoupasArmarios")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<ulong>("PropostaId")
-                        .HasColumnType("bigint unsigned");
+                    b.Property<bool>("ProblemasRespiratorios")
+                        .HasColumnType("tinyint(1)");
 
-                    b.HasKey("SintomaId");
+                    b.HasKey("Id");
 
-                    b.HasIndex("DadosGeralId");
-
-                    b.HasIndex("PropostaId");
-
-                    b.ToTable("sintoma", (string)null);
-                });
-
-            modelBuilder.Entity("MSPremiumProject.Models.Tipojanela", b =>
-                {
-                    b.Property<ulong>("TipoJanelaId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned");
-
-                    b.Property<string>("Descricao")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("TipoJanela1")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("TipoJanelaId");
-
-                    b.ToTable("tipojanela", (string)null);
+                    b.ToTable("Sintomatologia");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Tipoobra", b =>
@@ -547,7 +552,7 @@ namespace MSPremiumProject.Migrations
 
                     b.HasKey("TipoObraId");
 
-                    b.ToTable("tipoobra", (string)null);
+                    b.ToTable("Tipoobras");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Tipotratamento", b =>
@@ -562,7 +567,7 @@ namespace MSPremiumProject.Migrations
 
                     b.HasKey("TipoTratamentoId");
 
-                    b.ToTable("tipotratamento", (string)null);
+                    b.ToTable("Tipotratamentos");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Utilizador", b =>
@@ -602,35 +607,32 @@ namespace MSPremiumProject.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("utilizador", (string)null);
+                    b.ToTable("Utilizadores");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Volume", b =>
                 {
-                    b.Property<ulong>("VolumeId")
+                    b.Property<ulong>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<decimal>("SuperficieTotal")
+                    b.Property<decimal>("Altura")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<decimal>("VolumeTotal")
+                    b.Property<decimal?>("Comprimento")
                         .HasColumnType("decimal(65,30)");
 
-                    b.HasKey("VolumeId");
+                    b.Property<decimal?>("Largura")
+                        .HasColumnType("decimal(65,30)");
 
-                    b.ToTable("volume", (string)null);
-                });
+                    b.Property<ulong>("QualidadeDoArId")
+                        .HasColumnType("bigint unsigned");
 
-            modelBuilder.Entity("MSPremiumProject.Models.Calculovolume", b =>
-                {
-                    b.HasOne("MSPremiumProject.Models.Volume", "Volume")
-                        .WithMany("Calculovolumes")
-                        .HasForeignKey("VolumeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasKey("Id");
 
-                    b.Navigation("Volume");
+                    b.HasIndex("QualidadeDoArId");
+
+                    b.ToTable("Volumes");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Cliente", b =>
@@ -644,69 +646,50 @@ namespace MSPremiumProject.Migrations
                     b.Navigation("LocalidadeNavigation");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Construtivo", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.DadosGerais", b =>
                 {
-                    b.HasOne("MSPremiumProject.Models.Propostum", "Proposta")
-                        .WithMany("Construtivos")
-                        .HasForeignKey("PropostaId")
+                    b.HasOne("MSPremiumProject.Models.DadosConstrutivos", "DadosConstrutivo")
+                        .WithOne("DadosGerais")
+                        .HasForeignKey("MSPremiumProject.Models.DadosGerais", "DadosConstrutivosId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Proposta");
+                    b.HasOne("MSPremiumProject.Models.Higrometria", "Higrometria")
+                        .WithOne("DadosGerais")
+                        .HasForeignKey("MSPremiumProject.Models.DadosGerais", "HigrometriaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MSPremiumProject.Models.Sintomatologia", "Sintomatologia")
+                        .WithOne("DadosGerais")
+                        .HasForeignKey("MSPremiumProject.Models.DadosGerais", "SintomalogiaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MSPremiumProject.Models.Tipoobra", null)
+                        .WithMany("Dadosgerals")
+                        .HasForeignKey("TipoObraId");
+
+                    b.HasOne("MSPremiumProject.Models.Tipotratamento", null)
+                        .WithMany("Dadosgerals")
+                        .HasForeignKey("TipoTratamentoId");
+
+                    b.Navigation("DadosConstrutivo");
+
+                    b.Navigation("Higrometria");
+
+                    b.Navigation("Sintomatologia");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Dadosgeral", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.Janela", b =>
                 {
-                    b.HasOne("MSPremiumProject.Models.Tipojanela", "DgTipoJanela")
-                        .WithMany("Dadosgerals")
-                        .HasForeignKey("DgTipoJanelaId")
+                    b.HasOne("MSPremiumProject.Models.DadosConstrutivos", "DadosConstrutivo")
+                        .WithMany("Janelas")
+                        .HasForeignKey("DadosConstrutivosId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MSPremiumProject.Models.Propostum", "Proposta")
-                        .WithMany("Dadosgerals")
-                        .HasForeignKey("PropostaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MSPremiumProject.Models.Tipoobra", "TipoObra")
-                        .WithMany("Dadosgerals")
-                        .HasForeignKey("TipoObraId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MSPremiumProject.Models.Tipotratamento", "TipoTratamento")
-                        .WithMany("Dadosgerals")
-                        .HasForeignKey("TipoTratamentoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DgTipoJanela");
-
-                    b.Navigation("Proposta");
-
-                    b.Navigation("TipoObra");
-
-                    b.Navigation("TipoTratamento");
-                });
-
-            modelBuilder.Entity("MSPremiumProject.Models.Higrometrium", b =>
-                {
-                    b.HasOne("MSPremiumProject.Models.Dadosgeral", "DadosGeral")
-                        .WithMany("Higrometria")
-                        .HasForeignKey("DadosGeralId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MSPremiumProject.Models.Propostum", "Proposta")
-                        .WithMany("Higrometria")
-                        .HasForeignKey("PropostaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DadosGeral");
-
-                    b.Navigation("Proposta");
+                    b.Navigation("DadosConstrutivo");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Localidade", b =>
@@ -731,13 +714,18 @@ namespace MSPremiumProject.Migrations
                     b.Navigation("Utilizador");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Propostum", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.Proposta", b =>
                 {
                     b.HasOne("MSPremiumProject.Models.Cliente", "Cliente")
                         .WithMany("Proposta")
                         .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("MSPremiumProject.Models.QualidadeDoAr", "QualidadeDoAr")
+                        .WithOne("Proposta")
+                        .HasForeignKey("MSPremiumProject.Models.Proposta", "QualidadeDoArId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("MSPremiumProject.Models.Utilizador", "Utilizador")
                         .WithMany("Proposta")
@@ -747,45 +735,36 @@ namespace MSPremiumProject.Migrations
 
                     b.Navigation("Cliente");
 
+                    b.Navigation("QualidadeDoAr");
+
                     b.Navigation("Utilizador");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Qualidadear", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.QualidadeDoAr", b =>
                 {
-                    b.HasOne("MSPremiumProject.Models.Dadosgeral", "DadosGeral")
-                        .WithMany("Qualidadears")
-                        .HasForeignKey("DadosGeralId")
+                    b.HasOne("MSPremiumProject.Models.DadosGerais", "DadosGerais")
+                        .WithOne("QualidadeDoAr")
+                        .HasForeignKey("MSPremiumProject.Models.QualidadeDoAr", "DadosGeraisId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MSPremiumProject.Models.Volume", "Volume")
-                        .WithMany("Qualidadears")
-                        .HasForeignKey("VolumeId")
+                    b.HasOne("MSPremiumProject.Models.Objetivos", "Objetivos")
+                        .WithOne("QualidadeDoAr")
+                        .HasForeignKey("MSPremiumProject.Models.QualidadeDoAr", "ObjetivosId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("DadosGeral");
-
-                    b.Navigation("Volume");
-                });
-
-            modelBuilder.Entity("MSPremiumProject.Models.Sintoma", b =>
-                {
-                    b.HasOne("MSPremiumProject.Models.Dadosgeral", "DadosGeral")
-                        .WithMany("Sintomas")
-                        .HasForeignKey("DadosGeralId")
+                    b.HasOne("MSPremiumProject.Models.OrcamentoAr", "OrcamentoAr")
+                        .WithOne("QualidadeDoAr")
+                        .HasForeignKey("MSPremiumProject.Models.QualidadeDoAr", "OrcamentoArId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MSPremiumProject.Models.Propostum", "Proposta")
-                        .WithMany("Sintomas")
-                        .HasForeignKey("PropostaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("DadosGerais");
 
-                    b.Navigation("DadosGeral");
+                    b.Navigation("Objetivos");
 
-                    b.Navigation("Proposta");
+                    b.Navigation("OrcamentoAr");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Utilizador", b =>
@@ -799,18 +778,37 @@ namespace MSPremiumProject.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("MSPremiumProject.Models.Volume", b =>
+                {
+                    b.HasOne("MSPremiumProject.Models.QualidadeDoAr", "QualidadeDoAr")
+                        .WithMany("Volumes")
+                        .HasForeignKey("QualidadeDoArId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("QualidadeDoAr");
+                });
+
             modelBuilder.Entity("MSPremiumProject.Models.Cliente", b =>
                 {
                     b.Navigation("Proposta");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Dadosgeral", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.DadosConstrutivos", b =>
                 {
-                    b.Navigation("Higrometria");
+                    b.Navigation("DadosGerais");
 
-                    b.Navigation("Qualidadears");
+                    b.Navigation("Janelas");
+                });
 
-                    b.Navigation("Sintomas");
+            modelBuilder.Entity("MSPremiumProject.Models.DadosGerais", b =>
+                {
+                    b.Navigation("QualidadeDoAr");
+                });
+
+            modelBuilder.Entity("MSPremiumProject.Models.Higrometria", b =>
+                {
+                    b.Navigation("DadosGerais");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Localidade", b =>
@@ -818,20 +816,26 @@ namespace MSPremiumProject.Migrations
                     b.Navigation("Clientes");
                 });
 
+            modelBuilder.Entity("MSPremiumProject.Models.Objetivos", b =>
+                {
+                    b.Navigation("QualidadeDoAr");
+                });
+
+            modelBuilder.Entity("MSPremiumProject.Models.OrcamentoAr", b =>
+                {
+                    b.Navigation("QualidadeDoAr");
+                });
+
             modelBuilder.Entity("MSPremiumProject.Models.Pai", b =>
                 {
                     b.Navigation("Localidades");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Propostum", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.QualidadeDoAr", b =>
                 {
-                    b.Navigation("Construtivos");
+                    b.Navigation("Proposta");
 
-                    b.Navigation("Dadosgerals");
-
-                    b.Navigation("Higrometria");
-
-                    b.Navigation("Sintomas");
+                    b.Navigation("Volumes");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Role", b =>
@@ -839,9 +843,9 @@ namespace MSPremiumProject.Migrations
                     b.Navigation("Utilizadors");
                 });
 
-            modelBuilder.Entity("MSPremiumProject.Models.Tipojanela", b =>
+            modelBuilder.Entity("MSPremiumProject.Models.Sintomatologia", b =>
                 {
-                    b.Navigation("Dadosgerals");
+                    b.Navigation("DadosGerais");
                 });
 
             modelBuilder.Entity("MSPremiumProject.Models.Tipoobra", b =>
@@ -859,13 +863,6 @@ namespace MSPremiumProject.Migrations
                     b.Navigation("PasswordResetTokens");
 
                     b.Navigation("Proposta");
-                });
-
-            modelBuilder.Entity("MSPremiumProject.Models.Volume", b =>
-                {
-                    b.Navigation("Calculovolumes");
-
-                    b.Navigation("Qualidadears");
                 });
 #pragma warning restore 612, 618
         }

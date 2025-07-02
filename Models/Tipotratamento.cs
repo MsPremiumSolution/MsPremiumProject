@@ -11,5 +11,5 @@ public partial class Tipotratamento
 
     public string TipoTratamentoNome { get; set; } = null!;
 
-    public virtual ICollection<Dadosgeral> Dadosgerals { get; set; } = new List<Dadosgeral>();
+    public virtual ICollection<DadosGerais> Dadosgerals { get; set; } = new List<DadosGerais>();
 }

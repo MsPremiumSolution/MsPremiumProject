@@ -13,5 +13,5 @@ public partial class Tipoobra
 
     public string Observacoes { get; set; } = null!;
 
-    public virtual ICollection<Dadosgeral> Dadosgerals { get; set; } = new List<Dadosgeral>();
+    public virtual ICollection<DadosGerais> Dadosgerals { get; set; } = new List<DadosGerais>();
 }
