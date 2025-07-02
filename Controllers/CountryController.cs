@@ -22,46 +22,57 @@ namespace MSPremiumProject.Controllers
         }
 
         // GET: /Country
-        // Ação para mostrar a lista de todos os países
         public async Task<IActionResult> Index()
         {
-            // Busca os países ordenados por nome e passa para a View "Index.cshtml"
             var paises = await _context.Paises.OrderBy(p => p.NomePais).ToListAsync();
             return View(paises);
         }
 
         // GET: /Country/Create
-        // Ação para mostrar o formulário de criação
         public IActionResult Create()
         {
-            // Retorna a View "Create.cshtml" com um novo objeto "Pai" vazio
             return View(new Pai());
         }
 
         // POST: /Country/Create
-        // Ação para processar os dados do formulário
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("NomePais, CodigoIso")] Pai pais) // Garanta que o modelo Pai tem CodigoIso
+        // O [Bind] agora só inclui os campos que vêm do formulário.
+        public async Task<IActionResult> Create([Bind("NomePais")] Pai pais)
         {
+            // Removemos o CodigoIso da validação inicial, pois será calculado.
+            ModelState.Remove("CodigoIso");
+
             if (ModelState.IsValid)
             {
-                // Verifica se já existe um país com o mesmo nome (ignora maiúsculas/minúsculas)
                 bool nomeJaExiste = await _context.Paises.AnyAsync(p => p.NomePais.ToLower() == pais.NomePais.ToLower());
                 if (nomeJaExiste)
                 {
                     ModelState.AddModelError("NomePais", "Já existe um país com este nome.");
                 }
 
-                // Se ainda for válido (não encontrou nome duplicado)
                 if (ModelState.IsValid)
                 {
                     try
                     {
+                        // --- LÓGICA DE CÁLCULO DO CÓDIGO ISO ---
+                        // Garante que o nome do país não é nulo e tem pelo menos 2 caracteres.
+                        if (!string.IsNullOrEmpty(pais.NomePais) && pais.NomePais.Length >= 2)
+                        {
+                            pais.CodigoIso = pais.NomePais.Substring(0, 2).ToUpper();
+                        }
+                        else
+                        {
+                            // Se o nome for muito curto, define um valor padrão ou lança um erro.
+                            // Vamos adicionar um erro de modelo para ser mais claro.
+                            ModelState.AddModelError("NomePais", "O nome do país deve ter pelo menos 2 caracteres.");
+                            return View(pais);
+                        }
+
                         _context.Add(pais);
                         await _context.SaveChangesAsync();
                         TempData["MensagemSucesso"] = $"País '{pais.NomePais}' adicionado com sucesso!";
-                        return RedirectToAction(nameof(Index)); // Redireciona para a lista de países
+                        return RedirectToAction(nameof(Index));
                     }
                     catch (DbUpdateException ex)
                     {
@@ -71,7 +82,6 @@ namespace MSPremiumProject.Controllers
                 }
             }
 
-            // Se o modelo não for válido ou se ocorreu um erro, retorna à mesma view com os dados preenchidos
             return View(pais);
         }
     }

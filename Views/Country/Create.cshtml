@@ -3,8 +3,6 @@
 
 @{
     ViewData["Title"] = "Adicionar Novo País";
-    // O Layout será o default definido em _ViewStart.cshtml, ou pode definir um aqui
-    // Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container mt-5">
@@ -14,10 +12,8 @@
                 <div class="card-body p-4">
                     <h2 class="mb-4 text-center">@ViewData["Title"]</h2>
 
-                    @* Mostra um sumário dos erros do modelo no topo *@
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert" style="@(ViewData.ModelState.IsValid ? "display:none;" : "")"></div>
-                    
-                    @* Mostra mensagens de sucesso (após um redirecionamento) *@
+
                     @if (TempData["MensagemSucesso"] != null)
                     {
                         <div class="alert alert-success mt-3 text-center">
@@ -26,25 +22,17 @@
                     }
 
                     <form asp-action="Create" asp-controller="Country" method="post">
-                        @* Token de segurança contra ataques CSRF *@
                         @Html.AntiForgeryToken()
 
-                        @* Campo Nome do País *@
-                        <div class="form-floating mb-3">
+                        @* Campo Nome do País (único campo a ser preenchido) *@
+                        <div class="form-floating mb-4">
                             <input asp-for="NomePais" class="form-control" placeholder="Nome do País" />
                             <label asp-for="NomePais">Nome do País</label>
                             <span asp-validation-for="NomePais" class="text-danger"></span>
                         </div>
 
-                        @* Campo Código ISO *@
-                        <div class="form-floating mb-4">
-                            <input asp-for="CodigoIso" class="form-control" placeholder="Código ISO (ex: PT)" />
-                            <label asp-for="CodigoIso">Código ISO (2 letras)</label>
-                            <span asp-validation-for="CodigoIso" class="text-danger"></span>
-                        </div>
-
                         <div class="d-grid">
-                             <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="bi bi-save me-2"></i>Guardar País
                             </button>
                         </div>
@@ -61,7 +49,6 @@
     </div>
 </div>
 
-@* Secção para incluir os scripts de validação do lado do cliente *@
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
