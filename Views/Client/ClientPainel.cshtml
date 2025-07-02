@@ -28,7 +28,7 @@
             <div class="list-group">
                 @* Supondo que você terá um AdminController ou RoleController para gerir roles *@
                 @* Se CreateRole estiver no AdminController e o controller estiver protegido por [Authorize(Roles="Admin")] *@
-                <a asp-controller="Country" asp-action="GoToViewCreate" class="list-group-item list-group-item-action">
+                <a asp-controller="Country" asp-action="Create" class="list-group-item list-group-item-action">
                     <i class="bi bi-shield-lock-fill me-2"></i> Criar País
                 </a>
                 <a asp-controller="Country" asp-action="Index" class="list-group-item list-group-item-action">

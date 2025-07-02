@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MSPremiumProject.Data;
 using MSPremiumProject.Models;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace MSPremiumProject.Controllers
@@ -20,56 +21,57 @@ namespace MSPremiumProject.Controllers
             _logger = logger;
         }
 
-        // GET: /Country ou /Country/Index
-        // Esta ação mostra a lista de todos os países.
+        // GET: /Country
+        // Ação para mostrar a lista de todos os países
         public async Task<IActionResult> Index()
         {
-            var paises = await _context.Paises
-                                       .OrderBy(p => p.NomePais)
-                                       .ToListAsync();
-            return View(paises); // Precisa de uma View chamada Views/Country/Index.cshtml
+            // Busca os países ordenados por nome e passa para a View "Index.cshtml"
+            var paises = await _context.Paises.OrderBy(p => p.NomePais).ToListAsync();
+            return View(paises);
         }
 
         // GET: /Country/Create
-        // Esta ação mostra o formulário para criar um novo país.
-        // GET: /Country/Create
+        // Ação para mostrar o formulário de criação
         public IActionResult Create()
         {
-            // Agora o ASP.NET vai procurar automaticamente por Views/Country/Create.cshtml
+            // Retorna a View "Create.cshtml" com um novo objeto "Pai" vazio
             return View(new Pai());
         }
 
         // POST: /Country/Create
+        // Ação para processar os dados do formulário
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("NomePais, CodigoIso")] Pai pais) // Adicionado CodigoIso ao Bind
+        public async Task<IActionResult> Create([Bind("NomePais, CodigoIso")] Pai pais) // Garanta que o modelo Pai tem CodigoIso
         {
             if (ModelState.IsValid)
             {
-                // Verifica se já existe um país com o mesmo nome
-                if (await _context.Paises.AnyAsync(p => p.NomePais.ToLower() == pais.NomePais.ToLower()))
+                // Verifica se já existe um país com o mesmo nome (ignora maiúsculas/minúsculas)
+                bool nomeJaExiste = await _context.Paises.AnyAsync(p => p.NomePais.ToLower() == pais.NomePais.ToLower());
+                if (nomeJaExiste)
                 {
                     ModelState.AddModelError("NomePais", "Já existe um país com este nome.");
-                    return View(pais); // Retorna para o formulário com o erro
                 }
 
-                try
+                // Se ainda for válido (não encontrou nome duplicado)
+                if (ModelState.IsValid)
                 {
-                    _context.Add(pais);
-                    await _context.SaveChangesAsync();
-                    _logger.LogInformation($"País '{pais.NomePais}' criado com sucesso com ID: {pais.PaisId}.");
-                    TempData["MensagemSucesso"] = $"País '{pais.NomePais}' adicionado com sucesso!";
-                    return RedirectToAction(nameof(Index)); // Redireciona para a lista de países
-                }
-                catch (DbUpdateException ex)
-                {
-                    _logger.LogError(ex, $"Erro ao criar país '{pais.NomePais}'.");
-                    ModelState.AddModelError(string.Empty, "Não foi possível guardar o país. Tente novamente.");
-                    TempData["MensagemErro"] = "Erro ao adicionar o país.";
+                    try
+                    {
+                        _context.Add(pais);
+                        await _context.SaveChangesAsync();
+                        TempData["MensagemSucesso"] = $"País '{pais.NomePais}' adicionado com sucesso!";
+                        return RedirectToAction(nameof(Index)); // Redireciona para a lista de países
+                    }
+                    catch (DbUpdateException ex)
+                    {
+                        _logger.LogError(ex, $"Erro ao criar o país '{pais.NomePais}'.");
+                        ModelState.AddModelError(string.Empty, "Ocorreu um erro ao guardar os dados. Tente novamente.");
+                    }
                 }
             }
 
-            // Se o modelo não for válido, retorna à view com os erros
+            // Se o modelo não for válido ou se ocorreu um erro, retorna à mesma view com os dados preenchidos
             return View(pais);
         }
     }
