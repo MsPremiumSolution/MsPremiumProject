@@ -22,57 +22,84 @@ namespace MSPremiumProject.Controllers
         }
 
         // GET: /Country
+        // Mostra a lista de todos os países
         public async Task<IActionResult> Index()
         {
             var paises = await _context.Paises.OrderBy(p => p.NomePais).ToListAsync();
+            // A convenção espera uma view em Views/Country/Index.cshtml
             return View(paises);
         }
 
         // GET: /Country/Create
+        // Mostra o formulário de criação de um novo país
         public IActionResult Create()
         {
+            // A convenção espera uma view em Views/Country/Create.cshtml
             return View(new Pai());
         }
 
         // POST: /Country/Create
+        // Processa os dados do formulário submetido
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // O [Bind] agora só inclui os campos que vêm do formulário.
         public async Task<IActionResult> Create([Bind("NomePais")] Pai pais)
         {
-            // Removemos o CodigoIso da validação inicial, pois será calculado.
+            // O CodigoIso não vem do formulário, por isso removemo-lo da validação inicial.
             ModelState.Remove("CodigoIso");
 
             if (ModelState.IsValid)
             {
-                bool nomeJaExiste = await _context.Paises.AnyAsync(p => p.NomePais.ToLower() == pais.NomePais.ToLower());
-                if (nomeJaExiste)
+                // Normaliza o nome do país para verificação (remove espaços e converte para minúsculas)
+                var nomeNormalizado = pais.NomePais.Trim().ToLower();
+
+                // Verifica se já existe um país com o mesmo nome
+                if (await _context.Paises.AnyAsync(p => p.NomePais.ToLower() == nomeNormalizado))
                 {
                     ModelState.AddModelError("NomePais", "Já existe um país com este nome.");
                 }
-
-                if (ModelState.IsValid)
+                else
                 {
+                    // Lógica para atribuir o CodigoIso correto
+                    switch (nomeNormalizado)
+                    {
+                        case "portugal":
+                            pais.CodigoIso = "PT";
+                            break;
+                        case "espanha":
+                            pais.CodigoIso = "ES";
+                            break;
+                        case "frança":
+                            pais.CodigoIso = "FR";
+                            break;
+                        // Adicione outros mapeamentos conhecidos aqui
+                        // case "brasil":
+                        //     pais.CodigoIso = "BR";
+                        //     break;
+
+                        default:
+                            // Fallback para países não mapeados: usar as duas primeiras letras.
+                            // Inclui uma verificação para evitar erros se o nome for muito curto.
+                            if (pais.NomePais.Length >= 2)
+                            {
+                                pais.CodigoIso = pais.NomePais.Substring(0, 2).ToUpper();
+                            }
+                            else
+                            {
+                                // Se o nome for inválido, adiciona um erro e retorna ao formulário.
+                                ModelState.AddModelError("NomePais", "O nome do país deve ter pelo menos 2 caracteres.");
+                                return View(pais); // Retorna ao formulário para o utilizador corrigir
+                            }
+                            break;
+                    }
+
+                    // Se tudo estiver correto, tenta guardar na base de dados
                     try
                     {
-                        // --- LÓGICA DE CÁLCULO DO CÓDIGO ISO ---
-                        // Garante que o nome do país não é nulo e tem pelo menos 2 caracteres.
-                        if (!string.IsNullOrEmpty(pais.NomePais) && pais.NomePais.Length >= 2)
-                        {
-                            pais.CodigoIso = pais.NomePais.Substring(0, 2).ToUpper();
-                        }
-                        else
-                        {
-                            // Se o nome for muito curto, define um valor padrão ou lança um erro.
-                            // Vamos adicionar um erro de modelo para ser mais claro.
-                            ModelState.AddModelError("NomePais", "O nome do país deve ter pelo menos 2 caracteres.");
-                            return View(pais);
-                        }
-
                         _context.Add(pais);
                         await _context.SaveChangesAsync();
+                        _logger.LogInformation($"País '{pais.NomePais}' criado com sucesso com o código '{pais.CodigoIso}'.");
                         TempData["MensagemSucesso"] = $"País '{pais.NomePais}' adicionado com sucesso!";
-                        return RedirectToAction(nameof(Index));
+                        return RedirectToAction(nameof(Index)); // Redireciona para a lista de países
                     }
                     catch (DbUpdateException ex)
                     {
@@ -82,6 +109,8 @@ namespace MSPremiumProject.Controllers
                 }
             }
 
+            // Se o ModelState não for válido (seja por validação inicial ou por nome duplicado),
+            // retorna à mesma view para mostrar os erros.
             return View(pais);
         }
     }
