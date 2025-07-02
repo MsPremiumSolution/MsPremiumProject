@@ -1,64 +1,91 @@
-﻿@model MSPremiumProject.ViewModels.ClienteCreateViewModel
+﻿@* Ficheiro: _ClienteFormScripts.cshtml ou no final da sua View Create/Edit *@
+@model MSPremiumProject.ViewModels.ClienteCreateViewModel
 
 <script>
     $(document).ready(function () {
+        // Mapeamento dos elementos do formulário. Os IDs devem corresponder aos do HTML.
         var paisDropdown = $('#paisDropdown');
-        var regiaoDropdown = $('#regiaoDropdown');
-        var regioesContainer = $('#regioesContainer');
+        var distritoContainer = $('#distritoContainer');
+        var distritoDropdown = $('#distritoDropdown'); // ID da dropdown de distritos
         var cpPortugalContainer = $('#cpPortugalContainer');
         var cpEstrangeiroContainer = $('#cpEstrangeiroContainer');
 
-        var savedRegiao = "@Model.SelectedRegiao";
+        // Guarda o valor inicial do distrito (útil para a página de Edição)
+        var valorInicialDistrito = "@Model.Cliente.LocalidadeId";
 
-        function toggleFieldsByCountry() {
-            var selectedPaisOption = paisDropdown.find('option:selected');
-            var selectedPaisText = selectedPaisOption.text();
+        function toggleCamposPorPais() {
             var selectedPaisId = paisDropdown.val();
+            var selectedPaisTexto = paisDropdown.find('option:selected').text().trim().toLowerCase();
 
-            regioesContainer.hide();
+            // Esconde todos os campos condicionais por defeito
+            distritoContainer.hide();
             cpPortugalContainer.hide();
             cpEstrangeiroContainer.hide();
 
+            // Limpa a dropdown de distritos para começar
+            distritoDropdown.empty().append($('<option></option>').val('').text('-- Selecione um País Primeiro --'));
+
             if (selectedPaisId) {
-                if (selectedPaisText.toLowerCase() === 'portugal') {
-                    regioesContainer.show();
+                if (selectedPaisTexto === 'portugal') {
+                    // Se for Portugal: mostra os campos de distrito e CP de Portugal
+                    distritoContainer.show();
                     cpPortugalContainer.show();
+
+                    // Limpa o valor do campo de CP estrangeiro
                     $('#Cliente_CodigoPostalEstrangeiro').val('');
 
+                    // Faz a chamada AJAX para buscar os distritos
                     $.ajax({
-                        url: '@Url.Action("GetRegioesPorPais", "Client")',
+                        url: '@Url.Action("GetDistritosPorPais", "Client")',
                         type: 'GET',
                         dataType: 'json',
                         data: { paisId: selectedPaisId },
-                        success: function (data) {
-                            regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região --'));
-                            if (data && data.length > 0) {
-                                $.each(data, function (index, item) {
-                                    var option = $('<option></option>').val(item).text(item);
-                                    if (item === savedRegiao) {
+                        success: function (distritos) {
+                            distritoDropdown.empty().append($('<option></option>').val('').text('-- Selecione um Distrito --'));
+
+                            if (distritos && distritos.length > 0) {
+                                $.each(distritos, function (index, distrito) {
+                                    // A sua action agora retorna { value: ..., text: ... }
+                                    var option = $('<option></option>').val(distrito.value).text(distrito.text);
+
+                                    // Se o valor do distrito corresponder ao valor inicial (da edição), pré-seleciona-o
+                                    if (distrito.value.toString() === valorInicialDistrito) {
                                         option.prop('selected', true);
                                     }
-                                    regiaoDropdown.append(option);
+
+                                    distritoDropdown.append(option);
                                 });
+                            } else {
+                                distritoDropdown.empty().append($('<option></option>').val('').text('-- Nenhum distrito disponível --'));
                             }
                         },
-                        error: function () { console.error("Erro ao buscar regiões."); }
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            console.error("Erro ao buscar distritos: " + textStatus, errorThrown);
+                            distritoDropdown.empty().append($('<option></option>').val('').text('-- Erro ao carregar distritos --'));
+                        }
                     });
+
                 } else {
+                    // Se for um país estrangeiro: mostra o campo de CP estrangeiro
                     cpEstrangeiroContainer.show();
+
+                    // Limpa os valores dos campos de Portugal
                     $('#Cliente_Cp4').val('');
                     $('#Cliente_Cp3').val('');
-                    regiaoDropdown.empty().append($('<option></option>').val('').text('-- N/A --'));
+                    distritoDropdown.val(''); // Limpa a seleção do distrito
                 }
             }
         }
 
+        // Evento de mudança: quando o utilizador muda o país
         paisDropdown.on('change', function () {
-            savedRegiao = "";
-            toggleFieldsByCountry();
+            // Quando muda o país, o valor inicial do distrito já não é relevante
+            valorInicialDistrito = "";
+            toggleCamposPorPais();
         });
 
-        // Executa a função no carregamento da página para definir o estado inicial
-        toggleFieldsByCountry();
+        // Execução inicial: corre a função quando a página carrega
+        // para configurar o estado inicial correto (especialmente importante na edição)
+        toggleCamposPorPais();
     });
 </script>
