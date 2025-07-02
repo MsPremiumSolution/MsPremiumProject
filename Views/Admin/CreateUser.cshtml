@@ -1,7 +1,9 @@
-﻿@model MSPremiumProject.Models.Utilizador
+﻿@* Ficheiro: Views/Admin/CreateUser.cshtml *@
+@model MSPremiumProject.Models.Utilizador
+
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewBag.Title = "Adicionar Utilizador";
+    ViewBag.Title = "Adicionar Novo Utilizador";
 }
 
 <div class="container mt-5">
@@ -9,63 +11,79 @@
         <div class="col-md-8 col-lg-6">
             <div class="card shadow rounded-4">
                 <div class="card-body p-4">
-                    <h2 class="mb-4 text-center">Adicionar Utilizador</h2>
+                    <h2 class="mb-4 text-center">@ViewBag.Title</h2>
 
+                    @* Mensagens de feedback para o utilizador *@
                     @if (ViewBag.Mensagem != null)
                     {
-                        <div class="alert alert-success mt-3 text-center">
-                            @ViewBag.Mensagem
-                        </div>
+                        <div class="alert alert-success text-center">@ViewBag.Mensagem</div>
                     }
                     @if (ViewBag.MensagemErro != null)
                     {
-                        <div class="alert alert-danger mt-3 text-center">
-                            @ViewBag.MensagemErro
-                        </div>
+                        <div class="alert alert-danger text-center">@ViewBag.MensagemErro</div>
                     }
 
-                    @* Simplificado Html.BeginForm *@
-                    @using (Html.BeginForm("Create", "Users", FormMethod.Post))
+                    @using (Html.BeginForm("Create", "Users", FormMethod.Post, new { @class = "mt-3" }))
                     {
-                        @Html.AntiForgeryToken() @* Adicionar para segurança CSRF *@
+                        @Html.AntiForgeryToken()
 
-                        @Html.ValidationSummary(true, "", new { @class = "text-danger" }) @* Para mostrar erros de modelo não associados a um campo específico *@
+                        @* Sumário de erros não associados a um campo específico *@
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger mb-3" })
 
+                        @* Campo Nome *@
                         <div class="form-floating mb-3">
-                            @Html.TextBoxFor(m => m.Nome, new { @class = "form-control", placeholder = "Nome completo" })
+                            @Html.TextBoxFor(m => m.Nome, new { @class = "form-control", placeholder = "Nome Completo" })
                             @Html.LabelFor(m => m.Nome)
                             @Html.ValidationMessageFor(m => m.Nome, "", new { @class = "text-danger" })
                         </div>
 
+                        @* --- NOVO CAMPO EMPRESA ADICIONADO AQUI --- *@
                         <div class="form-floating mb-3">
-                            @Html.TextBoxFor(m => m.Login, new { @class = "form-control", placeholder = "Email ou login" })
-                            @Html.LabelFor(m => m.Login)
+                            @Html.TextBoxFor(m => m.Empresa, new { @class = "form-control", placeholder = "Empresa (Opcional)" })
+                            @Html.LabelFor(m => m.Empresa)
+                            @Html.ValidationMessageFor(m => m.Empresa, "", new { @class = "text-danger" })
+                        </div>
+
+                        @* Campo Login (Email) *@
+                        <div class="form-floating mb-3">
+                            @Html.TextBoxFor(m => m.Login, new { @class = "form-control", placeholder = "Email" })
+                            @Html.LabelFor(m => m.Login, "Login (Email)")
                             @Html.ValidationMessageFor(m => m.Login, "", new { @class = "text-danger" })
                         </div>
 
+                        @* Campo Password *@
                         <div class="form-floating mb-3">
                             @Html.PasswordFor(m => m.Pwp, new { @class = "form-control", placeholder = "Password" })
-                            @Html.LabelFor(m => m.Pwp)
+                            @Html.LabelFor(m => m.Pwp, "Password")
                             @Html.ValidationMessageFor(m => m.Pwp, "", new { @class = "text-danger" })
                         </div>
 
-                        <div class="form-floating mb-4">
-                            @Html.TextBoxFor(m => m.Dtnascimento, "{0:yyyy-MM-dd}", new { @class = "form-control", type = "date", placeholder = "Data de nascimento" })
-                            @Html.LabelFor(m => m.Dtnascimento, "Data de Nascimento") @* Texto explícito para o label *@
+                        @* Campo Data de Nascimento *@
+                        <div class="form-floating mb-3">
+                            @* O formato e o tipo 'date' ajudam o browser a mostrar um seletor de data *@
+                            @Html.TextBoxFor(m => m.Dtnascimento, "{0:yyyy-MM-dd}", new { @class = "form-control", type = "date" })
+                            @Html.LabelFor(m => m.Dtnascimento, "Data de Nascimento")
                             @Html.ValidationMessageFor(m => m.Dtnascimento, "", new { @class = "text-danger" })
                         </div>
 
-                        <div class="form-floating mb-3">
+                        @* Campo Role (Perfil) *@
+                        <div class="form-floating mb-4">
                             @Html.DropDownListFor(m => m.RoleId,
-                                     ViewBag.Roles as SelectList,
-                                     "Seleciona o Role", new { @class = "form-select" })
-                            @Html.LabelFor(m => m.RoleId, "Role") @* Texto explícito para o label *@
+                                     (SelectList)ViewBag.Roles,
+                                     "-- Selecione um Perfil --",
+                                     new { @class = "form-select" })
+                            @Html.LabelFor(m => m.RoleId, "Perfil")
                             @Html.ValidationMessageFor(m => m.RoleId, "", new { @class = "text-danger" })
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 py-2">
-                            <i class="bi bi-plus-circle me-2"></i> Adicionar Utilizador
-                        </button>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-person-plus-fill me-2"></i> Criar Utilizador
+                            </button>
+                            <a href="@Url.Action("Index", "Users")" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Cancelar
+                            </a>
+                        </div>
                     }
                 </div>
             </div>
