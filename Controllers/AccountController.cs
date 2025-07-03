@@ -172,84 +172,87 @@ namespace MSPremiumProject.Controllers
                 var user = await _context.Utilizadores
                     .FirstOrDefaultAsync(u => u.Login.ToLower() == model.Login.ToLower()); // Assumindo que Login é o email
 
-                if (user != null)
+                // << ALTERAÇÃO 1: Tratar o caso de o utilizador NÃO existir primeiro >>
+                if (user == null)
                 {
-                    // (Opcional) Invalida tokens de reset anteriores para este utilizador.
-                    var existingTokens = _context.PasswordResetTokens
-                                           .Where(t => t.UtilizadorId == user.UtilizadorId && !t.IsUsed && t.ExpirationDate > DateTime.UtcNow);
-                    foreach (var oldToken in existingTokens)
+                    // Log do evento
+                    _logger.LogWarning($"Tentativa de redefinição de password para login (email) não encontrado: {model.Login}");
+
+                    // Adiciona um erro ao ModelState que será exibido na view
+                    ModelState.AddModelError(string.Empty, "O login (email) fornecido não foi encontrado.");
+
+                    // Retorna para a mesma view, que agora exibirá o erro
+                    return View("~/Views/Account/ForgotPassword.cshtml", model);
+                }
+
+                // Se chegámos aqui, o utilizador EXISTE. Agora fazemos o resto.
+
+                // (Opcional) Invalida tokens de reset anteriores para este utilizador.
+                var existingTokens = _context.PasswordResetTokens
+                                       .Where(t => t.UtilizadorId == user.UtilizadorId && !t.IsUsed && t.ExpirationDate > DateTime.UtcNow);
+                foreach (var oldToken in existingTokens)
+                {
+                    oldToken.IsUsed = true;
+                }
+
+                // Gera um token de redefinição seguro e aleatório
+                var tokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+                var expirationDate = DateTime.UtcNow.AddHours(1);
+
+                // Cria um novo registo de token de redefinição.
+                var passwordResetToken = new PasswordResetToken
+                {
+                    UtilizadorId = user.UtilizadorId,
+                    TokenValue = tokenValue,
+                    ExpirationDate = expirationDate,
+                    IsUsed = false
+                };
+
+                _context.PasswordResetTokens.Add(passwordResetToken);
+                await _context.SaveChangesAsync();
+
+                // Lógica para construir o URL de callback
+                string callbackUrl;
+                if (Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || Request.Host.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrEmpty(DevelopmentHostOverride))
                     {
-                        oldToken.IsUsed = true;
-                    }
-                    // Se você modificar existingTokens, precisará de SaveChanges aqui antes de adicionar o novo.
-                    // Ou, melhor, adicione o novo e depois, ao redefinir a password, invalide todos os outros para esse user.
-                    // Para simplificar por agora, vou comentar o SaveChanges aqui.
-                    // await _context.SaveChangesAsync();
-
-                    // Gera um token de redefinição seguro e aleatório
-                    var tokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-                    var expirationDate = DateTime.UtcNow.AddHours(1);
-
-                    // Cria um novo registo de token de redefinição.
-                    var passwordResetToken = new PasswordResetToken
-                    {
-                        UtilizadorId = user.UtilizadorId,
-                        TokenValue = tokenValue,
-                        ExpirationDate = expirationDate,
-                        IsUsed = false
-                    };
-
-                    _context.PasswordResetTokens.Add(passwordResetToken);
-                    await _context.SaveChangesAsync(); // Salva o novo token (e os antigos marcados como usados se descomentado acima)
-
-                    // ***** ALTERAÇÃO PARA GERAR URL COM IP PARA TESTE LOCAL *****
-                    // Lógica para construir o URL de callback (link de redefinição).
-                    // Usa o IP de desenvolvimento se estiver em ambiente local, senão usa o host do pedido.
-                    string callbackUrl;
-                    if (Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || Request.Host.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Estamos em ambiente de desenvolvimento local, vamos usar o IP se DevelopmentHostOverride estiver definido
-                        if (!string.IsNullOrEmpty(DevelopmentHostOverride))
-                        {
-                            var pathAndQuery = Url.Action("ResetPassword", "Account", new { userId = user.UtilizadorId.ToString(), token = tokenValue });
-                            callbackUrl = $"http://{DevelopmentHostOverride}{pathAndQuery}";
-                        }
-                        else
-                        {
-                            // Fallback para o esquema e host normais se DevelopmentHostOverride não estiver definido
-                            callbackUrl = Url.Action("ResetPassword", "Account",
-                                new { userId = user.UtilizadorId.ToString(), token = tokenValue }, protocol: "http"); // Usando HTTP como no seu launchSettings
-                        }
+                        var pathAndQuery = Url.Action("ResetPassword", "Account", new { userId = user.UtilizadorId.ToString(), token = tokenValue });
+                        callbackUrl = $"http://{DevelopmentHostOverride}{pathAndQuery}";
                     }
                     else
                     {
-                        // Para produção ou outros ambientes, usa o esquema e host do pedido atual
                         callbackUrl = Url.Action("ResetPassword", "Account",
-                            new { userId = user.UtilizadorId.ToString(), token = tokenValue }, protocol: Request.Scheme);
-                    }
-                    _logger.LogInformation($"Callback URL gerado: {callbackUrl}");
-                    // ***** FIM DA ALTERAÇÃO *****
-
-
-                    try
-                    {
-                        await _emailSender.SendEmailAsync(
-                           user.Login, // Envia para o Login do utilizador (que é o email)
-                           "Redefinir Password - MSPremiumProject",
-                           $"Olá {user.Nome ?? "utilizador"},<br/><br/>Para redefinir a sua password, por favor clique no link abaixo:<br/><a href='{callbackUrl}'>Redefinir Password</a><br/><br/>Se não solicitou esta alteração, pode ignorar este email.<br/><br/>Obrigado,<br/>Equipa MSPremiumProject");
-                        _logger.LogInformation($"Email de redefinição de password enviado para {user.Login}.");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Falha ao enviar email de redefinição para {user.Login}. Detalhes: {ex.Message}");
+                            new { userId = user.UtilizadorId.ToString(), token = tokenValue }, protocol: "http");
                     }
                 }
                 else
                 {
-                    _logger.LogWarning($"Tentativa de redefinição de password para login (email) não encontrado: {model.Login}");
+                    callbackUrl = Url.Action("ResetPassword", "Account",
+                        new { userId = user.UtilizadorId.ToString(), token = tokenValue }, protocol: Request.Scheme);
                 }
+                _logger.LogInformation($"Callback URL gerado: {callbackUrl}");
+
+                try
+                {
+                    await _emailSender.SendEmailAsync(
+                       user.Login,
+                       "Redefinir Password - MSPremiumProject",
+                       $"Olá {user.Nome ?? "utilizador"},<br/><br/>Para redefinir a sua password, por favor clique no link abaixo:<br/><a href='{callbackUrl}'>Redefinir Password</a><br/><br/>Se não solicitou esta alteração, pode ignorar este email.<br/><br/>Obrigado,<br/>Equipa MSPremiumProject");
+                    _logger.LogInformation($"Email de redefinição de password enviado para {user.Login}.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Falha ao enviar email de redefinição para {user.Login}. Detalhes: {ex.Message}");
+                    // Mesmo que o email falhe, por segurança, não informe o utilizador do erro interno.
+                    // A página de confirmação genérica ainda é a melhor abordagem aqui.
+                }
+
+                // << ALTERAÇÃO 2: A view de confirmação só é retornada em caso de SUCESSO >>
                 return View("~/Views/Account/ForgotPasswordConfirmation.cshtml");
             }
+
+            // Se o modelo não for válido (ex: campo email vazio), retorna para a view com os erros de validação
             return View("~/Views/Account/ForgotPassword.cshtml", model);
         }
 
