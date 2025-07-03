@@ -13,8 +13,7 @@ namespace MSPremiumProject.Models
         [StringLength(100)]
         public string Nome { get; set; }
 
-        [StringLength(255)]
-        public string? ImagemUrl { get; set; } // Opcional: para guardar o caminho da imagem
+        
 
         // Propriedade de navegação inversa: Uma tipologia pode estar em muitas propostas
         public virtual ICollection<Proposta> Propostas { get; set; } = new List<Proposta>();
