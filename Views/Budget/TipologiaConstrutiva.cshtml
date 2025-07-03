@@ -1,5 +1,4 @@
-﻿@* A view agora espera receber uma lista de TipologiaConstrutiva *@
-@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
+﻿@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
 
 @{
     ViewData["Title"] = "Tipologia Construtiva";
@@ -7,39 +6,83 @@
 }
 
 <style>
-    /* ... (os teus estilos para os cartões continuam aqui, sem alterações) ... */
+    .construction-type-card {
+        border: 2px solid #e9ecef;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+
+        .construction-type-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+            border-color: #0d6efd;
+        }
+
+        .construction-type-card.selected {
+            border-color: #198754;
+            border-width: 3px;
+            box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.25);
+        }
+
+        .construction-type-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+
+    .card-body {
+        padding: 1rem;
+        text-align: center;
+    }
 </style>
 
 <div class="container-fluid mt-4">
-    <div class="mb-4">
-        <h1 class="mb-1">@ViewData["Title"]</h1>
-        <p class="text-muted">Orçamento para: <strong>@clienteNome</strong></p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">@ViewData["Title"]</h1>
+            <p class="text-muted">Orçamento para: <strong>@clienteNome</strong></p>
+        </div>
     </div>
 
     <form asp-action="SaveTipologiaAndContinue" method="post">
-
-        @* O campo escondido agora guarda o ID. Vamos pré-selecionar o primeiro da lista. *@
+        @Html.AntiForgeryToken()
         <input type="hidden" id="selectedTipologiaId" name="selectedTipologiaId" value="@Model.FirstOrDefault()?.TipologiaConstrutivaId" />
 
         <div class="row g-4" id="tipologiaContainer">
-
-            @* GERA OS CARTÕES DINAMICAMENTE A PARTIR DOS DADOS DA BD *@
             @foreach (var tipologia in Model)
             {
-                <div class="col-md-4 col-lg-3">
-                    @* O data-value agora é o ID da tipologia. *@
+                <div class="col-xl-3 col-lg-4 col-md-6">
                     <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
-                        <img src="@Url.Content(tipologia.ImagemUrl ?? "~/images/placeholder.jpg")" alt="@tipologia.Nome">
-                        <div class="card-body"><h5 class="card-title">@tipologia.Nome</h5></div>
+
+                        @* <<< AQUI ESTÁ A ALTERAÇÃO IMPORTANTE >>> *@
+                        @if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
+                        {
+                            <img src="~/@tipologia.ImagemUrl" alt="@tipologia.Nome" asp-append-version="true" />
+                        }
+                        else
+                        {
+                            <img src="~/images/placeholder.jpg" alt="@tipologia.Nome" asp-append-version="true" />
+                        }
+
+                        <div class="card-body">
+                            <h5 class="card-title">@tipologia.Nome</h5>
+                        </div>
                     </div>
                 </div>
             }
-
         </div>
 
-        <div class="mt-5 d-flex justify-content-end">
+        <div class="mt-5 d-flex justify-content-between align-items-center">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
             <button type="submit" class="btn btn-primary btn-lg">
-                Próximo Passo <i class="bi bi-arrow-right"></i>
+                Salvar e continuar <i class="bi bi-arrow-right"></i>
             </button>
         </div>
     </form>
@@ -55,7 +98,6 @@
                 container.find('.construction-type-card').removeClass('selected');
                 $(this).addClass('selected');
 
-                // O valor que estamos a guardar agora é o ID
                 const selectedId = $(this).data('value');
                 hiddenInput.val(selectedId);
             });
