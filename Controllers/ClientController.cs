@@ -1,214 +1,398 @@
-﻿< !DOCTYPE html >
-< html lang = "pt" >
-< head >
-    < meta charset = "utf-8" />
-    < title > @ViewBag.Title - MS Premium Solutions</title>
-    <meta name = "viewport" content= "width=device-width, initial-scale=1.0" />
-    < link rel= "stylesheet" href= "~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    < link href= "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel= "stylesheet" />
-    < link rel= "stylesheet" href= "~/css/site.css" asp-append-version= "true" >
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using MSPremiumProject.Data;
+using MSPremiumProject.Models;
+using MSPremiumProject.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 
+namespace MSPremiumProject.Controllers
+{
+    public class ClientController : Controller
+    {
+        private readonly AppDbContext _context;
+        private readonly ILogger<ClientController> _logger;
 
-    < style >
-        /* Estilos para o submenu. Pode mover isto para o seu ficheiro site.css se preferir. */
-        .submenu {
-            display: none; /* Escondido por defeito */
-padding - left: 20px; /* Indentação */
-background - color: rgba(0, 0, 0, 0.1);
-border - left: 3px solid #ffc107; /* Destaque amarelo */
-            margin-left: 10px;
-border - radius: 0 5px 5px 0;
-padding - bottom: 10px;
+        public ClientController(AppDbContext context, ILogger<ClientController> logger)
+        {
+            _context = context;
+            _logger = logger;
         }
 
-        .submenu.show {
-display: block; /* Torna o submenu visível */
-}
-
-        .submenu.nav - link {
-    font - size: 0.9em;
-    padding - top: .4rem;
-    padding - bottom: .4rem;
-}
-        
-        /* Círculos para as etapas do submenu */
-        .submenu - item - circle {
-display: inline - block;
-width: 16px;
-height: 16px;
-border: 2px solid #fff;
-            border - radius: 50 %;
-    margin - right: 10px;
-    vertical - align: middle;
-transition: background - color 0.2s;
-}
-
-        /* Estilo para o link da etapa ativa */
-        .submenu a.nav - link.active.submenu - item - circle {
-    background - color: #ffc107; /* Preenche o círculo quando a página está ativa */
-        }
-    </ style >
-</ head >
-< body >
-    < !--Sidebar-- >
-    < div class= "sidebar d-flex flex-column" >
-        < div class= "logo" >
-            < img src = "~/images/Logo.JPG" alt = "MS Premium Solutions" class= "img-fluid" />
-        </ div >
-        < nav class= "nav flex-column mt-3" >
-            @if(User.Identity != null && User.Identity.IsAuthenticated)
+        // GET: Client (Lista de Clientes) - CORRIGIDO
+        public async Task<IActionResult> Index()
+        {
+            _logger.LogInformation("Acedendo a GET Client/Index para listar Clientes.");
+            try
             {
-                < a class= "nav-link" asp - controller = "Home" asp - action = "Index" >< i class= "bi bi-house-door-fill" ></ i > Página Inicial </ a >
+                var clientes = await _context.Clientes
+                                         .Include(c => c.LocalidadeNavigation)
+                                             .ThenInclude(l => l.Pais)
+                                         .OrderBy(c => c.Nome)
+                                         .ThenBy(c => c.Apelido)
+                                         .ToListAsync();
+                return View(clientes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar clientes na action Client/Index.");
+                TempData["MensagemErro"] = "Ocorreu um erro ao tentar carregar a lista de clientes.";
+                return View(new List<Cliente>());
+            }
+        }
 
-                @* SEU LINK ORIGINAL PARA CLIENTES - RESTAURADO *@
-                < a class= "nav-link" asp - controller = "Home" asp - action = "ClientPainel" >< i class= "bi bi-bar-chart" ></ i > Clientes </ a >
-
-
-                < a class= "nav-link" asp - controller = "Budget" asp - action = "Index" >< i class= "bi bi-calculator-fill" ></ i > Orçamento </ a >
-
-                < !--SUBMENU PARA QUALIDADE DO AR - A única adição funcional -->
-                <div id="qualidadeArSubmenu" class= "submenu" >
-                    < div class= "d-flex justify-content-between align-items-center ps-3 pe-2 pt-2" >
-                         < h6 class= "text-white mb-0" > Qualidade do ar </ h6 >
-                         < button id = "closeSubmenuBtn" class= "btn btn-sm btn-link text-white p-0" title = "Fechar menu de orçamento" >< i class= "bi bi-x-circle" ></ i ></ button >
-                    </ div >
-                    < a class= "nav-link" asp - controller = "Budget" asp - action = "TipologiaConstrutiva" >
-                        < span class= "submenu-item-circle" ></ span > Tipologia construtiva
-                    </ a >
-                    < a class= "nav-link" asp - controller = "Budget" asp - action = "ColecaoDados" >
-                        < span class= "submenu-item-circle" ></ span > Coleção de dados
-                    </a>
-                    <a class= "nav-link" asp - controller = "Budget" asp - action = "Objetivos" >
-                        < span class= "submenu-item-circle" ></ span > Objetivos
-                    </ a >
-                    < a class= "nav-link" asp - controller = "Budget" asp - action = "Volumes" >
-                        < span class= "submenu-item-circle" ></ span > Volumes
-                    </ a >
-                    < a class= "nav-link" asp - action = "DetalheOrcamento" asp - controller = "Budget" >
-                        < span class= "submenu-item-circle" ></ span > Detalhe do orçamento
-                    </ a >
-                    < a class= "nav-link" asp - action = "ResumoOrcamento" asp - controller = "Budget" >
-                        < span class= "submenu-item-circle" ></ span > Resumo do orçamento
-                    </ a >
-                </ div >
-
-                @if(User.IsInRole("Admin"))
+        // GET: Client/Details/5 - CORRIGIDO
+        public async Task<IActionResult> Details(ulong? id)
+        {
+            if (id == null || id == 0) return NotFound();
+            _logger.LogInformation("Acedendo a GET Client/Details para ID: {ClienteId}", id);
+            try
+            {
+                var cliente = await _context.Clientes
+                    .Include(c => c.LocalidadeNavigation)
+                        .ThenInclude(l => l.Pais)
+                    .FirstOrDefaultAsync(m => m.ClienteId == id);
+                if (cliente == null)
                 {
-                    < a class= "nav-link" asp - controller = "Admin" asp - action = "AdminMenu" >< i class= "bi bi-gear-fill" ></ i > Settings(Admin) </ a >
+                    _logger.LogWarning("GET Client/Details - Cliente com ID: {ClienteId} não encontrado.", id);
+                    return NotFound();
+                }
+                return View(cliente);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar detalhes do cliente ID: {ClienteId}", id);
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // GET: Client/Create - CORRIGIDO
+        public async Task<IActionResult> Create()
+        {
+            _logger.LogInformation("Acedendo a GET Client/Create.");
+            var viewModel = new ClienteCreateViewModel();
+            try
+            {
+                viewModel.PaisesList = await _context.Paises
+                    .OrderBy(p => p.NomePais)
+                    .Select(p => new SelectListItem { Value = p.PaisId.ToString(), Text = p.NomePais })
+                    .ToListAsync();
+                var portugal = viewModel.PaisesList.FirstOrDefault(p => p.Text.Equals("Portugal", StringComparison.OrdinalIgnoreCase));
+                if (portugal != null)
+                {
+                    viewModel.SelectedPaisId = ulong.Parse(portugal.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao popular PaisesList em GET Create.");
+            }
+            return View(viewModel);
+        }
+
+        // POST: Client/Create - ATUALIZADO
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(ClienteCreateViewModel viewModel)
+        {
+            _logger.LogInformation("Acedendo a POST Client/Create.");
+
+            ModelState.Remove(nameof(viewModel.Cliente.LocalidadeNavigation));
+
+            // 1. Obter o país selecionado
+            // Esta chamada é feita ANTES do ModelState.IsValid para que o PaisSelecionado esteja disponível
+            // para a lógica de atribuição da LocalidadeId e o IValidatableObject.
+            var paisSelecionado = await _context.Paises.FindAsync(viewModel.SelectedPaisId);
+
+            // 2. Pré-processar a LocalidadeId e NomeLocalidadeTexto antes da validação do ModelState
+            if (viewModel.SelectedPaisId > 0)
+            {
+                string localidadeLookupName = "";
+
+                // Prioriza o valor do dropdown de SelectedRegiao para encontrar/criar a Localidade
+                // Se SelectedRegiao estiver vazio, usa o NomeLocalidadeTexto digitado pelo usuário
+                if (!string.IsNullOrWhiteSpace(viewModel.SelectedRegiao))
+                {
+                    localidadeLookupName = viewModel.SelectedRegiao;
+                }
+                else if (!string.IsNullOrWhiteSpace(viewModel.Cliente.NomeLocalidadeTexto))
+                {
+                    localidadeLookupName = viewModel.Cliente.NomeLocalidadeTexto;
+                }
+
+                // Se uma localidade foi determinada, tenta encontrá-la/criá-la na tabela Localidades
+                if (!string.IsNullOrWhiteSpace(localidadeLookupName))
+                {
+                    var localidade = await _context.Localidades.FirstOrDefaultAsync(l =>
+                        l.Regiao.ToLower() == localidadeLookupName.ToLower() &&
+                        l.PaisId == viewModel.SelectedPaisId);
+
+                    if (localidade == null)
+                    {
+                        localidade = new Localidade
+                        {
+                            Regiao = localidadeLookupName,
+                            PaisId = viewModel.SelectedPaisId
+                        };
+                        _context.Localidades.Add(localidade);
+                        await _context.SaveChangesAsync(); // SALVA A LOCALIDADE PARA OBTER O ID
+                    }
+                    viewModel.Cliente.LocalidadeId = localidade.LocalidadeId; // Atribui o ID ao cliente
+                }
+                else
+                {
+                    // Se não conseguiu determinar a localidadeLookupName, e LocalidadeId é obrigatória, adiciona um erro
+                    if (viewModel.Cliente.LocalidadeId == 0)
+                    {
+                        // Este erro pode ser redundante se Cliente.NomeLocalidadeTexto já tem [Required] e é validado no ViewModel
+                        ModelState.AddModelError(nameof(viewModel.Cliente.LocalidadeId), "Não foi possível determinar uma localidade válida para associação.");
+                    }
                 }
             }
             else
-{
-                < a class= "nav-link" asp - controller = "Account" asp - action = "Login" >< i class= "bi bi-box-arrow-in-right" ></ i > Login </ a >
-            }
-        </ nav >
-    </ div >
-
-    < !--Topbar(Seu código original, intacto)-- >
-    < div class= "topbar d-flex align-items-center p-2" >
-        < button class= "menu-toggle btn btn-link text-white me-auto" id = "menuToggleBtn" type = "button" title = "Alternar menu" >
-            < i class= "bi bi-list" style = "font-size: 1.5rem;" ></ i >
-        </ button >
-
-        @if(User.Identity != null && User.Identity.IsAuthenticated)
-        {
-            @* SEU BLOCO ORIGINAL PARA O NOME DO UTILIZADOR - RESTAURADO *@
-            < span class= "me-3 text-white" > Olá, < strong > @User.FindFirst("FullName")?.Value </ strong ></ span >
-            < form asp - controller = "Account" asp - action = "Logout" method = "post" id = "logoutForm" class= "d-inline" >
-                @Html.AntiForgeryToken()
-                < button type = "submit" class= "btn btn-outline-light btn-sm" title = "Logout" >
-                    < i class= "bi bi-box-arrow-right" ></ i > Sair
-                </ button >
-            </ form >
-        }
-        else
-{
-            < span > </ span >
-        }
-    </ div >
-
-    < !--Main Content-- >
-    < div class= "content" >
-        @RenderBody()
-    </ div >
-
-    < script src = "~/lib/jquery/dist/jquery.min.js" ></ script >
-    < script src = "~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" ></ script >
-    < script src = "~/js/site.js" asp - append - version = "true" ></ script >
-
-    @* SCRIPT PARA O TOGGLE DO MENU PRINCIPAL (Seu código original) *@
-    < script >
-        document.addEventListener('DOMContentLoaded', function() {
-    const menuToggleBtn = document.getElementById('menuToggleBtn');
-    const sidebar = document.querySelector('.sidebar');
-
-    if (menuToggleBtn && sidebar)
-    {
-        menuToggleBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('active');
-        });
-    }
-});
-    </ script >
-
-    @* SCRIPT PARA CONTROLAR O SUBMENU (A adição necessária) *@
-    < script >
-        document.addEventListener('DOMContentLoaded', function() {
-    const submenu = document.getElementById('qualidadeArSubmenu');
-    const closeSubmenuBtn = document.getElementById('closeSubmenuBtn');
-
-    // Expor as funções para que possam ser chamadas de outras views
-    window.showQualidadeArSubmenu = function() {
-        if (submenu) submenu.classList.add('show');
-    }
-
-    window.hideQualidadeArSubmenu = function() {
-        if (submenu) submenu.classList.remove('show');
-    }
-
-    // Evento para o botão de fechar do submenu
-    if (closeSubmenuBtn)
-    {
-        closeSubmenuBtn.addEventListener('click', function() {
-            window.hideQualidadeArSubmenu();
-        });
-    }
-
-    // Lógica para manter o submenu aberto se estivermos numa das suas páginas
-    const currentPath = window.location.pathname.toLowerCase();
-    const submenuPaths = [
-        '/budget/tipologiaconstrutiva',
-                '/budget/colecaodados',
-                '/budget/objetivos',
-                '/budget/volumes',
-                '/budget/detalheorcamento',
-                '/budget/resumoorcamento'
-    ];
-
-    // Verifica se a URL atual contém algum dos caminhos do submenu
-    const isInSubmenu = submenuPaths.some(path => currentPath.includes(path));
-
-    if (isInSubmenu)
-    {
-        window.showQualidadeArSubmenu();
-
-        // Tenta encontrar o link ativo e marcar o círculo
-        try
-        {
-            const activeLink = document.querySelector(`.submenu a.nav - link[href *= '${currentPath.split(' / ').pop()}']`);
-            if (activeLink)
             {
-                activeLink.classList.add('active');
+                // Se o país não foi selecionado, garante que LocalidadeId não seja 0
+                viewModel.Cliente.LocalidadeId = 0;
+            }
+
+            // A lógica de IValidatableObject da ViewModel será executada quando ModelState.IsValid for chamado.
+            // O campo Cliente.NomeLocalidadeTexto já foi preenchido pelo Model Binder, ou pela lógica acima
+            // se uma região foi selecionada.
+
+            // 3. Valida o ModelState. Agora, Cliente.LocalidadeId já tem um valor, e NomeLocalidadeTexto está preenchido.
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Clientes.Add(viewModel.Cliente);
+                    await _context.SaveChangesAsync();
+
+                    TempData["MensagemSucesso"] = $"Cliente '{viewModel.Cliente.Nome}' criado com sucesso!";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro inesperado ao criar cliente.");
+                    ModelState.AddModelError(string.Empty, "Ocorreu um erro inesperado ao guardar o cliente.");
+                }
+            }
+
+            _logger.LogWarning("ModelState inválido. Erros: {Errors}", JsonSerializer.Serialize(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+
+            viewModel.PaisesList = await _context.Paises
+                .OrderBy(p => p.NomePais)
+                .Select(p => new SelectListItem { Value = p.PaisId.ToString(), Text = p.NomePais })
+                .ToListAsync();
+
+            return View(viewModel);
+        }
+
+        // GET: Client/Edit/5 - CORRIGIDO
+        public async Task<IActionResult> Edit(ulong? id)
+        {
+            if (id == null) return NotFound();
+            _logger.LogInformation("Acedendo a GET Client/Edit para ID: {ClienteId}", id);
+
+            var cliente = await _context.Clientes
+                            .Include(c => c.LocalidadeNavigation)
+                                .ThenInclude(l => l.Pais)
+                            .FirstOrDefaultAsync(c => c.ClienteId == id);
+
+            if (cliente == null) return NotFound();
+
+            var viewModel = new ClienteCreateViewModel { Cliente = cliente };
+            try
+            {
+                viewModel.PaisesList = await _context.Paises.OrderBy(p => p.NomePais)
+                    .Select(p => new SelectListItem { Value = p.PaisId.ToString(), Text = p.NomePais }).ToListAsync();
+
+                if (cliente.LocalidadeNavigation != null)
+                {
+                    viewModel.SelectedPaisId = cliente.LocalidadeNavigation.PaisId;
+                    // O SelectedRegiao deve ser preenchido com a Regiao da LocalidadeNavigation
+                    viewModel.SelectedRegiao = cliente.LocalidadeNavigation.Regiao;
+                    // O Cliente.NomeLocalidadeTexto já estará preenchido pelo Model Binder ao atribuir viewModel.Cliente = cliente
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao popular ViewModel em GET Edit.");
+                return RedirectToAction(nameof(Index));
+            }
+            return View(viewModel);
+        }
+
+        // POST: Client/Edit/5 - ATUALIZADO
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(ulong id, ClienteCreateViewModel viewModel)
+        {
+            if (id != viewModel.Cliente.ClienteId) return NotFound();
+            _logger.LogInformation("Acedendo a POST Client/Edit para ID: {ClienteId}", id);
+
+            ModelState.Remove(nameof(viewModel.Cliente.LocalidadeNavigation));
+
+            // 1. Obter o país selecionado
+            var paisSelecionado = await _context.Paises.FindAsync(viewModel.SelectedPaisId);
+
+            // 2. Pré-processar a LocalidadeId e NomeLocalidadeTexto antes da validação do ModelState
+            if (viewModel.SelectedPaisId > 0)
+            {
+                string localidadeLookupName = "";
+
+                if (!string.IsNullOrWhiteSpace(viewModel.SelectedRegiao))
+                {
+                    localidadeLookupName = viewModel.SelectedRegiao;
+                }
+                else if (!string.IsNullOrWhiteSpace(viewModel.Cliente.NomeLocalidadeTexto))
+                {
+                    localidadeLookupName = viewModel.Cliente.NomeLocalidadeTexto;
+                }
+
+                if (!string.IsNullOrWhiteSpace(localidadeLookupName))
+                {
+                    var localidade = await _context.Localidades.FirstOrDefaultAsync(l =>
+                        l.Regiao.ToLower() == localidadeLookupName.ToLower() &&
+                        l.PaisId == viewModel.SelectedPaisId);
+
+                    if (localidade == null)
+                    {
+                        localidade = new Localidade
+                        {
+                            Regiao = localidadeLookupName,
+                            PaisId = viewModel.SelectedPaisId
+                        };
+                        _context.Localidades.Add(localidade);
+                        await _context.SaveChangesAsync();
+                    }
+                    viewModel.Cliente.LocalidadeId = localidade.LocalidadeId;
+                }
+                else
+                {
+                    if (viewModel.Cliente.LocalidadeId == 0)
+                    {
+                        ModelState.AddModelError(nameof(viewModel.Cliente.LocalidadeId), "Não foi possível determinar uma localidade válida para associação.");
+                    }
+                }
+            }
+            else
+            {
+                viewModel.Cliente.LocalidadeId = 0;
+            }
+
+            // 3. Valida o ModelState.
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(viewModel.Cliente);
+                    await _context.SaveChangesAsync();
+
+                    TempData["MensagemSucesso"] = $"Cliente '{viewModel.Cliente.Nome}' atualizado com sucesso!";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!await ClienteExists(viewModel.Cliente.ClienteId)) { return NotFound(); } else { throw; }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro inesperado ao editar cliente.");
+                    ModelState.AddModelError(string.Empty, "Ocorreu um erro inesperado.");
+                }
+            }
+
+            _logger.LogWarning("ModelState inválido ao tentar editar Cliente ID: {ClienteId}. Erros: {Errors}", viewModel.Cliente.ClienteId, JsonSerializer.Serialize(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+
+            viewModel.PaisesList = await _context.Paises.OrderBy(p => p.NomePais)
+                .Select(p => new SelectListItem { Value = p.PaisId.ToString(), Text = p.NomePais }).ToListAsync();
+
+            return View(viewModel);
+        }
+
+        // AJAX ACTION: Obter Regiões de um País - CORRIGIDO
+        [HttpGet]
+        public async Task<JsonResult> GetRegioesPorPais(ulong paisId)
+        {
+            _logger.LogInformation("GetRegioesPorPais chamada para PaisId: {PaisId}", paisId);
+            try
+            {
+                var regioes = await _context.Localidades
+                    .Where(l => l.PaisId == paisId && !string.IsNullOrEmpty(l.Regiao))
+                    .Select(l => l.Regiao)
+                    .Distinct()
+                    .OrderBy(r => r)
+                    .ToListAsync();
+                return Json(regioes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar regiões para o PaisId: {PaisId}", paisId);
+                return Json(new List<string>());
             }
         }
-        catch (e)
+
+        // GET: Client/Delete/5
+        public async Task<IActionResult> Delete(ulong? id)
         {
-            console.error("Erro ao tentar encontrar o link ativo do submenu:", e);
+            if (id == null) return NotFound();
+            _logger.LogInformation("Acedendo a GET Client/Delete para ID: {ClienteId}", id);
+            try
+            {
+                var cliente = await _context.Clientes
+                    .Include(c => c.LocalidadeNavigation)
+                        .ThenInclude(l => l.Pais)
+                    .FirstOrDefaultAsync(m => m.ClienteId == id);
+                if (cliente == null)
+                {
+                    return NotFound();
+                }
+                return View(cliente);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar cliente para apagar, ID: {ClienteId}", id);
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // POST: Client/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(ulong id)
+        {
+            _logger.LogInformation("Acedendo a POST Client/DeleteConfirmed para ID: {ClienteId}", id);
+            try
+            {
+                var cliente = await _context.Clientes.FindAsync(id);
+                if (cliente != null)
+                {
+                    _context.Clientes.Remove(cliente);
+                    await _context.SaveChangesAsync();
+                    TempData["MensagemSucesso"] = "Cliente apagado com sucesso.";
+                }
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "DbUpdateException ao apagar cliente ID: {ClienteId}.", id);
+                TempData["MensagemErro"] = "Não foi possível apagar o cliente. Pode estar associado a outros registos.";
+                return RedirectToAction(nameof(Delete), new { id = id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro inesperado ao apagar cliente ID: {ClienteId}.", id);
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+        private async Task<bool> ClienteExists(ulong id)
+        {
+            return await _context.Clientes.AnyAsync(e => e.ClienteId == id);
         }
     }
-});
-    </ script >
-
-    @await RenderSectionAsync("Scripts", required: false)
-</ body >
-</ html >
+}

@@ -40,6 +40,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+app.UseSession();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
