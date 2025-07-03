@@ -32,7 +32,7 @@ namespace MSPremiumProject.Controllers
         public async Task<IActionResult> OrçamentosEmCurso()
         {
             ViewData["Title"] = "Orçamentos por Concluir";
-            var propostasEmCurso = await _context.Propostas
+            var propostasEmCurso = await _context.Proposta
                                          .Where(p => p.EstadoPropostaId == ESTADO_EM_CURSO)
                                          .Include(p => p.Cliente)
                                          .Include(p => p.Estado)
@@ -87,7 +87,7 @@ namespace MSPremiumProject.Controllers
                 DataProposta = DateTime.UtcNow
             };
 
-            _context.Propostas.Add(novaProposta);
+            _context.Proposta.Add(novaProposta);
             await _context.SaveChangesAsync();
 
             HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
@@ -98,7 +98,7 @@ namespace MSPremiumProject.Controllers
         [HttpGet]
         public async Task<IActionResult> ContinuarOrcamento(ulong id)
         {
-            var proposta = await _context.Propostas.FindAsync(id);
+            var proposta = await _context.Proposta.FindAsync(id);
             if (proposta == null || proposta.EstadoPropostaId != ESTADO_EM_CURSO)
             {
                 TempData["MensagemErro"] = "Orçamento inválido ou já concluído.";
@@ -135,7 +135,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Propostas.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+            var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null)
             {
                 TempData["MensagemErro"] = "Orçamento não encontrado.";
@@ -166,7 +166,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
 
-            var proposta = await _context.Propostas.FindAsync(propostaId);
+            var proposta = await _context.Proposta.FindAsync(propostaId);
             if (proposta == null) return NotFound();
 
             proposta.TipologiaConstrutivaId = selectedTipologiaId;
@@ -187,7 +187,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Propostas.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+            var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null) return NotFound();
 
             // <<< ADICIONADO AQUI >>> Define o contexto para mostrar o submenu
@@ -213,7 +213,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Propostas.FindAsync(propostaId);
+            var proposta = await _context.Proposta.FindAsync(propostaId);
             if (proposta == null) return NotFound();
 
             if (proposta.QualidadeDoArId.HasValue)
@@ -258,7 +258,7 @@ namespace MSPremiumProject.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteProposta(ulong id)
         {
-            var proposta = await _context.Propostas.FindAsync(id);
+            var proposta = await _context.Proposta.FindAsync(id);
 
             if (proposta == null)
             {
@@ -274,7 +274,7 @@ namespace MSPremiumProject.Controllers
 
             try
             {
-                _context.Propostas.Remove(proposta);
+                _context.Proposta.Remove(proposta);
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = $"A proposta Nº {id} foi apagada com sucesso.";
             }
