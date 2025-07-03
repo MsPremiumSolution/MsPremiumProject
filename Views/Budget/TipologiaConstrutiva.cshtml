@@ -56,36 +56,23 @@
         <div class="row g-4" id="tipologiaContainer">
             @foreach (var tipologia in Model)
             {
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                    <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
+                <div style="border: 1px solid black; margin: 10px; padding: 10px;">
+                    <h4>Teste para: @tipologia.Nome</h4>
 
-                        @{
-                            // ================== A SOLUÇÃO FINAL: ISOLAMENTO TOTAL DA VARIÁVEL ==================
-                            // A teoria é que a string vinda do modelo tem um estado interno estranho.
-                            // Para corrigir isto, decompomos a string num array de caracteres e construímos
-                            // uma instância de string completamente nova e limpa a partir dele.
-                            // Isto quebra qualquer ligação com o objeto original vindo do Entity Framework.
-                            var imageUrlFinal = "";
-                            if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
-                            {
-                                imageUrlFinal = new string(tipologia.ImagemUrl.ToCharArray());
-                            }
-                        }
-
-                        @* A IMAGEM QUE, POR TODA A LÓGICA, TEM DE FUNCIONAR AGORA *@
-                        @if (!string.IsNullOrEmpty(imageUrlFinal))
+                    <p><strong>Tentativa 1 (Dinâmica - a que está a falhar):</strong></p>
+                    @{
+                        var urlDinamica = "";
+                        if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
                         {
-                            <img src="@Url.Content($"~/{imageUrlFinal}")" alt="@tipologia.Nome" asp-append-version="true" />
+                            urlDinamica = new string(tipologia.ImagemUrl.ToCharArray());
                         }
-                        else
-                        {
-                            <img src="~/images/placeholder.jpg" alt="@tipologia.Nome" asp-append-version="true" />
-                        }
+                    }
+                    <img src="@Url.Content($"~/{urlDinamica}")" alt="IMAGEM DINÂMICA FALHOU">
+                    <hr>
 
-                        <div class="card-body">
-                            <h5 class="card-title">@tipologia.Nome</h5>
-                        </div>
-                    </div>
+                    <p><strong>Tentativa 2 (Hardcoded - a que sabemos que funciona):</strong></p>
+                    <img src="@Url.Content("~/images/tipologias/portal.jpg")" alt="IMAGEM HARDCODED FUNCIONA" style="border: 4px solid green;">
+
                 </div>
             }
         </div>
