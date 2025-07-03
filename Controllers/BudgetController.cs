@@ -17,7 +17,6 @@ namespace MSPremiumProject.Controllers
     {
         private readonly AppDbContext _context;
 
-        // IDs dos estados para evitar "números mágicos" no código
         private const int ESTADO_EM_CURSO = 1;
         private const int ESTADO_CONCLUIDO = 2;
 
@@ -27,19 +26,19 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // LISTAGEM DE ORÇAMENTOS POR CONCLUIR
+        // PÁGINA PRINCIPAL: LISTAGEM DE ORÇAMENTOS POR CONCLUIR
         //================================================================================
         [HttpGet]
         public async Task<IActionResult> OrçamentosEmCurso()
         {
             ViewData["Title"] = "Orçamentos por Concluir";
-            var propostasEmCurso = await _context.Proposta
+            var propostasEmCurso = await _context.Propostas // Usando "Propostas" como corrigimos no DbContext
                                          .Where(p => p.EstadoPropostaId == ESTADO_EM_CURSO)
                                          .Include(p => p.Cliente)
                                          .Include(p => p.Estado)
                                          .OrderByDescending(p => p.DataProposta)
                                          .ToListAsync();
-            return View(propostasEmCurso); // Precisas de criar a View OrçamentosEmCurso.cshtml
+            return View(propostasEmCurso);
         }
 
 
@@ -85,11 +84,10 @@ namespace MSPremiumProject.Controllers
                 ClienteId = clienteId,
                 UtilizadorId = utilizadorId,
                 EstadoPropostaId = ESTADO_EM_CURSO,
-                DataProposta = DateTime.UtcNow,
-                // O resto dos campos (CodigoProposta, ValorObra, etc.) serão preenchidos depois
+                DataProposta = DateTime.UtcNow
             };
 
-            _context.Proposta.Add(novaProposta);
+            _context.Propostas.Add(novaProposta);
             await _context.SaveChangesAsync();
 
             HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
@@ -100,7 +98,7 @@ namespace MSPremiumProject.Controllers
         [HttpGet]
         public async Task<IActionResult> ContinuarOrcamento(ulong id)
         {
-            var proposta = await _context.Proposta.FindAsync(id);
+            var proposta = await _context.Propostas.FindAsync(id);
             if (proposta == null || proposta.EstadoPropostaId != ESTADO_EM_CURSO)
             {
                 TempData["MensagemErro"] = "Orçamento inválido ou já concluído.";
@@ -114,13 +112,21 @@ namespace MSPremiumProject.Controllers
             {
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
-            if (proposta.QualidadeDoArId == null && proposta.TratamentoEstruturalId == null)
+            if (proposta.QualidadeDoArId == null /* && proposta.TratamentoEstruturalId == null */)
             {
                 return RedirectToAction(nameof(SelectTreatment));
             }
-            // Adiciona mais `else if` para as outras etapas que tenhas
 
-            return RedirectToAction(nameof(TipologiaConstrutiva)); // Redirecionamento padrão
+            if (proposta.QualidadeDoArId.HasValue)
+            {
+                return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId });
+            }
+            // if (proposta.TratamentoEstruturalId.HasValue)
+            // {
+            //     return RedirectToAction("EditTratamentoEstrutural", new { id = proposta.TratamentoEstruturalId });
+            // }
+
+            return RedirectToAction(nameof(TipologiaConstrutiva));
         }
 
         //================================================================================
@@ -135,7 +141,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+            var proposta = await _context.Propostas.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null)
             {
                 TempData["MensagemErro"] = "Orçamento não encontrado.";
@@ -143,18 +149,12 @@ namespace MSPremiumProject.Controllers
             }
 
             ViewData["ClienteNome"] = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
-
             var tipologiasDisponiveis = await _context.TipologiasConstrutivas.OrderBy(t => t.Nome).ToListAsync();
-
-            // Re-seleciona a tipologia se ela já tiver sido guardada na proposta
             ViewData["SelectedTipologiaId"] = proposta.TipologiaConstrutivaId;
 
             return View(tipologiasDisponiveis);
         }
 
-        //================================================================================
-        // ETAPA 4: GUARDAR TIPOLOGIA E IR PARA ESCOLHA DO TRATAMENTO
-        //================================================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveTipologiaAndContinue(ulong selectedTipologiaId)
@@ -170,7 +170,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
 
-            var proposta = await _context.Proposta.FindAsync(propostaId);
+            var proposta = await _context.Propostas.FindAsync(propostaId);
             if (proposta == null) return NotFound();
 
             proposta.TipologiaConstrutivaId = selectedTipologiaId;
@@ -180,7 +180,7 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // ETAPA 5: PÁGINA DE ESCOLHA DO TIPO DE TRATAMENTO
+        // ETAPA 4: PÁGINA DE ESCOLHA DO TIPO DE TRATAMENTO
         //================================================================================
         [HttpGet]
         public async Task<IActionResult> SelectTreatment()
@@ -191,12 +191,11 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+            var proposta = await _context.Propostas.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null) return NotFound();
 
             var viewModel = new SelectTreatmentViewModel
             {
-                // Adapta o teu ViewModel se necessário
                 NomeCliente = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}"
             };
 
@@ -204,10 +203,10 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // ETAPA 6: PROCESSAR ESCOLHA DO TRATAMENTO E INICIAR FLUXO FINAL
+        // ETAPA 5: PROCESSAR ESCOLHA DO TRATAMENTO E INICIAR FLUXO DE EDIÇÃO
         //================================================================================
         [HttpGet]
-        public async Task<IActionResult> Create(string treatmentType)
+        public async Task<IActionResult> ProcessTreatmentSelection(string treatmentType)
         {
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
@@ -215,24 +214,34 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Proposta.FindAsync(propostaId);
+            var proposta = await _context.Propostas.FindAsync(propostaId);
             if (proposta == null) return NotFound();
 
-            // Aqui irás criar o registo de QualidadeDoAr ou TratamentoEstrutural
-            // e associá-lo à proposta. Exemplo:
+            if (proposta.QualidadeDoArId.HasValue /* || proposta.TratamentoEstruturalId.HasValue */)
+            {
+                TempData["MensagemAviso"] = "Esta proposta já tem um tipo de tratamento associado. A continuar edição...";
+                return RedirectToAction(nameof(ContinuarOrcamento), new { id = proposta.PropostaId });
+            }
+
             if (treatmentType.Equals("QualidadeAr", StringComparison.OrdinalIgnoreCase))
             {
-                // var novoTratamento = new QualidadeDoAr { ... };
-                // _context.Add(novoTratamento);
-                // await _context.SaveChangesAsync();
-                // proposta.QualidadeDoArId = novoTratamento.Id;
-                // await _context.SaveChangesAsync();
-                return RedirectToAction("ColecaoDados"); // Passa o ID se necessário
+                var novoTratamentoAr = new QualidadeDoAr();
+                _context.QualidadeDoAr.Add(novoTratamentoAr);
+                await _context.SaveChangesAsync();
+
+                // <<< CORRIGIDO AQUI >>> Usa "Id" como no teu modelo
+                proposta.QualidadeDoArId = novoTratamentoAr.Id;
+                await _context.SaveChangesAsync();
+
+                // <<< CORRIGIDO AQUI >>> Usa "Id" como no teu modelo
+                return RedirectToAction("EditQualidadeDoAr", new { id = novoTratamentoAr.Id });
             }
-            else if (treatmentType.Equals("Estrutural", StringComparison.OrdinalIgnoreCase))
-            {
-                return RedirectToAction(nameof(EditTratamentoEstrutural));
-            }
+            // else if (treatmentType.Equals("Estrutural", StringComparison.OrdinalIgnoreCase))
+            // {
+            //     // Lógica para Tratamento Estrutural removida temporariamente
+            //     TempData["MensagemErro"] = "Tratamento Estrutural ainda não implementado.";
+            //     return RedirectToAction(nameof(SelectTreatment));
+            // }
             else
             {
                 TempData["MensagemErro"] = "Tipo de tratamento desconhecido.";
@@ -241,9 +250,22 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // PÁGINAS PLACEHOLDER PARA OS FLUXOS FINAIS
+        // PÁGINAS DE EDIÇÃO (PLACEHOLDERS)
         //================================================================================
-        [HttpGet] public IActionResult ColecaoDados() => View();
-        [HttpGet] public IActionResult EditTratamentoEstrutural() => View();
+        [HttpGet]
+        public IActionResult EditQualidadeDoAr(ulong id)
+        {
+            ViewData["Title"] = $"Editar Orçamento de Qualidade do Ar (ID: {id})";
+            // TODO: Lógica para carregar os dados do tratamento com o ID recebido
+            return View(); // Passa o ViewModel para a View
+        }
+
+        // [HttpGet]
+        // public IActionResult EditTratamentoEstrutural(ulong id)
+        // {
+        //     ViewData["Title"] = $"Editar Orçamento de Tratamento Estrutural (ID: {id})";
+        //     // TODO: Lógica para carregar os dados do tratamento com o ID recebido
+        //     return View(); // Passa o ViewModel para a View
+        // }
     }
 }
