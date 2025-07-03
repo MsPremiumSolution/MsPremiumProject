@@ -68,7 +68,7 @@
                         @* A TUA IMAGEM ORIGINAL *@
                         @if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
                         {
-                            <img src="~/@tipologia.ImagemUrl" alt="@tipologia.Nome" asp-append-version="true" />
+                            <img src="@Url.Content("~/" + tipologia.ImagemUrl)" alt="@tipologia.Nome" asp-append-version="true" />
                         }
                         else
                         {
