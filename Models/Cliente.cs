@@ -50,9 +50,10 @@ namespace MSPremiumProject.Models
         [Display(Name = "Localidade (Cidade/Concelho)")]
         public string Localidade { get; set; } = null!; // Este campo vai guardar o texto da textbox
 
-        [Required(ErrorMessage = "O distrito é obrigatório.")]
+        // ALTERADO: Tornou-se anulável e removeu-se o [Required] aqui
+        // A validação será feita no controller ou via IValidatableObject se for preciso validação cliente condicional.
         [Display(Name = "Distrito")]
-        public ulong LocalidadeId { get; set; }
+        public ulong? LocalidadeId { get; set; } // AGORA É ulong?
 
         [Display(Name = "Número Fiscal (NIF)")]
         [StringLength(50, ErrorMessage = "O NIF não pode exceder 50 caracteres.")]

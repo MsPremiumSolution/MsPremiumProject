@@ -3,15 +3,16 @@
 
 <script>
     $(document).ready(function () {
-        // Mapeamento dos elementos do formulário. Os IDs devem corresponder aos do HTML.
-        var paisDropdown = $('#paisDropdown');
+        // Mapeamento dos elementos do formulário. Os IDs AGORA correspondem aos gerados pelo asp-for.
+        var paisDropdown = $('#SelectedPaisId'); // ATUALIZADO
         var distritoContainer = $('#distritoContainer');
-        var distritoDropdown = $('#distritoDropdown'); // ID da dropdown de distritos
+        var distritoDropdown = $('#Cliente_LocalidadeId'); // ATUALIZADO
         var cpPortugalContainer = $('#cpPortugalContainer');
         var cpEstrangeiroContainer = $('#cpEstrangeiroContainer');
 
         // Guarda o valor inicial do distrito (útil para a página de Edição)
-        var valorInicialDistrito = "@Model.Cliente.LocalidadeId";
+        // Certifica-se que valorInicialDistrito é uma string vazia se for null
+        var valorInicialDistrito = "@(Model.Cliente.LocalidadeId?.ToString() ?? "")"; // Tratamento para LocalidadeId ser anulável
 
         function toggleCamposPorPais() {
             var selectedPaisId = paisDropdown.val();
@@ -25,14 +26,31 @@
             // Limpa a dropdown de distritos para começar
             distritoDropdown.empty().append($('<option></option>').val('').text('-- Selecione um País Primeiro --'));
 
+            // Limpa os valores dos campos de CP e distrito ao mudar o país,
+            // independentemente do tipo de país, para garantir um estado limpo
+            $('#Cliente_Cp4').val('');
+            $('#Cliente_Cp3').val('');
+            $('#Cliente_CodigoPostalEstrangeiro').val('');
+            distritoDropdown.val('');
+
+            // Remova (ou adicione) a propriedade 'required' dinamicamente para jQuery Validation
+            // É importante resetar o estado de required para os campos que vão ser ocultados
+            distritoDropdown.prop('required', false);
+            $('#Cliente_Cp4').prop('required', false);
+            $('#Cliente_Cp3').prop('required', false);
+            $('#Cliente_CodigoPostalEstrangeiro').prop('required', false);
+
+
             if (selectedPaisId) {
                 if (selectedPaisTexto === 'portugal') {
                     // Se for Portugal: mostra os campos de distrito e CP de Portugal
                     distritoContainer.show();
                     cpPortugalContainer.show();
 
-                    // Limpa o valor do campo de CP estrangeiro
-                    $('#Cliente_CodigoPostalEstrangeiro').val('');
+                    // Define como obrigatório para Portugal
+                    distritoDropdown.prop('required', true);
+                    $('#Cliente_Cp4').prop('required', true);
+                    $('#Cliente_Cp3').prop('required', true);
 
                     // Faz a chamada AJAX para buscar os distritos
                     $.ajax({
@@ -45,7 +63,6 @@
 
                             if (distritos && distritos.length > 0) {
                                 $.each(distritos, function (index, distrito) {
-                                    // A sua action agora retorna { value: ..., text: ... }
                                     var option = $('<option></option>').val(distrito.value).text(distrito.text);
 
                                     // Se o valor do distrito corresponder ao valor inicial (da edição), pré-seleciona-o
@@ -68,12 +85,16 @@
                 } else {
                     // Se for um país estrangeiro: mostra o campo de CP estrangeiro
                     cpEstrangeiroContainer.show();
-
-                    // Limpa os valores dos campos de Portugal
-                    $('#Cliente_Cp4').val('');
-                    $('#Cliente_Cp3').val('');
-                    distritoDropdown.val(''); // Limpa a seleção do distrito
+                    $('#Cliente_CodigoPostalEstrangeiro').prop('required', true); // Define como obrigatório para estrangeiro
                 }
+            }
+
+            // Revalida o formulário para que as novas regras de 'required' sejam aplicadas imediatamente
+            // Isto é importante para que o jQuery Validation atualize o estado do formulário.
+            // Apenas revalide se o formulário já foi submetido ou se o validador já foi inicializado.
+            var form = $('form');
+            if (form.data('validator')) { // Verifica se o validador do jQuery já foi inicializado
+                 form.validate().form(); // Força uma revalidação
             }
         }
 
