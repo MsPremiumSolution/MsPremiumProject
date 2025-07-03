@@ -1,14 +1,17 @@
-﻿// Ficheiro: Models/Cliente.cs (Versão Simplificada e Corrigida)
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using MSPremiumProject.Utils;
+using MSPremiumProject.Data;
+using Microsoft.EntityFrameworkCore;
+
+
+using System.Linq;
 
 namespace MSPremiumProject.Models
 {
-    [Table("Clientes")]
-    public partial class Cliente
+    public partial class Cliente : IValidatableObject
     {
         [Key]
         public ulong ClienteId { get; set; }
@@ -22,8 +25,9 @@ namespace MSPremiumProject.Models
         [Display(Name = "Apelido")]
         public string? Apelido { get; set; }
 
-        [StringLength(150, ErrorMessage = "O Nome da Empresa deve ter no máximo 150 caracteres.")]
-        [Display(Name = "Empresa (Opcional)")]
+        // NOVO CAMPO: Empresa
+        [StringLength(255, ErrorMessage = "O nome da empresa não pode exceder 255 caracteres.")]
+        [Display(Name = "Empresa")]
         public string? Empresa { get; set; }
 
         [Required(ErrorMessage = "A morada é obrigatória.")]
@@ -42,18 +46,12 @@ namespace MSPremiumProject.Models
         public string? Cp3 { get; set; }
 
         [StringLength(20, ErrorMessage = "O código postal não pode exceder 20 caracteres.")]
-        [Display(Name = "Código Postal Estrangeiro")]
+        [Display(Name = "Código Postal")]
         public string? CodigoPostalEstrangeiro { get; set; }
 
-        [Required(ErrorMessage = "O nome da localidade (cidade/concelho) é obrigatório.")]
-        [StringLength(200, ErrorMessage = "A localidade não pode exceder 200 caracteres.")]
-        [Display(Name = "Localidade (Cidade/Concelho)")]
-        public string Localidade { get; set; } = null!; // Este campo vai guardar o texto da textbox
-
-        // ALTERADO: Tornou-se anulável e removeu-se o [Required] aqui
-        // A validação será feita no controller ou via IValidatableObject se for preciso validação cliente condicional.
-        [Display(Name = "Distrito")]
-        public ulong? LocalidadeId { get; set; } // AGORA É ulong?
+        [Required(ErrorMessage = "A localidade é obrigatória.")]
+        [Display(Name = "ID da Localidade")]
+        public ulong LocalidadeId { get; set; }
 
         [Display(Name = "Número Fiscal (NIF)")]
         [StringLength(50, ErrorMessage = "O NIF não pode exceder 50 caracteres.")]
@@ -61,10 +59,10 @@ namespace MSPremiumProject.Models
 
         [DataType(DataType.MultilineText)]
         [Display(Name = "Observações")]
-        public string? Observacoes { get; set; }
+        public string? Observacoes { get; set; } // Já estava como string? conforme solicitado
 
         [EmailAddress(ErrorMessage = "O formato do email é inválido.")]
-        [StringLength(255)]
+        [StringLength(255, ErrorMessage = "O email não pode exceder 255 caracteres.")]
         [Display(Name = "Email")]
         public string? Email { get; set; }
 
@@ -78,9 +76,76 @@ namespace MSPremiumProject.Models
         [Display(Name = "Data de Nascimento")]
         public DateOnly? Dtnascimento { get; set; }
 
-        // --- Propriedades de Navegação ---
         [ForeignKey("LocalidadeId")]
         public virtual Localidade? LocalidadeNavigation { get; set; }
+
         public virtual ICollection<Proposta> Proposta { get; set; } = new List<Proposta>();
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            var results = new List<ValidationResult>();
+            var dbContext = validationContext.GetService(typeof(AppDbContext)) as AppDbContext;
+            if (dbContext == null)
+            {
+                yield break;
+            }
+
+            string? paisCodigoIso = null;
+            if (LocalidadeId > 0)
+            {
+                var localidadeDoCliente = dbContext.Localidades
+                                              .Include(l => l.Pais)
+                                              .AsNoTracking()
+                                              .FirstOrDefault(l => l.LocalidadeId == this.LocalidadeId);
+                if (localidadeDoCliente?.Pais != null)
+                {
+                    paisCodigoIso = localidadeDoCliente.Pais.CodigoIso;
+                }
+            }
+
+            // Validação do NIF (código que você já tinha)
+            if (!string.IsNullOrWhiteSpace(NumeroFiscal))
+            {
+                if (string.IsNullOrWhiteSpace(paisCodigoIso))
+                {
+                    // Não foi possível determinar o país, talvez adicionar um erro?
+                }
+                else if (!EuropeanNifValidator.ValidateNif(paisCodigoIso, NumeroFiscal))
+                {
+                    results.Add(new ValidationResult(
+                        $"O NIF '{NumeroFiscal}' não é válido para o país '{paisCodigoIso}'.",
+                        new[] { nameof(NumeroFiscal) }));
+                }
+            }
+
+            // Nova validação para os Códigos Postais
+            if (paisCodigoIso == "PT")
+            {
+                if (string.IsNullOrWhiteSpace(Cp4))
+                {
+                    results.Add(new ValidationResult("O CP (4 dígitos) é obrigatório para Portugal.", new[] { nameof(Cp4) }));
+                }
+                if (string.IsNullOrWhiteSpace(Cp3))
+                {
+                    results.Add(new ValidationResult("O CP (3 dígitos) é obrigatório para Portugal.", new[] { nameof(Cp3) }));
+                }
+                if (!string.IsNullOrWhiteSpace(CodigoPostalEstrangeiro))
+                {
+                    // Opcional: pode querer limpar este campo no controller ou aqui.
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(paisCodigoIso)) // Se for estrangeiro mas não Portugal
+            {
+                if (string.IsNullOrWhiteSpace(CodigoPostalEstrangeiro))
+                {
+                    results.Add(new ValidationResult("O Código Postal é obrigatório.", new[] { nameof(CodigoPostalEstrangeiro) }));
+                }
+            }
+
+            foreach (var result in results)
+            {
+                yield return result;
+            }
+        }
     }
 }

@@ -1,112 +1,64 @@
-﻿@* Ficheiro: _ClienteFormScripts.cshtml ou no final da sua View Create/Edit *@
-@model MSPremiumProject.ViewModels.ClienteCreateViewModel
+﻿@model MSPremiumProject.ViewModels.ClienteCreateViewModel
 
 <script>
     $(document).ready(function () {
-        // Mapeamento dos elementos do formulário. Os IDs AGORA correspondem aos gerados pelo asp-for.
-        var paisDropdown = $('#SelectedPaisId'); // ATUALIZADO
-        var distritoContainer = $('#distritoContainer');
-        var distritoDropdown = $('#Cliente_LocalidadeId'); // ATUALIZADO
+        var paisDropdown = $('#paisDropdown');
+        var regiaoDropdown = $('#regiaoDropdown');
+        var regioesContainer = $('#regioesContainer');
         var cpPortugalContainer = $('#cpPortugalContainer');
         var cpEstrangeiroContainer = $('#cpEstrangeiroContainer');
 
-        // Guarda o valor inicial do distrito (útil para a página de Edição)
-        // Certifica-se que valorInicialDistrito é uma string vazia se for null
-        var valorInicialDistrito = "@(Model.Cliente.LocalidadeId?.ToString() ?? "")"; // Tratamento para LocalidadeId ser anulável
+        var savedRegiao = "@Model.SelectedRegiao";
 
-        function toggleCamposPorPais() {
+        function toggleFieldsByCountry() {
+            var selectedPaisOption = paisDropdown.find('option:selected');
+            var selectedPaisText = selectedPaisOption.text();
             var selectedPaisId = paisDropdown.val();
-            var selectedPaisTexto = paisDropdown.find('option:selected').text().trim().toLowerCase();
 
-            // Esconde todos os campos condicionais por defeito
-            distritoContainer.hide();
+            regioesContainer.hide();
             cpPortugalContainer.hide();
             cpEstrangeiroContainer.hide();
 
-            // Limpa a dropdown de distritos para começar
-            distritoDropdown.empty().append($('<option></option>').val('').text('-- Selecione um País Primeiro --'));
-
-            // Limpa os valores dos campos de CP e distrito ao mudar o país,
-            // independentemente do tipo de país, para garantir um estado limpo
-            $('#Cliente_Cp4').val('');
-            $('#Cliente_Cp3').val('');
-            $('#Cliente_CodigoPostalEstrangeiro').val('');
-            distritoDropdown.val('');
-
-            // Remova (ou adicione) a propriedade 'required' dinamicamente para jQuery Validation
-            // É importante resetar o estado de required para os campos que vão ser ocultados
-            distritoDropdown.prop('required', false);
-            $('#Cliente_Cp4').prop('required', false);
-            $('#Cliente_Cp3').prop('required', false);
-            $('#Cliente_CodigoPostalEstrangeiro').prop('required', false);
-
-
             if (selectedPaisId) {
-                if (selectedPaisTexto === 'portugal') {
-                    // Se for Portugal: mostra os campos de distrito e CP de Portugal
-                    distritoContainer.show();
+                if (selectedPaisText.toLowerCase() === 'portugal') {
+                    regioesContainer.show();
                     cpPortugalContainer.show();
+                    $('#Cliente_CodigoPostalEstrangeiro').val('');
 
-                    // Define como obrigatório para Portugal
-                    distritoDropdown.prop('required', true);
-                    $('#Cliente_Cp4').prop('required', true);
-                    $('#Cliente_Cp3').prop('required', true);
-
-                    // Faz a chamada AJAX para buscar os distritos
                     $.ajax({
-                        url: '@Url.Action("GetDistritosPorPais", "Client")',
+                        url: '@Url.Action("GetRegioesPorPais", "Client")',
                         type: 'GET',
                         dataType: 'json',
                         data: { paisId: selectedPaisId },
-                        success: function (distritos) {
-                            distritoDropdown.empty().append($('<option></option>').val('').text('-- Selecione um Distrito --'));
-
-                            if (distritos && distritos.length > 0) {
-                                $.each(distritos, function (index, distrito) {
-                                    var option = $('<option></option>').val(distrito.value).text(distrito.text);
-
-                                    // Se o valor do distrito corresponder ao valor inicial (da edição), pré-seleciona-o
-                                    if (distrito.value.toString() === valorInicialDistrito) {
+                        success: function (data) {
+                            regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região --'));
+                            if (data && data.length > 0) {
+                                $.each(data, function (index, item) {
+                                    var option = $('<option></option>').val(item).text(item);
+                                    if (item === savedRegiao) {
                                         option.prop('selected', true);
                                     }
-
-                                    distritoDropdown.append(option);
+                                    regiaoDropdown.append(option);
                                 });
-                            } else {
-                                distritoDropdown.empty().append($('<option></option>').val('').text('-- Nenhum distrito disponível --'));
                             }
                         },
-                        error: function (jqXHR, textStatus, errorThrown) {
-                            console.error("Erro ao buscar distritos: " + textStatus, errorThrown);
-                            distritoDropdown.empty().append($('<option></option>').val('').text('-- Erro ao carregar distritos --'));
-                        }
+                        error: function () { console.error("Erro ao buscar regiões."); }
                     });
-
                 } else {
-                    // Se for um país estrangeiro: mostra o campo de CP estrangeiro
                     cpEstrangeiroContainer.show();
-                    $('#Cliente_CodigoPostalEstrangeiro').prop('required', true); // Define como obrigatório para estrangeiro
+                    $('#Cliente_Cp4').val('');
+                    $('#Cliente_Cp3').val('');
+                    regiaoDropdown.empty().append($('<option></option>').val('').text('-- N/A --'));
                 }
-            }
-
-            // Revalida o formulário para que as novas regras de 'required' sejam aplicadas imediatamente
-            // Isto é importante para que o jQuery Validation atualize o estado do formulário.
-            // Apenas revalide se o formulário já foi submetido ou se o validador já foi inicializado.
-            var form = $('form');
-            if (form.data('validator')) { // Verifica se o validador do jQuery já foi inicializado
-                 form.validate().form(); // Força uma revalidação
             }
         }
 
-        // Evento de mudança: quando o utilizador muda o país
         paisDropdown.on('change', function () {
-            // Quando muda o país, o valor inicial do distrito já não é relevante
-            valorInicialDistrito = "";
-            toggleCamposPorPais();
+            savedRegiao = "";
+            toggleFieldsByCountry();
         });
 
-        // Execução inicial: corre a função quando a página carrega
-        // para configurar o estado inicial correto (especialmente importante na edição)
-        toggleCamposPorPais();
+        // Executa a função no carregamento da página para definir o estado inicial
+        toggleFieldsByCountry();
     });
 </script>

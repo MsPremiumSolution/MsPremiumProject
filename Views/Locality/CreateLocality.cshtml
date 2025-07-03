@@ -1,7 +1,7 @@
 ﻿@model MSPremiumProject.Models.Localidade
 
 @{
-    ViewData["Title"] = "Adicionar Novo Distrito";
+    ViewData["Title"] = "Adicionar Nova Localidade";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -19,7 +19,7 @@
 
                         @* O ÚNICO CAMPO DE TEXTO AGORA É PARA 'Nome' (antiga Regiao) *@
                         <div class="form-floating mb-3">
-                            <input asp-for="Regiao" class="form-control" placeholder="Nome do distrito" />
+                            <input asp-for="Regiao" class="form-control" placeholder="Nome da Localidade / Região" />
                             <label asp-for="Regiao"></label>
                             <span asp-validation-for="Regiao" class="text-danger"></span>
                         </div>
@@ -39,7 +39,7 @@
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-2">
-                            <i class="bi bi-save me-2"></i> Guardar Distrito
+                            <i class="bi bi-save me-2"></i> Guardar Localidade
                         </button>
                     </form>
 
