@@ -1,39 +1,41 @@
-// Ficheiro: Program.cs (Versão Corrigida para a Sessão)
+// Ficheiro: Program.cs (Com logging para depuração na Render)
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging; // Necessário para LogLevel
 using MSPremiumProject.Data;
 using MSPremiumProject.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuração do DbContext (o teu código, não mexi)
+// Configuração do DbContext
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         connectionString,
         new MySqlServerVersion(new Version(5, 7, 25))
     )
+    // <<< ALTERAÇÃO PRINCIPAL AQUI >>>
+    // Isto vai fazer o Entity Framework escrever todas as queries SQL para a Consola.
+    // A Render.com captura a saída da Consola e mostra-a na aba "Logs" do teu serviço.
+    // É a forma mais eficaz de depurar o que está a acontecer na base de dados.
+    .LogTo(Console.WriteLine, LogLevel.Information)
 );
 
 // Resto dos teus serviços
 builder.Services.AddControllersWithViews();
 
 // --- CONFIGURAÇÃO DA SESSÃO ---
-// <<< ADICIONAR AQUI >>> PASSO 1: Diz à aplicação ONDE guardar os dados da sessão.
 builder.Services.AddDistributedMemoryCache();
-
-// <<< ADICIONAR AQUI >>> PASSO 2: Regista os serviços da sessão e define as opções.
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Tempo que a sessão fica ativa
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true; // Importante para funcionar sempre
+    options.Cookie.IsEssential = true;
 });
 // --- FIM DA CONFIGURAÇÃO DA SESSÃO ---
 
-
-// Configuração da Autenticação por Cookies (o teu código, não mexi)
+// Configuração da Autenticação por Cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -44,16 +46,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
     });
 
-// Resto dos teus serviços (o teu código, não mexi)
+// Resto dos teus serviços
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 builder.Services.AddLogging();
-
 
 // =========================================================================
 // Construção da Aplicação
 var app = builder.Build();
 // =========================================================================
-
 
 // Pipeline de Pedidos HTTP
 if (!app.Environment.IsDevelopment())
@@ -62,15 +62,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// O app.UseSession() já está aqui, mas a ordem é importante.
-// Vamos garantir que está no sítio certo.
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// <<< ORDEM CORRETA >>> A Sessão deve ser ativada ANTES da Autenticação/Autorização.
+// A ordem está correta
 app.UseSession();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
