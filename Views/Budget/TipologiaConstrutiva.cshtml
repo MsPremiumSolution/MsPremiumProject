@@ -1,4 +1,6 @@
-﻿@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
+﻿@using Microsoft.AspNetCore.Html; // Necessário para usar Html.Raw
+
+@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
 
 @{
     ViewData["Title"] = "Tipologia Construtiva";
@@ -6,6 +8,7 @@
 }
 
 <style>
+    /* O teu CSS continua aqui... */
     .construction-type-card {
         border: 2px solid #e9ecef;
         border-radius: 0.5rem;
@@ -56,23 +59,37 @@
         <div class="row g-4" id="tipologiaContainer">
             @foreach (var tipologia in Model)
             {
-                <div style="border: 1px solid black; margin: 10px; padding: 10px;">
-                    <h4>Teste para: @tipologia.Nome</h4>
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
 
-                    <p><strong>Tentativa 1 (Dinâmica - a que está a falhar):</strong></p>
-                    @{
-                        var urlDinamica = "";
-                        if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
-                        {
-                            urlDinamica = new string(tipologia.ImagemUrl.ToCharArray());
+                        @{
+                            // ================== SOLUÇÃO COM HTML PURO ==================
+                            // Vamos construir a tag <img> inteira como uma string C#.
+                            // O Url.Content garante que o caminho relativo (~) é resolvido corretamente.
+                            // O Html.Raw() diz ao Razor para renderizar a string como HTML puro, sem escapar caracteres.
+                            // Esta é a forma mais "à prova de bala" de fazer isto.
+
+                            string imgTagHtml;
+                            if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
+                            {
+                                // Limpa a string por segurança, como fizemos antes
+                                var imageUrlLimpa = new string(tipologia.ImagemUrl.ToCharArray());
+                                var urlFinal = Url.Content($"~/{imageUrlLimpa}");
+                                imgTagHtml = $"<img src=\"{urlFinal}\" alt=\"{tipologia.Nome}\" />";
+                            }
+                            else
+                            {
+                                var urlPlaceholder = Url.Content("~/images/placeholder.jpg");
+                                imgTagHtml = $"<img src=\"{urlPlaceholder}\" alt=\"{tipologia.Nome}\" />";
+                            }
                         }
-                    }
-                    <img src="@Url.Content($"~/{urlDinamica}")" alt="IMAGEM DINÂMICA FALHOU">
-                    <hr>
 
-                    <p><strong>Tentativa 2 (Hardcoded - a que sabemos que funciona):</strong></p>
-                    <img src="@Url.Content("~/images/tipologias/portal.jpg")" alt="IMAGEM HARDCODED FUNCIONA" style="border: 4px solid green;">
+                        @Html.Raw(imgTagHtml)
 
+                        <div class="card-body">
+                            <h5 class="card-title">@tipologia.Nome</h5>
+                        </div>
+                    </div>
                 </div>
             }
         </div>
