@@ -27,7 +27,8 @@ public partial class Proposta
 
     public ulong UtilizadorId { get; set; }
 
-    public string Estado { get; set; } = null!;
+    public int EstadoPropostaId { get; set; }
+    public ulong? TipologiaConstrutivaId { get; set; }
 
     public decimal ValorObra { get; set; }
 
@@ -54,5 +55,8 @@ public partial class Proposta
     [ForeignKey("QualidadeDoArId")]
     public virtual QualidadeDoAr? QualidadeDoAr { get; set; }
 
-    
+    [ForeignKey("EstadoPropostaId")]
+    public virtual EstadoProposta Estado { get; set; } = null!; // A propriedade de navegação
+
+
 }

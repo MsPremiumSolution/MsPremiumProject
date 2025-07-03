@@ -1,0 +1,61 @@
+﻿@model IEnumerable<MSPremiumProject.Models.Proposta>
+
+@{
+    ViewData["Title"] = "Orçamentos por Concluir";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>@ViewData["Title"]</h1>
+        <a asp-action="Index" class="btn btn-lg btn-success">
+            <i class="bi bi-plus-circle"></i> Novo Orçamento
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info" role="alert">
+            Não existem orçamentos por concluir de momento.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Proposta Nº</th>
+                            <th>Cliente</th>
+                            <th>Data de Criação</th>
+                            <th>Estado</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var proposta in Model)
+                        {
+                            <tr>
+                                <td><strong>@proposta.PropostaId</strong></td>
+                                <td>@(proposta.Cliente?.Nome) @(proposta.Cliente?.Apelido)</td>
+                                <td>@proposta.DataProposta.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">@proposta.Estado.Nome</span>
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="ContinuarOrcamento" asp-route-id="@proposta.PropostaId" class="btn btn-primary">
+                                        Continuar Orçamento <i class="bi bi-pencil-fill"></i>
+                                    </a>
+                                    <!-- Opcional: Botão para cancelar -->
+                                    <a href="#" class="btn btn-outline-danger ms-2" title="Cancelar Orçamento">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

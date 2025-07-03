@@ -2,7 +2,8 @@
 
 @{
     ViewData["Title"] = "Tipologia Construtiva";
-    var clienteNome = Context.Session.GetString("CurrentBudget_ClienteNome");
+    // O nome do cliente agora deve vir do ViewData, enviado pelo controller
+    var clienteNome = ViewData["ClienteNome"]?.ToString() ?? "Cliente não especificado";
 }
 
 <style>
@@ -52,17 +53,25 @@
 
     <form asp-action="SaveTipologiaAndContinue" method="post">
         @Html.AntiForgeryToken()
-        <input type="hidden" id="selectedTipologiaId" name="selectedTipologiaId" value="@Model.FirstOrDefault()?.TipologiaConstrutivaId" />
+
+        <!-- O valor inicial do campo escondido agora também considera a seleção prévia -->
+        <input type="hidden" id="selectedTipologiaId" name="selectedTipologiaId" value="@(ViewData["SelectedTipologiaId"] as ulong? ?? Model.FirstOrDefault()?.TipologiaConstrutivaId)" />
 
         <div class="row g-4" id="tipologiaContainer">
             @foreach (var tipologia in Model)
             {
                 <div class="col-xl-3 col-lg-4 col-md-6">
-                    <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
+                    @{
+                        // Lógica para determinar se este card deve ser pré-selecionado
+                        var selectedIdFromDb = ViewData["SelectedTipologiaId"] as ulong?;
+                        var isSelected = (selectedIdFromDb.HasValue && selectedIdFromDb.Value == tipologia.TipologiaConstrutivaId) ||
+                        (!selectedIdFromDb.HasValue && Model.First() == tipologia);
+                    }
+                    <div class="construction-type-card @(isSelected ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
 
                         @if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
                         {
-                            // Aplicamos a correção de "limpeza" da string por segurança, que foi o que resolveu o bug
+                            // Mantemos a correção que provou funcionar para o bug da imagem
                             var imageUrlLimpa = new string(tipologia.ImagemUrl.ToCharArray());
                             <img src="@Url.Content($"~/{imageUrlLimpa}")" alt="@tipologia.Nome" asp-append-version="true" />
                         }
@@ -80,8 +89,9 @@
         </div>
 
         <div class="mt-5 d-flex justify-content-between align-items-center">
-            <a asp-action="Index" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Voltar
+            <!-- O botão voltar agora deve ir para a lista de orçamentos em curso ou para a seleção de cliente -->
+            <a asp-action="OrçamentosEmCurso" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar para a Lista
             </a>
             <button type="submit" class="btn btn-primary btn-lg">
                 Salvar e continuar <i class="bi bi-arrow-right"></i>

@@ -3,6 +3,7 @@ using System;
 using MSPremiumProject.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MSPremiumProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250703215141_CreateEstadoPropostaTableAndLinkToProposta")]
+    partial class CreateEstadoPropostaTableAndLinkToProposta
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -449,8 +452,7 @@ namespace MSPremiumProject.Migrations
                     b.Property<ulong?>("QualidadeDoArId")
                         .HasColumnType("bigint unsigned");
 
-                    b.Property<ulong?>("TipologiaConstrutivaId")
-                        .IsRequired()
+                    b.Property<ulong>("TipologiaConstrutivaId")
                         .HasColumnType("bigint unsigned");
 
                     b.Property<ulong?>("TratamentoEstruturalId")

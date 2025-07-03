@@ -1,130 +1,97 @@
 ﻿@model IEnumerable<MSPremiumProject.Models.Cliente>
 
 @{
-    ViewData["Title"] = ViewData["Title"]?.ToString() ?? "Novo Orçamento - Selecionar Cliente";
+    ViewData["Title"] = "Novo Orçamento - Selecione o Cliente";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>@ViewData["Title"]</h1>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">@ViewData["Title"]</h1>
+            <p class="text-muted">Passo 1 de X: Escolha o cliente para o qual deseja criar um novo orçamento.</p>
+        </div>
+        <a asp-controller="Client" asp-action="Create" class="btn btn-success">
+            <i class="bi bi-person-plus-fill me-2"></i> Adicionar Novo Cliente
+        </a>
     </div>
 
-    @* Mensagens ViewData *@
-    @if (ViewData["MensagemSucesso"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @ViewData["MensagemSucesso"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-    @if (ViewData["MensagemErro"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @ViewData["MensagemErro"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    @* Formulário de Pesquisa - o botão submit não será o principal meio, mas pode ser um fallback *@
-    <form asp-controller="Budget" asp-action="Index" method="get" class="mb-3" id="searchFormClientBudget">
+    <!-- Adiciona um formulário de pesquisa -->
+    <form asp-action="Index" method="get" class="mb-4">
         <div class="input-group">
-            <input type="text" name="searchTerm" id="searchTermInputClientBudget" class="form-control" placeholder="Pesquisar cliente por nome ou apelido..." value="@ViewData["CurrentFilter"]">
-            @* O botão de submit pode ser mantido como fallback ou removido se a pesquisa AJAX for a única desejada *@
-            <button class="btn btn-outline-secondary" type="submit" style="display: none;">
-                @* Escondido por defeito *@
-                <i class="bi bi-search"></i> Pesquisar
-            </button>
-            <a asp-controller="Budget" asp-action="Index" class="btn btn-outline-danger" id="clearSearchClientBudget" title="Limpar Pesquisa" style="@(string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()) ? "display:none;" : "")">
-                <i class="bi bi-x-lg"></i>
-            </a>
+            <input type="text" name="searchTerm" class="form-control" placeholder="Pesquisar por nome ou apelido..." value="@ViewData["CurrentFilter"]" />
+            <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i> Pesquisar</button>
+            <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Limpar</a>
         </div>
     </form>
 
-    @* Div que vai conter a lista de clientes e será atualizada por AJAX *@
-    <div id="clientListContainerForBudget">
-        @* Renderiza o Partial View com o modelo inicial *@
-        @await Html.PartialAsync("_ClientListPartial", Model)
-    </div>
-
-    @* Mensagem para quando não há clientes registados (diferente da pesquisa vazia que é tratada no partial) *@
-    @if (!Model.Any() && string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+    @* Mensagens TempData *@
+    @if (TempData["MensagemSucesso"] != null)
     {
-        <div class="alert alert-info text-center mt-3" role="alert">
-            Nenhum cliente registado.
-            <a asp-action="Create" asp-controller="Client" class="alert-link ms-2">Adicione o primeiro cliente.</a>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["MensagemSucesso"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
+    @if (TempData["MensagemErro"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["MensagemErro"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center" role="alert">
+            Nenhum cliente encontrado. <a asp-action="Create" asp-controller="Client" class="alert-link">Adicione o primeiro!</a>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm rounded-3">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nome Completo</th>
+                                <th>Email</th>
+                                <th>Telefone</th>
+                                <th>Localidade</th>
+                                <th class="text-end" style="width: 20%;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td><strong>@item.Nome @item.Apelido</strong></td>
+                                    <td>@Html.DisplayFor(modelItem => item.Email)</td>
+                                    <td>@Html.DisplayFor(modelItem => item.Telefone1)</td>
+                                    <td>
+                                        @(item.LocalidadeNavigation != null ? Html.DisplayFor(modelItem => item.LocalidadeNavigation.Regiao) : "N/A")
+                                    </td>
+                                    <td class="text-end">
+                                        <!-- ================== BOTÃO PRINCIPAL ================== -->
+                                        <!-- Este botão chama a ação IniciarOrcamento no BudgetController -->
+                                        <a asp-controller="Budget" asp-action="IniciarOrcamento" asp-route-clienteId="@item.ClienteId" class="btn btn-primary">
+                                            <i class="bi bi-file-earmark-plus-fill me-2"></i> Iniciar Orçamento
+                                        </a>
+                                        <!-- ====================================================== -->
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-action="OrçamentosEmCurso" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar para Orçamentos em Curso
+        </a>
+    </div>
 </div>
-
-@section Scripts {
-    <script>
-        $(document).ready(function () {
-            let debounceTimerClientBudget;
-            const searchInput = $('#searchTermInputClientBudget');
-            const clientListContainer = $('#clientListContainerForBudget');
-            const clearButton = $('#clearSearchClientBudget');
-            const searchForm = $('#searchFormClientBudget'); // Para obter a URL da ação
-
-            function performClientSearch() {
-                const searchTerm = searchInput.val();
-                const url = searchForm.attr('action'); // Ou '@Url.Action("Index", "Budget")'
-
-                // Mostrar/esconder botão de limpar
-                if (searchTerm.length > 0) {
-                    clearButton.show();
-                } else {
-                    clearButton.hide();
-                }
-
-                // Adiciona um spinner/loading (opcional mas bom para UX)
-                clientListContainer.html('<div class="d-flex justify-content-center align-items-center" style="min-height: 200px;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">A carregar...</span></div><p class="ms-2 mb-0">A pesquisar clientes...</p></div>');
-
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    data: { searchTerm: searchTerm },
-                    // O header X-Requested-With é adicionado automaticamente pelo jQuery para pedidos AJAX
-                    success: function (result) {
-                        clientListContainer.html(result);
-                        // Atualizar URL para refletir a pesquisa (opcional, mas bom para bookmarking/refresh)
-                        if (history.pushState) {
-                            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + (searchTerm ? '?searchTerm=' + encodeURIComponent(searchTerm) : '');
-                            window.history.pushState({ path: newurl }, '', newurl);
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.error("Erro na pesquisa AJAX de clientes: ", status, error, xhr.responseText);
-                        clientListContainer.html('<div class="alert alert-danger text-center">Ocorreu um erro ao tentar pesquisar. Por favor, tente novamente.</div>');
-                    }
-                });
-            }
-
-            searchInput.on('keyup', function () {
-                clearTimeout(debounceTimerClientBudget);
-                debounceTimerClientBudget = setTimeout(performClientSearch, 400); // Atraso de 400ms
-            });
-
-            clearButton.on('click', function (e) {
-                e.preventDefault(); // Impede a navegação padrão do link
-                searchInput.val(''); // Limpa o campo de pesquisa
-                performClientSearch(); // Realiza a pesquisa com o campo vazio (mostra todos)
-            });
-
-            // caso o user faã copy paste na textbox
-            searchInput.on('paste', function () {
-                clearTimeout(debounceTimerClientBudget);
-                debounceTimerClientBudget = setTimeout(performClientSearch, 100); // Menor atraso para paste
-            });
-
-            // Opcional: Se quiser que a tecla Enter no campo de pesquisa também dispare a pesquisa AJAX
-            // em vez do submit tradicional do formulário (que já está escondido)
-            searchForm.on('submit', function(e){
-               e.preventDefault(); // Impede o submit tradicional
-               clearTimeout(debounceTimerClientBudget); // Cancela qualquer debounce pendente
-               performClientSearch(); // Executa a pesquisa imediatamente
-            });
-
-        });
-    </script>
-}
