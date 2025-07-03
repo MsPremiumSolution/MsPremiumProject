@@ -23,7 +23,8 @@ public partial class Proposta
     /// <summary>
     /// Codigo composto por AAAAMMMDD0000PropostaID
     /// </summary>
-    public string CodigoProposta { get; set; } = null!;
+    // Torna a propriedade nullable com um '?'
+    public string? CodigoProposta { get; set; }
 
     public ulong UtilizadorId { get; set; }
 
