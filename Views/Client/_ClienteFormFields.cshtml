@@ -92,7 +92,8 @@
 
     <div class="row g-3 mt-1">
         <div class="col-md-7" id="cpPortugalContainer" style="display: none;">
-            <label class="form-label">Código Postal</label>
+            <!-- ALTERADO: Adicionado asp-for="Cliente.Cp4" à label -->
+            <label asp-for="Cliente.Cp4" class="form-label">Código Postal</label>
             <div class="input-group">
                 <input asp-for="Cliente.Cp4" class="form-control" placeholder="1234" />
                 <span class="input-group-text">-</span>
