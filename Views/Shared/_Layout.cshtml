@@ -2,13 +2,20 @@
 <html lang="pt">
 <head>
     <meta charset="utf-8" />
-    <title>@ViewBag.Title - MS Premium Solutions</title>
+    <title>@ViewData["Title"] - MS Premium Solutions</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
 
     <style>
+        /* Estilo para o item de menu principal quando o submenu está ativo */
+        .nav-link.has-active-submenu {
+            background-color: #0056b3; /* Cor de destaque */
+            border-left: 4px solid #ffc107;
+            padding-left: calc(0.75rem - 4px); /* Ajusta o padding para alinhar o texto */
+        }
+        
         .submenu {
             padding-left: 20px;
             background-color: rgba(0,0,0,0.1);
@@ -26,17 +33,24 @@
 
         .submenu-item-circle {
             display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #fff;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.7);
             border-radius: 50%;
             margin-right: 10px;
             vertical-align: middle;
             transition: background-color 0.2s;
         }
 
+        .submenu a.nav-link.active .submenu-item-circle,
+        .submenu a.nav-link.active {
+            color: #fff !important;
+            font-weight: bold;
+        }
+        
         .submenu a.nav-link.active .submenu-item-circle {
             background-color: #ffc107;
+            border-color: #ffc107;
         }
     </style>
 </head>
@@ -51,15 +65,22 @@
             {
                 <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
                 <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
-                <a class="nav-link" asp-controller="Budget" asp-action="Index"><i class="bi bi-calculator-fill"></i> Orçamento</a>
+                
+                @{
+                    // Verifica se estamos no contexto de um orçamento de Qualidade do Ar
+                    var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
+                }
+                
+                <!-- Adiciona uma classe de destaque se o submenu estiver ativo -->
+                <a class="nav-link @(inQualidadeArContext ? "has-active-submenu" : "")" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
 
-                @* SUBMENU DINÂMICO: SÓ APARECE SE O TIPO DE TRATAMENTO FOR "QualidadeAr" *@
-                @if (Context.Session.GetString("CurrentBudget_TreatmentType") == "QualidadeAr")
+                @* SUBMENU DINÂMICO: Mostra se a condição for verdadeira *@
+                @if (inQualidadeArContext)
                 {
                     <div id="qualidadeArSubmenu" class="submenu">
                         <div class="d-flex justify-content-between align-items-center ps-3 pe-2 pt-2">
                             <h6 class="text-white mb-0">Qualidade do ar</h6>
-                            <a asp-action="SelectTreatment" class="btn btn-sm btn-link text-white p-0" title="Alterar tipo de tratamento"><i class="bi bi-arrow-left-right"></i></a>
+                             <a asp-controller="Budget" asp-action="SelectTreatment" class="btn btn-sm btn-link text-white p-0" title="Alterar tipo de tratamento"><i class="bi bi-x-lg"></i></a>
                         </div>
                         <a class="nav-link" asp-controller="Budget" asp-action="ColecaoDados">
                             <span class="submenu-item-circle"></span> Coleção de dados
@@ -89,6 +110,9 @@
                 <a class="nav-link" asp-controller="Account" asp-action="Login"><i class="bi bi-box-arrow-in-right"></i> Login</a>
             }
         </nav>
+        <div class="mt-auto p-3 text-center">
+             <a href="#" class="btn btn-outline-light btn-sm">Ver certificações</a>
+        </div>
     </div>
 
     <!-- Topbar (código original) -->
@@ -107,15 +131,13 @@
                 </button>
             </form>
         }
-        else
-        {
-            <span> </span>
-        }
     </div>
 
     <!-- Main Content -->
     <div class="content">
-        @RenderBody()
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
     </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -139,7 +161,9 @@
             const submenu = document.getElementById('qualidadeArSubmenu');
             if (submenu) {
                 try {
-                    const activeLink = submenu.querySelector(`a.nav-link[href*='${currentPath.split('/').pop()}']`);
+                    // Procura pelo link que corresponde à ação atual (última parte do URL)
+                    const actionName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+                    const activeLink = submenu.querySelector(`a.nav-link[href*='/${actionName}' i]`);
                     if (activeLink) {
                         activeLink.classList.add('active');
                     }
