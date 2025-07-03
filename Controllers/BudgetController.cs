@@ -69,6 +69,8 @@ namespace MSPremiumProject.Controllers
         //================================================================================
         // No teu BudgetController.cs
 
+        // No teu BudgetController.cs
+
         [HttpGet]
         public async Task<IActionResult> IniciarOrcamento(ulong clienteId)
         {
@@ -85,19 +87,18 @@ namespace MSPremiumProject.Controllers
             {
                 ClienteId = clienteId,
                 UtilizadorId = utilizadorId,
-                EstadoPropostaId = ESTADO_EM_CURSO, // 1 = "Em Curso"
+                EstadoPropostaId = 1, // 1 = "Em Curso"
                 DataProposta = DateTime.UtcNow
             };
 
-            _context.Proposta.Add(novaProposta); // Certifica-te que aqui está "Propostas" se mudaste no DbContext
+            _context.Proposta.Add(novaProposta);
             await _context.SaveChangesAsync();
 
             // Guarda o ID da proposta na sessão para sabermos em qual estamos a trabalhar
             HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
 
-            // <<< AQUI ESTÁ A ALTERAÇÃO >>>
-            // Em vez de ir para TipologiaConstrutiva, vamos direto para a escolha do tratamento.
-            return RedirectToAction(nameof(SelectTreatment));
+            // <<< CORRETO >>> Redireciona para a primeira etapa do formulário.
+            return RedirectToAction(nameof(TipologiaConstrutiva));
         }
 
         [HttpGet]
