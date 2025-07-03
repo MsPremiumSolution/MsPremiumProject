@@ -1,15 +1,15 @@
-﻿// File: Controllers/BudgetController.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MSPremiumProject.Data;
 using MSPremiumProject.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using MSPremiumProject.ViewModels; // <<---- 1. ADICIONAR ESTA DIRECTIVA para encontrar o SelectTreatmentViewModel
 
 namespace MSPremiumProject.Controllers
 {
-    [Authorize] // Adiciona autorização se esta página deve ser protegida
+    [Authorize]
     public class BudgetController : Controller
     {
         private readonly AppDbContext _context;
@@ -20,6 +20,7 @@ namespace MSPremiumProject.Controllers
         }
 
         // GET: Budget/Index ou Budget/Index?searchTerm=Maria
+        // Esta action já está ótima, não precisa de alterações.
         public async Task<IActionResult> Index(string searchTerm)
         {
             ViewData["Title"] = "Novo Orçamento - Selecionar Cliente";
@@ -27,7 +28,6 @@ namespace MSPremiumProject.Controllers
 
             IQueryable<Cliente> clientesQuery = _context.Clientes
                                         .Include(c => c.LocalidadeNavigation)
-                                        // .ThenInclude(l => l.Pais) // Descomente se precisar do país no partial view
                                         .AsQueryable();
 
             if (!string.IsNullOrEmpty(searchTerm))
@@ -41,40 +41,45 @@ namespace MSPremiumProject.Controllers
 
             var clientes = await clientesQuery.OrderBy(c => c.Nome).ThenBy(c => c.Apelido).ToListAsync();
 
-            // Verifica se o pedido é AJAX. "X-Requested-With" é um header comum enviado por jQuery.
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                return PartialView("_ClientListPartial", clientes); // Retorna apenas a lista/tabela de clientes
+                return PartialView("_ClientListPartial", clientes);
             }
 
-            // Para o carregamento inicial da página completa
             if (TempData["MensagemSucesso"] != null)
                 ViewData["MensagemSucesso"] = TempData["MensagemSucesso"];
             if (TempData["MensagemErro"] != null)
                 ViewData["MensagemErro"] = TempData["MensagemErro"];
 
-            return View(clientes); // Retorna a view completa
+            return View(clientes);
         }
 
-        // GET: Budget/CreateBudgetForClient/{clientId}
-        public async Task<IActionResult> CreateBudgetForClient(ulong clientId)
+        // <<---- 2. CORREÇÃO PRINCIPAL ESTÁ AQUI ---->>
+        // GET: Budget/CreateBudgetForClient/5
+        // Renomeei o parâmetro de 'clientId' para 'id' para corresponder à configuração de rota padrão do ASP.NET Core (ex: {controller}/{action}/{id?})
+        // Se a tua rota estiver configurada de outra forma, podes manter 'clientId'. 'id' é mais comum.
+        [HttpGet]
+        public async Task<IActionResult> CreateBudgetForClient(ulong id)
         {
-            var cliente = await _context.Clientes
-                                .Include(c => c.LocalidadeNavigation)
-                                .FirstOrDefaultAsync(c => c.ClienteId == clientId);
+            // Procura o cliente na base de dados pelo ID recebido.
+            var cliente = await _context.Clientes.FindAsync(id);
 
+            // Se o cliente não for encontrado, mostra uma mensagem de erro e volta para a lista.
             if (cliente == null)
             {
-                TempData["MensagemErro"] = "Cliente não encontrado.";
-                return RedirectToAction(nameof(Index));
+                TempData["MensagemErro"] = "Cliente não encontrado. Por favor, tente novamente.";
+                return RedirectToAction(nameof(Index)); // Volta para a lista de clientes
             }
 
-            // TODO: Redirecionar para a página de criação de orçamento com os dados do cliente
-            // Exemplo: return View("CreateBudgetForm", cliente); // Ou um ViewModel específico
-            TempData["MensagemSucesso"] = $"Cliente '{cliente.Nome} {cliente.Apelido}' selecionado. (Próximo passo: formulário de orçamento)";
-            // Por enquanto, vamos voltar para a lista, idealmente iria para o formulário.
-            // return RedirectToAction("Index", "Client"); // Ou para uma página de criação de orçamento.
-            return View("CreateBudgetForm", cliente); // Supondo que tens ou vais criar esta View.
+            // Prepara o ViewModel com os dados que a view de seleção de tratamento precisa.
+            var viewModel = new SelectTreatmentViewModel
+            {
+                ClienteId = cliente.ClienteId,
+                NomeCliente = $"{cliente.Nome} {cliente.Apelido}"
+            };
+
+            // Chama a view "SelectTreatment.cshtml" e envia-lhe os dados através do ViewModel.
+            return View("SelectTreatment", viewModel);
         }
     }
 }

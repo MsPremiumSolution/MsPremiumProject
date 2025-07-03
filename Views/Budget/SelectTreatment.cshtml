@@ -1,0 +1,101 @@
+﻿@* No topo do ficheiro, dizemos à view que tipo de dados ela espera receber do Controller *@
+@model MSPremiumProject.ViewModels.SelectTreatmentViewModel
+
+@{
+    ViewData["Title"] = $"Novo Orçamento para {Model.NomeCliente}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Estilos para os cartões de seleção. Pode mover isto para o seu ficheiro .css principal se preferir */
+    .treatment-card {
+        border: 2px dotted #ccc;
+        transition: all 0.3s ease-in-out;
+        text-decoration: none;
+        color: inherit;
+        display: block; /* Para que o <a> ocupe todo o espaço do <div> */
+    }
+
+        .treatment-card:hover {
+            border-color: #0d6efd; /* Cor primária do Bootstrap */
+            border-style: solid;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-5px);
+            cursor: pointer;
+        }
+
+        .treatment-card .card-body {
+            display: flex;
+            align-items: center;
+        }
+
+        .treatment-card .icon-container {
+            font-size: 2.5rem; /* Tamanho do ícone */
+            margin-right: 20px;
+            min-width: 50px; /* Garante alinhamento */
+            text-align: center;
+        }
+</style>
+
+<div class="container mt-4">
+    <div class="text-center mb-5">
+        <h1>@ViewData["Title"]</h1>
+        <h2 class="text-muted fw-light">Selecione o tipo de tratamento</h2>
+    </div>
+
+    <div class="row justify-content-center g-4">
+
+        <!-- Cartão 1: Tratamentos Estruturais -->
+        <div class="col-md-8 col-lg-6">
+            @* ESTE É O LINK IMPORTANTE. Ele chama a action "Create" e passa os dados. *@
+            <a asp-controller="Budget"
+               asp-action="Create"
+               asp-route-clienteId="@Model.ClienteId"
+               asp-route-treatmentType="Estrutural"
+               class="card treatment-card p-3">
+                <div class="card-body">
+                    <div class="icon-container text-primary">
+                        @* Substitua pelo seu ícone. Exemplo com Bootstrap Icons: *@
+                        <i class="bi bi-house-door-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="card-title">Tratamentos estruturais</h4>
+                        <p class="card-text text-secondary mb-0">
+                            São aplicados quando as estruturas estão em contacto com o solo, e sofrem qualquer patologia de humidade.
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Cartão 2: Qualidade do Ar -->
+        <div class="col-md-8 col-lg-6">
+            @* ESTE É O OUTRO LINK IMPORTANTE. *@
+            <a asp-controller="Budget"
+               asp-action="Create"
+               asp-route-clienteId="@Model.ClienteId"
+               asp-route-treatmentType="QualidadeAr"
+               class="card treatment-card p-3">
+                <div class="card-body">
+                    <div class="icon-container text-success">
+                        @* Substitua pelo seu ícone. Exemplo com Bootstrap Icons: *@
+                        <i class="bi bi-wind"></i>
+                    </div>
+                    <div>
+                        <h4 class="card-title">Qualidade do ar</h4>
+                        <p class="card-text text-secondary mb-0">
+                            Fungos, cheiro a mofo, condensação nas janelas, alergias e problemas respiratórios, sensação de frio e humidade, são alguns dos sintomas de má qualidade do ar.
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="text-center mt-5">
+        <a asp-controller="Budget" asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar à seleção de cliente
+        </a>
+    </div>
+
+</div>
