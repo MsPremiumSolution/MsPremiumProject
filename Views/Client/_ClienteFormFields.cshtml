@@ -68,9 +68,10 @@
             <span asp-validation-for="SelectedPaisId" class="text-danger"></span>
         </div>
         <div class="col-md-6">
-            <label asp-for="NomeLocalidade" class="form-label"></label>
-            <input asp-for="NomeLocalidade" class="form-control" placeholder="Cidade / Localidade" />
-            <span asp-validation-for="NomeLocalidade" class="text-danger"></span>
+            <!-- ALTERAÇÃO CRÍTICA AQUI: Ligamos ao novo campo NomeLocalidadeTexto no modelo Cliente -->
+            <label asp-for="Cliente.NomeLocalidadeTexto" class="form-label"></label>
+            <input asp-for="Cliente.NomeLocalidadeTexto" class="form-control" placeholder="Cidade / Localidade" />
+            <span asp-validation-for="Cliente.NomeLocalidadeTexto" class="text-danger"></span>
         </div>
     </div>
     <div class="row g-3 mt-1" id="regioesContainer" style="display: none;">

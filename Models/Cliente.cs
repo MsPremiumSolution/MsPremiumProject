@@ -25,7 +25,7 @@ namespace MSPremiumProject.Models
         [Display(Name = "Apelido")]
         public string? Apelido { get; set; }
 
-        // NOVO CAMPO: Empresa
+        // CAMPO 'Empresa' adicionado na resposta anterior, mantido.
         [StringLength(255, ErrorMessage = "O nome da empresa não pode exceder 255 caracteres.")]
         [Display(Name = "Empresa")]
         public string? Empresa { get; set; }
@@ -34,6 +34,11 @@ namespace MSPremiumProject.Models
         [StringLength(255, ErrorMessage = "A morada não pode exceder 255 caracteres.")]
         [Display(Name = "Morada")]
         public string Morada { get; set; } = null!;
+
+        // CAMPO NOVO: Para guardar o texto da localidade diretamente no Cliente
+        [StringLength(100, ErrorMessage = "A localidade não pode exceder 100 caracteres.")]
+        [Display(Name = "Localidade (Texto)")] // Mudei o nome de Display para ser claro
+        public string? NomeLocalidadeTexto { get; set; } // Este campo vai guardar o texto que o utilizador digita
 
         [RegularExpression(@"^\d{4}$", ErrorMessage = "O CP4 deve ter 4 dígitos.")]
         [StringLength(4)]
@@ -49,8 +54,10 @@ namespace MSPremiumProject.Models
         [Display(Name = "Código Postal")]
         public string? CodigoPostalEstrangeiro { get; set; }
 
-        [Required(ErrorMessage = "A localidade é obrigatória.")]
-        [Display(Name = "ID da Localidade")]
+        // A LocalidadeId continua a ser a chave estrangeira para a tabela Localidades,
+        // usada para obter o país para validação de NIF/CP.
+        [Required(ErrorMessage = "A localidade é obrigatória.")] // A LocalidadeId continua sendo obrigatória
+        [Display(Name = "ID da Localidade Associada")] // Nome para diferenciar do campo texto
         public ulong LocalidadeId { get; set; }
 
         [Display(Name = "Número Fiscal (NIF)")]
@@ -108,7 +115,10 @@ namespace MSPremiumProject.Models
             {
                 if (string.IsNullOrWhiteSpace(paisCodigoIso))
                 {
-                    // Não foi possível determinar o país, talvez adicionar um erro?
+                    // Se não conseguir determinar o país, o NIF não pode ser validado
+                    results.Add(new ValidationResult(
+                        "Não foi possível validar o NIF. Verifique a localidade e o país.",
+                        new[] { nameof(NumeroFiscal) }));
                 }
                 else if (!EuropeanNifValidator.ValidateNif(paisCodigoIso, NumeroFiscal))
                 {
@@ -129,18 +139,35 @@ namespace MSPremiumProject.Models
                 {
                     results.Add(new ValidationResult("O CP (3 dígitos) é obrigatório para Portugal.", new[] { nameof(Cp3) }));
                 }
+                // O CodigoPostalEstrangeiro deve estar vazio se for Portugal
                 if (!string.IsNullOrWhiteSpace(CodigoPostalEstrangeiro))
                 {
-                    // Opcional: pode querer limpar este campo no controller ou aqui.
+                    results.Add(new ValidationResult("Código Postal Estrangeiro não deve ser preenchido para Portugal.", new[] { nameof(CodigoPostalEstrangeiro) }));
                 }
             }
             else if (!string.IsNullOrWhiteSpace(paisCodigoIso)) // Se for estrangeiro mas não Portugal
             {
                 if (string.IsNullOrWhiteSpace(CodigoPostalEstrangeiro))
                 {
-                    results.Add(new ValidationResult("O Código Postal é obrigatório.", new[] { nameof(CodigoPostalEstrangeiro) }));
+                    results.Add(new ValidationResult("O Código Postal é obrigatório para países estrangeiros.", new[] { nameof(CodigoPostalEstrangeiro) }));
+                }
+                // Os CP portugueses devem estar vazios
+                if (!string.IsNullOrWhiteSpace(Cp4) || !string.IsNullOrWhiteSpace(Cp3))
+                {
+                    results.Add(new ValidationResult("Os campos CP (4 Dígitos) e CP (3 Dígitos) devem estar vazios para países estrangeiros.", new[] { nameof(Cp4), nameof(Cp3) }));
                 }
             }
+
+            // Validação para garantir que NomeLocalidadeTexto não está vazio se o País for PT (ou outro que o exija)
+            // Esta validação pode ser ajustada conforme a sua regra de negócio para este novo campo.
+            if (string.IsNullOrWhiteSpace(NomeLocalidadeTexto))
+            {
+                // Você pode adicionar uma validação aqui se o campo de texto da localidade for sempre obrigatório,
+                // independentemente da LocalidadeId que é obrigatória.
+                // Por enquanto, vou deixá-lo opcional no modelo e sem Required para não conflitar com LocalidadeId.
+                // Se quiser que seja obrigatório, adicione [Required] no campo NomeLocalidadeTexto em Cliente.cs
+            }
+
 
             foreach (var result in results)
             {
