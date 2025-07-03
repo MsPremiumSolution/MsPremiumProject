@@ -1,6 +1,4 @@
-﻿@using Microsoft.AspNetCore.Html; // Necessário para usar Html.Raw
-
-@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
+﻿@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
 
 @{
     ViewData["Title"] = "Tipologia Construtiva";
@@ -62,29 +60,18 @@
                 <div class="col-xl-3 col-lg-4 col-md-6">
                     <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
 
-                        @{
-                            // ================== SOLUÇÃO COM HTML PURO ==================
-                            // Vamos construir a tag <img> inteira como uma string C#.
-                            // O Url.Content garante que o caminho relativo (~) é resolvido corretamente.
-                            // O Html.Raw() diz ao Razor para renderizar a string como HTML puro, sem escapar caracteres.
-                            // Esta é a forma mais "à prova de bala" de fazer isto.
-
-                            string imgTagHtml;
-                            if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
-                            {
-                                // Limpa a string por segurança, como fizemos antes
-                                var imageUrlLimpa = new string(tipologia.ImagemUrl.ToCharArray());
-                                var urlFinal = Url.Content($"~/{imageUrlLimpa}");
-                                imgTagHtml = $"<img src=\"{urlFinal}\" alt=\"{tipologia.Nome}\" />";
-                            }
-                            else
-                            {
-                                var urlPlaceholder = Url.Content("~/images/placeholder.jpg");
-                                imgTagHtml = $"<img src=\"{urlPlaceholder}\" alt=\"{tipologia.Nome}\" />";
-                            }
+                        <!-- ================== A FORMA MAIS SIMPLES ================== -->
+                        <!-- Usamos um "/" no início para garantir que o caminho é desde a raiz do site. -->
+                        @if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
+                        {
+                            <img src="/@tipologia.ImagemUrl" alt="@tipologia.Nome" />
                         }
+                        else
+                        {
+                            <img src="/images/placeholder.jpg" alt="@tipologia.Nome" />
+                        }
+                        <!-- ======================================================== -->
 
-                        @Html.Raw(imgTagHtml)
 
                         <div class="card-body">
                             <h5 class="card-title">@tipologia.Nome</h5>
