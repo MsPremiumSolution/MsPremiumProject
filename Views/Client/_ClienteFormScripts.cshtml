@@ -7,12 +7,10 @@
         var regioesContainer = $('#regioesContainer');
         var cpPortugalContainer = $('#cpPortugalContainer');
         var cpEstrangeiroContainer = $('#cpEstrangeiroContainer');
+        var clienteNomeLocalidadeTextoInput = $('#Cliente_NomeLocalidadeTexto'); // Referência ao input do campo de texto da localidade
 
-        // Salvamos o valor da Região selecionada para Portugal (se aplicável, para o modo Edit)
         var savedSelectedRegiao = "@Model.SelectedRegiao";
-        // Salvamos o valor do texto da localidade (se aplicável, para o modo Edit)
         var savedNomeLocalidadeTexto = "@Model.Cliente.NomeLocalidadeTexto";
-
 
         function toggleFieldsByCountry() {
             var selectedPaisOption = paisDropdown.find('option:selected');
@@ -27,16 +25,17 @@
             $('#Cliente_Cp4').val('');
             $('#Cliente_Cp3').val('');
             $('#Cliente_CodigoPostalEstrangeiro').val('');
-            // Limpa o dropdown de região para evitar valores residuais
             regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região --'));
-
+            // Não limpa clienteNomeLocalidadeTextoInput aqui, será preenchido condicionalmente
 
             if (selectedPaisId) {
                 if (selectedPaisText.toLowerCase() === 'portugal') {
                     regioesContainer.show();
                     cpPortugalContainer.show();
-                    // Limpa o campo de código postal estrangeiro se mudar para Portugal
-                    $('#Cliente_CodigoPostalEstrangeiro').val('');
+                    $('#Cliente_CodigoPostalEstrangeiro').val(''); // Garante que este campo está vazio
+
+                    // Preenche o campo de texto da localidade com a região selecionada (para Portugal)
+                    clienteNomeLocalidadeTextoInput.val(savedSelectedRegiao);
 
                     $.ajax({
                         url: '@Url.Action("GetRegioesPorPais", "Client")',
@@ -48,33 +47,45 @@
                             if (data && data.length > 0) {
                                 $.each(data, function (index, item) {
                                     var option = $('<option></option>').val(item).text(item);
-                                    if (item === savedSelectedRegiao) { // Usa savedSelectedRegiao
+                                    if (item === savedSelectedRegiao) {
                                         option.prop('selected', true);
                                     }
                                     regiaoDropdown.append(option);
                                 });
                             }
-                            // No caso de Portugal, o texto da localidade é o mesmo da região
-                            $('#Cliente_NomeLocalidadeTexto').val(savedSelectedRegiao);
+                            // Assegura que o campo de texto da localidade é preenchido com a região ao carregar,
+                            // caso selectedRegiao já tenha um valor.
+                            if (savedSelectedRegiao) {
+                                clienteNomeLocalidadeTextoInput.val(savedSelectedRegiao);
+                            }
                         },
                         error: function () { console.error("Erro ao buscar regiões."); }
                     });
-                } else {
+                } else { // Países Estrangeiros
                     cpEstrangeiroContainer.show();
-                    // Limpa os campos de CP portugueses se mudar para estrangeiro
-                    $('#Cliente_Cp4').val('');
+                    $('#Cliente_Cp4').val(''); // Garante que estes campos estão vazios
                     $('#Cliente_Cp3').val('');
-                    // Para países estrangeiros, o campo de texto da localidade é o principal
-                    $('#Cliente_NomeLocalidadeTexto').val(savedNomeLocalidadeTexto);
+
+                    // Preenche o campo de texto da localidade com o valor original (para estrangeiro)
+                    clienteNomeLocalidadeTextoInput.val(savedNomeLocalidadeTexto);
                     regiaoDropdown.empty().append($('<option></option>').val('').text('-- N/A --'));
                 }
+            } else { // Nenhum país selecionado
+                clienteNomeLocalidadeTextoInput.val(''); // Limpa o campo de texto da localidade
             }
         }
+
+        // Atualiza o campo Cliente.NomeLocalidadeTexto quando a região para Portugal muda
+        regiaoDropdown.on('change', function () {
+            if (paisDropdown.find('option:selected').text().toLowerCase() === 'portugal') {
+                clienteNomeLocalidadeTextoInput.val(regiaoDropdown.val());
+            }
+        });
 
         paisDropdown.on('change', function () {
             // Ao mudar o país, resetamos os valores salvos para que não influenciem a nova seleção
             savedSelectedRegiao = "";
-            savedNomeLocalidadeTexto = ""; // Resetar também o texto da localidade
+            savedNomeLocalidadeTexto = "";
             toggleFieldsByCountry();
         });
 

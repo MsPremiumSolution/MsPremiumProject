@@ -95,57 +95,76 @@ namespace MSPremiumProject.Controllers
             return View(viewModel);
         }
 
-        // POST: Client/Create - CORRIGIDO
+        // POST: Client/Create - ATUALIZADO PARA VALIDAR LOCALIDADE ANTECIPADAMENTE
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ClienteCreateViewModel viewModel)
         {
             _logger.LogInformation("Acedendo a POST Client/Create.");
 
-            // Removemos a LocalidadeNavigation porque não a estamos a bindar diretamente do formulário
+            // Removemos a LocalidadeNavigation porque não a estamos a bindar diretamente do formulário.
+            // Isso evita que o Model Binder tente validar a navegação, que ainda não existe.
             ModelState.Remove(nameof(viewModel.Cliente.LocalidadeNavigation));
-            // Não removemos LocalidadeId porque ela é obrigatória e será preenchida aqui
-            // ModelState.Remove(nameof(viewModel.Cliente.LocalidadeId)); // REMOVIDO: LocalidadeId é required e será preenchida
+            // NÃO REMOVER LocalidadeId, pois é [Required] e será preenchida aqui.
 
+            // 1. Obter o país selecionado imediatamente para validações dependentes do país.
             var paisSelecionado = await _context.Paises.FindAsync(viewModel.SelectedPaisId);
-            if (paisSelecionado?.CodigoIso == "PT" && string.IsNullOrWhiteSpace(viewModel.SelectedRegiao))
-            {
-                ModelState.AddModelError(nameof(viewModel.SelectedRegiao), "Para Portugal, a região é obrigatória.");
-            }
 
-            if (ModelState.IsValid)
+            // 2. Lógica para encontrar/criar a Localidade e atribuir Cliente.LocalidadeId.
+            //    Isso DEVE acontecer antes de ModelState.IsValid ser verificado,
+            //    para que Cliente.LocalidadeId tenha um valor e satisfaça o [Required].
+            if (viewModel.SelectedPaisId > 0)
             {
-                try
+                string localidadeLookupName = "";
+                if (paisSelecionado?.CodigoIso == "PT")
                 {
-                    // A região para busca é a selecionada (para PT) ou um valor padrão para outros países.
-                    // Esta lógica ainda é necessária para encontrar/criar a entrada em Localidades
-                    // à qual Cliente.LocalidadeId fará referência.
-                    string regiaoParaBusca = (paisSelecionado?.CodigoIso == "PT") ? viewModel.SelectedRegiao! : "N/A";
+                    if (string.IsNullOrWhiteSpace(viewModel.SelectedRegiao))
+                    {
+                        ModelState.AddModelError(nameof(viewModel.SelectedRegiao), "Para Portugal, a Região / Distrito é obrigatória.");
+                    }
+                    localidadeLookupName = viewModel.SelectedRegiao ?? "";
+                    // Para Portugal, NomeLocalidadeTexto deve ser igual à SelectedRegiao
+                    if (!string.IsNullOrWhiteSpace(localidadeLookupName))
+                    {
+                        viewModel.Cliente.NomeLocalidadeTexto = localidadeLookupName;
+                    }
+                }
+                else // Países estrangeiros
+                {
+                    if (string.IsNullOrWhiteSpace(viewModel.Cliente.NomeLocalidadeTexto))
+                    {
+                        ModelState.AddModelError(nameof(viewModel.Cliente.NomeLocalidadeTexto), "A Localidade é obrigatória para países estrangeiros.");
+                    }
+                    localidadeLookupName = viewModel.Cliente.NomeLocalidadeTexto ?? "";
+                }
 
-                    // Usa viewModel.NomeLocalidade que vem da textbox e l.Regiao que é o campo em Localidade
-                    // A ViewModel agora não tem NomeLocalidade. O campo do formulário NomeLocalidadeTexto
-                    // está agora no próprio Cliente, vamos usar o valor da SelectedRegiao (se for PT)
-                    // ou do NomeLocalidadeTexto (para outros países) para encontrar a Localidade.
-                    string localidadeParaBuscaRegiao = (paisSelecionado?.CodigoIso == "PT") ? viewModel.SelectedRegiao! : viewModel.Cliente.NomeLocalidadeTexto!;
-
+                if (!string.IsNullOrWhiteSpace(localidadeLookupName))
+                {
                     var localidade = await _context.Localidades.FirstOrDefaultAsync(l =>
-                        l.Regiao.ToLower() == localidadeParaBuscaRegiao.ToLower() &&
+                        l.Regiao.ToLower() == localidadeLookupName.ToLower() &&
                         l.PaisId == viewModel.SelectedPaisId);
 
                     if (localidade == null)
                     {
                         localidade = new Localidade
                         {
-                            Regiao = localidadeParaBuscaRegiao, // Usa o texto para criar a Localidade
+                            Regiao = localidadeLookupName,
                             PaisId = viewModel.SelectedPaisId
                         };
                         _context.Localidades.Add(localidade);
-                        await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync(); // SALVA A LOCALIDADE PARA OBTER O ID
                     }
+                    viewModel.Cliente.LocalidadeId = localidade.LocalidadeId; // Atribui o ID ao cliente
+                }
+            }
 
-                    viewModel.Cliente.LocalidadeId = localidade.LocalidadeId; // Liga o Cliente à Localidade encontrada/criada
-                    // O campo Cliente.NomeLocalidadeTexto já foi preenchido pelo Model Binder
 
+            // 3. Verifica o ModelState. Agora, Cliente.LocalidadeId já tem um valor.
+            //    A validação IValidatableObject da ViewModel será executada aqui.
+            if (ModelState.IsValid)
+            {
+                try
+                {
                     _context.Clientes.Add(viewModel.Cliente);
                     await _context.SaveChangesAsync();
 
@@ -159,6 +178,7 @@ namespace MSPremiumProject.Controllers
                 }
             }
 
+            // Se o ModelState não for válido, recarrega a lista de países e volta à View.
             _logger.LogWarning("ModelState inválido. Erros: {Errors}", JsonSerializer.Serialize(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
 
             viewModel.PaisesList = await _context.Paises
@@ -192,12 +212,7 @@ namespace MSPremiumProject.Controllers
                 {
                     viewModel.SelectedPaisId = cliente.LocalidadeNavigation.PaisId;
                     // Cliente.NomeLocalidadeTexto já vem preenchido por viewModel.Cliente = cliente
-                    // if (cliente.LocalidadeNavigation.Pais.CodigoIso == "PT") // Esta linha foi removida pois NomeLocalidadeTexto é direto
-                    // {
-                    // Não precisamos de preencher viewModel.NomeLocalidade pois agora é Cliente.NomeLocalidadeTexto
-                    // nem de preencher viewModel.SelectedRegiao se não for PT, pois é o texto que fica
-                    // }
-                    // Para Portugal, preenchemos SelectedRegiao para que o dropdown mostre o valor correto
+
                     if (cliente.LocalidadeNavigation.Pais.CodigoIso == "PT")
                     {
                         viewModel.SelectedRegiao = cliente.LocalidadeNavigation.Regiao;
@@ -212,7 +227,7 @@ namespace MSPremiumProject.Controllers
             return View(viewModel);
         }
 
-        // POST: Client/Edit/5 - CORRIGIDO
+        // POST: Client/Edit/5 - ATUALIZADO PARA VALIDAR LOCALIDADE ANTECIPADAMENTE
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(ulong id, ClienteCreateViewModel viewModel)
@@ -220,37 +235,65 @@ namespace MSPremiumProject.Controllers
             if (id != viewModel.Cliente.ClienteId) return NotFound();
             _logger.LogInformation("Acedendo a POST Client/Edit para ID: {ClienteId}", id);
 
+            // Removemos a LocalidadeNavigation
             ModelState.Remove(nameof(viewModel.Cliente.LocalidadeNavigation));
-            // ModelState.Remove(nameof(viewModel.Cliente.LocalidadeId)); // REMOVIDO: LocalidadeId é required e será preenchida
+            // NÃO REMOVER LocalidadeId
 
+            // 1. Obter o país selecionado imediatamente
             var paisSelecionado = await _context.Paises.FindAsync(viewModel.SelectedPaisId);
-            if (paisSelecionado?.CodigoIso == "PT" && string.IsNullOrWhiteSpace(viewModel.SelectedRegiao))
-            {
-                ModelState.AddModelError(nameof(viewModel.SelectedRegiao), "Para Portugal, a região é obrigatória.");
-            }
 
-            if (ModelState.IsValid)
+            // 2. Lógica para encontrar/criar a Localidade e atribuir Cliente.LocalidadeId.
+            //    Isso DEVE acontecer antes de ModelState.IsValid ser verificado.
+            if (viewModel.SelectedPaisId > 0)
             {
-                try
+                string localidadeLookupName = "";
+                if (paisSelecionado?.CodigoIso == "PT")
                 {
-                    string localidadeParaBuscaRegiao = (paisSelecionado?.CodigoIso == "PT") ? viewModel.SelectedRegiao! : viewModel.Cliente.NomeLocalidadeTexto!;
+                    if (string.IsNullOrWhiteSpace(viewModel.SelectedRegiao))
+                    {
+                        ModelState.AddModelError(nameof(viewModel.SelectedRegiao), "Para Portugal, a Região / Distrito é obrigatória.");
+                    }
+                    localidadeLookupName = viewModel.SelectedRegiao ?? "";
+                    // Para Portugal, NomeLocalidadeTexto deve ser igual à SelectedRegiao
+                    if (!string.IsNullOrWhiteSpace(localidadeLookupName))
+                    {
+                        viewModel.Cliente.NomeLocalidadeTexto = localidadeLookupName;
+                    }
+                }
+                else // Países estrangeiros
+                {
+                    if (string.IsNullOrWhiteSpace(viewModel.Cliente.NomeLocalidadeTexto))
+                    {
+                        ModelState.AddModelError(nameof(viewModel.Cliente.NomeLocalidadeTexto), "A Localidade é obrigatória para países estrangeiros.");
+                    }
+                    localidadeLookupName = viewModel.Cliente.NomeLocalidadeTexto ?? "";
+                }
 
+                if (!string.IsNullOrWhiteSpace(localidadeLookupName))
+                {
                     var localidade = await _context.Localidades.FirstOrDefaultAsync(l =>
-                        l.Regiao.ToLower() == localidadeParaBuscaRegiao.ToLower() &&
+                        l.Regiao.ToLower() == localidadeLookupName.ToLower() &&
                         l.PaisId == viewModel.SelectedPaisId);
 
                     if (localidade == null)
                     {
                         localidade = new Localidade
                         {
-                            Regiao = localidadeParaBuscaRegiao,
+                            Regiao = localidadeLookupName,
                             PaisId = viewModel.SelectedPaisId
                         };
                         _context.Localidades.Add(localidade);
-                        await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync(); // SALVA A LOCALIDADE PARA OBTER O ID
                     }
+                    viewModel.Cliente.LocalidadeId = localidade.LocalidadeId; // Atribui o ID ao cliente
+                }
+            }
 
-                    viewModel.Cliente.LocalidadeId = localidade.LocalidadeId;
+            // 3. Verifica o ModelState. Agora, Cliente.LocalidadeId já tem um valor.
+            if (ModelState.IsValid)
+            {
+                try
+                {
                     _context.Update(viewModel.Cliente);
                     await _context.SaveChangesAsync();
 
