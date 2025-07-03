@@ -52,45 +52,100 @@
 
     <form asp-action="SaveTipologiaAndContinue" method="post">
         @Html.AntiForgeryToken()
-        <input type="hidden" id="selectedTipologiaId" name="selectedTipologiaId" value="@Model.FirstOrDefault()?.TipologiaConstrutivaId" />
+        <input type="hidden" id="selectedTipologiaId" name="selectedTipologiaId" value="@Model.FirstOrDefault(t => t.Nome == "Apartamento em comunidade")?.TipologiaConstrutivaId" />
 
         <div class="row g-4" id="tipologiaContainer">
-            @foreach (var tipologia in Model)
-            {
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                    <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
 
-                        @{
-                            // ================== SOLUÇÃO HÍBRIDA ==================
-                            // Mapeamos o Nome da tipologia para o nome do ficheiro de imagem.
-                            // Isto mantém os dados da BD (ID, Nome) mas ignora a coluna ImagemUrl.
-                            // Nota: Isto assume que os nomes dos ficheiros seguem um padrão previsível.
-
-                            var imageName = "";
-                            switch (tipologia.Nome)
-                            {
-                                case "Apartamento em comunidade": imageName = "apartamento-comunidade.jpg"; break;
-                                case "Casas geminadas": imageName = "casas-geminadas.jpg"; break;
-                                case "Garagem comunitária": imageName = "garagem-comunitaria.jpg"; break;
-                                case "Garagem individual": imageName = "garagem-individual.jpg"; break;
-                                case "Instalações comerciais": imageName = "instalacoes-comerciais.jpg"; break;
-                                case "Poço do elevador": imageName = "poco-elevador.jpg"; break;
-                                case "Portal": imageName = "portal.jpg"; break;
-                                case "Residência Unifamiliar": imageName = "residencia-unifamiliar.jpg"; break;
-                                case "Salas de armazenamento": imageName = "salas-armazenamento.jpg"; break;
-                                default: imageName = "placeholder.jpg"; break; // Imagem de fallback
-                            }
-                        }
-
-                        <!-- Usamos o imageName que definimos acima -->
-                        <img src="~/images/tipologias/@imageName" alt="@tipologia.Nome" asp-append-version="true" />
-
-                        <div class="card-body">
-                            <h5 class="card-title">@tipologia.Nome</h5>
-                        </div>
+            <!-- Card 1: Apartamento em comunidade -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card selected" data-value="@Model.FirstOrDefault(t => t.Nome == "Apartamento em comunidade")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/apartamento-comunidade.jpg" alt="Apartamento em comunidade" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Apartamento em comunidade</h5>
                     </div>
                 </div>
-            }
+            </div>
+
+            <!-- Card 2: Casas geminadas -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card" data-value="@Model.FirstOrDefault(t => t.Nome == "Casas geminadas")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/casas-geminadas.jpg" alt="Casas geminadas" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Casas geminadas</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Garagem comunitária -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card" data-value="@Model.FirstOrDefault(t => t.Nome == "Garagem comunitária")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/garagem-comunitaria.jpg" alt="Garagem comunitária" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Garagem comunitária</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Garagem individual -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card" data-value="@Model.FirstOrDefault(t => t.Nome == "Garagem individual")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/garagem-individual.jpg" alt="Garagem individual" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Garagem individual</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 5: Instalações comerciais -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card" data-value="@Model.FirstOrDefault(t => t.Nome == "Instalações comerciais")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/instalacoes-comerciais.jpg" alt="Instalações comerciais" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Instalações comerciais</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 6: Poço do elevador -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card" data-value="@Model.FirstOrDefault(t => t.Nome == "Poço do elevador")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/poco-elevador.jpg" alt="Poço do elevador" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Poço do elevador</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 7: Portal -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card" data-value="@Model.FirstOrDefault(t => t.Nome == "Portal")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/portal.jpg" alt="Portal" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Portal</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 8: Residência Unifamiliar -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card" data-value="@Model.FirstOrDefault(t => t.Nome == "Residência Unifamiliar")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/residencia-unifamiliar.jpg" alt="Residência Unifamiliar" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Residência Unifamiliar</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 9: Salas de armazenamento -->
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="construction-type-card" data-value="@Model.FirstOrDefault(t => t.Nome == "Salas de armazenamento")?.TipologiaConstrutivaId">
+                    <img src="~/images/tipologias/salas-armazenamento.jpg" alt="Salas de armazenamento" asp-append-version="true" />
+                    <div class="card-body">
+                        <h5 class="card-title">Salas de armazenamento</h5>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <div class="mt-5 d-flex justify-content-between align-items-center">
@@ -111,9 +166,13 @@
             const hiddenInput = $('#selectedTipologiaId');
 
             container.on('click', '.construction-type-card', function() {
+                // Remove a classe 'selected' de todos os cards
                 container.find('.construction-type-card').removeClass('selected');
+
+                // Adiciona a classe 'selected' apenas ao card clicado
                 $(this).addClass('selected');
 
+                // Atualiza o valor do campo escondido com o ID do card selecionado
                 const selectedId = $(this).data('value');
                 hiddenInput.val(selectedId);
             });
