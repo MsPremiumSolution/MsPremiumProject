@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="utf-g" />
+    <meta charset="utf-8" />
     <title>@ViewBag.Title - MS Premium Solutions</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -9,26 +9,28 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
 
     <style>
-        /* Estilos para o submenu. Adicione isto ao seu site.css ou aqui mesmo */
+        /* Estilos para o submenu. Pode mover isto para o seu ficheiro site.css se preferir. */
         .submenu {
             display: none; /* Escondido por defeito */
-            padding-left: 20px; /* Indentação para mostrar que é um submenu */
-            background-color: rgba(0,0,0,0.1); /* Um fundo ligeiramente diferente */
-            border-left: 3px solid #ffc107; /* Borda amarela para destaque */
+            padding-left: 20px; /* Indentação */
+            background-color: rgba(0,0,0,0.1);
+            border-left: 3px solid #ffc107; /* Destaque amarelo */
             margin-left: 10px;
             border-radius: 0 5px 5px 0;
+            padding-bottom: 10px;
         }
 
             .submenu.show {
-                display: block; /* Mostra o submenu */
+                display: block; /* Torna o submenu visível */
             }
 
             .submenu .nav-link {
-                font-size: 0.9em; /* Texto um pouco mais pequeno */
+                font-size: 0.9em;
                 padding-top: .4rem;
                 padding-bottom: .4rem;
             }
 
+        /* Círculos para as etapas do submenu */
         .submenu-item-circle {
             display: inline-block;
             width: 16px;
@@ -37,10 +39,12 @@
             border-radius: 50%;
             margin-right: 10px;
             vertical-align: middle;
+            transition: background-color 0.2s;
         }
 
-        .submenu-item.active .submenu-item-circle {
-            background-color: #ffc107; /* Cor de preenchimento quando ativo */
+        /* Estilo para o link da etapa ativa */
+        .submenu a.nav-link.active .submenu-item-circle {
+            background-color: #ffc107; /* Preenche o círculo quando a página está ativa */
         }
     </style>
 </head>
@@ -54,37 +58,37 @@
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
-                <a class="nav-link" asp-controller="Client" asp-action="Index"><i class="bi bi-people-fill"></i> Clientes</a>
 
-                <!-- LINK PRINCIPAL DO ORÇAMENTO -->
+                @* SEU LINK ORIGINAL PARA CLIENTES - RESTAURADO *@
+                <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
+
                 <a class="nav-link" asp-controller="Budget" asp-action="Index"><i class="bi bi-calculator-fill"></i> Orçamento</a>
 
-                <!-- SUBMENU PARA QUALIDADE DO AR -->
+                <!-- SUBMENU PARA QUALIDADE DO AR - A única adição funcional -->
                 <div id="qualidadeArSubmenu" class="submenu">
                     <div class="d-flex justify-content-between align-items-center ps-3 pe-2 pt-2">
                         <h6 class="text-white mb-0">Qualidade do ar</h6>
-                        <button id="closeSubmenuBtn" class="btn btn-sm btn-link text-white p-0"><i class="bi bi-x-circle"></i></button>
+                        <button id="closeSubmenuBtn" class="btn btn-sm btn-link text-white p-0" title="Fechar menu de orçamento"><i class="bi bi-x-circle"></i></button>
                     </div>
-                    <a class="nav-link submenu-item" asp-controller="Budget" asp-action="TipologiaConstrutiva">
+                    <a class="nav-link" asp-controller="Budget" asp-action="TipologiaConstrutiva">
                         <span class="submenu-item-circle"></span> Tipologia construtiva
                     </a>
-                    <a class="nav-link submenu-item" asp-controller="Budget" asp-action="ColecaoDados">
+                    <a class="nav-link" asp-controller="Budget" asp-action="ColecaoDados">
                         <span class="submenu-item-circle"></span> Coleção de dados
                     </a>
-                    <a class="nav-link submenu-item" asp-controller="Budget" asp-action="Objetivos">
+                    <a class="nav-link" asp-controller="Budget" asp-action="Objetivos">
                         <span class="submenu-item-circle"></span> Objetivos
                     </a>
-                    <a class="nav-link submenu-item" asp-controller="Budget" asp-action="Volumes">
+                    <a class="nav-link" asp-controller="Budget" asp-action="Volumes">
                         <span class="submenu-item-circle"></span> Volumes
                     </a>
-                    <a class="nav-link submenu-item" asp-action="DetalheOrcamento" asp-controller="Budget">
+                    <a class="nav-link" asp-action="DetalheOrcamento" asp-controller="Budget">
                         <span class="submenu-item-circle"></span> Detalhe do orçamento
                     </a>
-                    <a class="nav-link submenu-item" asp-action="ResumoOrcamento" asp-controller="Budget">
+                    <a class="nav-link" asp-action="ResumoOrcamento" asp-controller="Budget">
                         <span class="submenu-item-circle"></span> Resumo do orçamento
                     </a>
                 </div>
-
 
                 @if (User.IsInRole("Admin"))
                 {
@@ -98,9 +102,27 @@
         </nav>
     </div>
 
-    <!-- Topbar (sem alterações) -->
-    <div class="topbar ...">
-        ...
+    <!-- Topbar (Seu código original, intacto) -->
+    <div class="topbar d-flex align-items-center p-2">
+        <button class="menu-toggle btn btn-link text-white me-auto" id="menuToggleBtn" type="button" title="Alternar menu">
+            <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+        </button>
+
+        @if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            @* SEU BLOCO ORIGINAL PARA O NOME DO UTILIZADOR - RESTAURADO *@
+            <span class="me-3 text-white">Olá, <strong>@User.FindFirst("FullName")?.Value</strong></span>
+            <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-light btn-sm" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i> Sair
+                </button>
+            </form>
+        }
+        else
+        {
+            <span> </span>
+        }
     </div>
 
     <!-- Main Content -->
@@ -112,28 +134,39 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    @* SCRIPT PARA CONTROLAR O SUBMENU *@
+    @* SCRIPT PARA O TOGGLE DO MENU PRINCIPAL (Seu código original) *@
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuToggleBtn = document.getElementById('menuToggleBtn');
+            const sidebar = document.querySelector('.sidebar');
+
+            if (menuToggleBtn && sidebar) {
+                menuToggleBtn.addEventListener('click', function () {
+                    sidebar.classList.toggle('active');
+                });
+            }
+        });
+    </script>
+
+    @* SCRIPT PARA CONTROLAR O SUBMENU (A adição necessária) *@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const submenu = document.getElementById('qualidadeArSubmenu');
             const closeSubmenuBtn = document.getElementById('closeSubmenuBtn');
 
-            // Função para mostrar o submenu
+            // Expor as funções para que possam ser chamadas de outras views
             window.showQualidadeArSubmenu = function() {
                 if (submenu) submenu.classList.add('show');
             }
 
-            // Função para esconder o submenu
             window.hideQualidadeArSubmenu = function() {
                 if (submenu) submenu.classList.remove('show');
             }
 
-            // Evento para o botão de fechar
+            // Evento para o botão de fechar do submenu
             if (closeSubmenuBtn) {
                 closeSubmenuBtn.addEventListener('click', function() {
                     window.hideQualidadeArSubmenu();
-                    // Opcional: redirecionar para a página principal de orçamento
-                    // window.location.href = '@Url.Action("Index", "Budget")';
                 });
             }
 
@@ -148,24 +181,25 @@
                 '/budget/resumoorcamento'
             ];
 
-            if (submenuPaths.some(path => currentPath.includes(path))) {
+            // Verifica se a URL atual contém algum dos caminhos do submenu
+            const isInSubmenu = submenuPaths.some(path => currentPath.includes(path));
+
+            if (isInSubmenu) {
                 window.showQualidadeArSubmenu();
 
-                // Marcar o item ativo
-                const activeLink = document.querySelector(`.submenu a[href*='${currentPath.split('/').pop()}']`);
-                if (activeLink) {
-                    activeLink.classList.add('active');
-                    const circle = activeLink.querySelector('.submenu-item-circle');
-                    if(circle) circle.style.backgroundColor = '#ffc107'; // Preenche o círculo
+                // Tenta encontrar o link ativo e marcar o círculo
+                try {
+                    const activeLink = document.querySelector(`.submenu a.nav-link[href*='${currentPath.split('/').pop()}']`);
+                    if (activeLink) {
+                        activeLink.classList.add('active');
+                    }
+                } catch(e) {
+                    console.error("Erro ao tentar encontrar o link ativo do submenu:", e);
                 }
             }
         });
     </script>
 
-    @* Script para o toggle do menu principal (sem alterações) *@
-    <script>
-        ...
-    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
