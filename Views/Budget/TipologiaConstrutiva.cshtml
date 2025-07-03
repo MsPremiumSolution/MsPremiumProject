@@ -59,12 +59,21 @@
                 <div class="col-xl-3 col-lg-4 col-md-6">
                     <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
 
-                        @* <<< AQUI ESTÁ A ALTERAÇÃO IMPORTANTE >>> *@
+                        @* ================== ÁREA DE DEBUG ================== *@
+                        <div style="background-color: #ffc; border: 1px solid #ccc; padding: 5px; font-family: monospace; font-size: 12px;">
+                            Valor de ImagemUrl: [@tipologia.ImagemUrl]
+                        </div>
+                        @* ==================================================== *@
+
+                        @* A TUA IMAGEM ORIGINAL *@
                         @if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
                         {
                             <img src="~/@tipologia.ImagemUrl" alt="@tipologia.Nome" asp-append-version="true" />
                         }
-                        <img src="~/images/tipologias/portal.jpg" alt="Teste Hardcoded" style="border: 2px solid red;" />
+                        else
+                        {
+                            <img src="~/images/placeholder.jpg" alt="@tipologia.Nome" asp-append-version="true" />
+                        }
 
                         <div class="card-body">
                             <h5 class="card-title">@tipologia.Nome</h5>
