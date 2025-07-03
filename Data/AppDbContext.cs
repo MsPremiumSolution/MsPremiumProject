@@ -21,6 +21,7 @@ namespace MSPremiumProject.Data
         public DbSet<Pai> Paises { get; set; }
         public DbSet<Tipoobra> Tipoobras { get; set; }
         public DbSet<Tipotratamento> Tipotratamentos { get; set; }
+        public DbSet<TipologiaConstrutiva> TipologiasConstrutivas { get; set; }
 
         #endregion
 

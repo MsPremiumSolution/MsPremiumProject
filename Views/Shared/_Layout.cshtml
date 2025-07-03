@@ -9,20 +9,14 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
 
     <style>
-        /* Estilos para o submenu. Pode mover isto para o seu ficheiro site.css se preferir. */
         .submenu {
-            display: none; /* Escondido por defeito */
-            padding-left: 20px; /* Indentação */
+            padding-left: 20px;
             background-color: rgba(0,0,0,0.1);
-            border-left: 3px solid #ffc107; /* Destaque amarelo */
+            border-left: 3px solid #ffc107;
             margin-left: 10px;
             border-radius: 0 5px 5px 0;
             padding-bottom: 10px;
         }
-
-            .submenu.show {
-                display: block; /* Torna o submenu visível */
-            }
 
             .submenu .nav-link {
                 font-size: 0.9em;
@@ -30,7 +24,6 @@
                 padding-bottom: .4rem;
             }
 
-        /* Círculos para as etapas do submenu */
         .submenu-item-circle {
             display: inline-block;
             width: 16px;
@@ -42,9 +35,8 @@
             transition: background-color 0.2s;
         }
 
-        /* Estilo para o link da etapa ativa */
         .submenu a.nav-link.active .submenu-item-circle {
-            background-color: #ffc107; /* Preenche o círculo quando a página está ativa */
+            background-color: #ffc107;
         }
     </style>
 </head>
@@ -58,37 +50,34 @@
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
-
-                @* SEU LINK ORIGINAL PARA CLIENTES - RESTAURADO *@
                 <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
-
                 <a class="nav-link" asp-controller="Budget" asp-action="Index"><i class="bi bi-calculator-fill"></i> Orçamento</a>
 
-                <!-- SUBMENU PARA QUALIDADE DO AR - A única adição funcional -->
-                <div id="qualidadeArSubmenu" class="submenu">
-                    <div class="d-flex justify-content-between align-items-center ps-3 pe-2 pt-2">
-                        <h6 class="text-white mb-0">Qualidade do ar</h6>
-                        <button id="closeSubmenuBtn" class="btn btn-sm btn-link text-white p-0" title="Fechar menu de orçamento"><i class="bi bi-x-circle"></i></button>
+                @* SUBMENU DINÂMICO: SÓ APARECE SE O TIPO DE TRATAMENTO FOR "QualidadeAr" *@
+                @if (Context.Session.GetString("CurrentBudget_TreatmentType") == "QualidadeAr")
+                {
+                    <div id="qualidadeArSubmenu" class="submenu">
+                        <div class="d-flex justify-content-between align-items-center ps-3 pe-2 pt-2">
+                            <h6 class="text-white mb-0">Qualidade do ar</h6>
+                            <a asp-action="SelectTreatment" class="btn btn-sm btn-link text-white p-0" title="Alterar tipo de tratamento"><i class="bi bi-arrow-left-right"></i></a>
+                        </div>
+                        <a class="nav-link" asp-controller="Budget" asp-action="ColecaoDados">
+                            <span class="submenu-item-circle"></span> Coleção de dados
+                        </a>
+                        <a class="nav-link" asp-controller="Budget" asp-action="Objetivos">
+                            <span class="submenu-item-circle"></span> Objetivos
+                        </a>
+                        <a class="nav-link" asp-controller="Budget" asp-action="Volumes">
+                            <span class="submenu-item-circle"></span> Volumes
+                        </a>
+                        <a class="nav-link" asp-action="DetalheOrcamento" asp-controller="Budget">
+                            <span class="submenu-item-circle"></span> Detalhe do orçamento
+                        </a>
+                        <a class="nav-link" asp-action="ResumoOrcamento" asp-controller="Budget">
+                            <span class="submenu-item-circle"></span> Resumo do orçamento
+                        </a>
                     </div>
-                    <a class="nav-link" asp-controller="Budget" asp-action="TipologiaConstrutiva">
-                        <span class="submenu-item-circle"></span> Tipologia construtiva
-                    </a>
-                    <a class="nav-link" asp-controller="Budget" asp-action="ColecaoDados">
-                        <span class="submenu-item-circle"></span> Coleção de dados
-                    </a>
-                    <a class="nav-link" asp-controller="Budget" asp-action="Objetivos">
-                        <span class="submenu-item-circle"></span> Objetivos
-                    </a>
-                    <a class="nav-link" asp-controller="Budget" asp-action="Volumes">
-                        <span class="submenu-item-circle"></span> Volumes
-                    </a>
-                    <a class="nav-link" asp-action="DetalheOrcamento" asp-controller="Budget">
-                        <span class="submenu-item-circle"></span> Detalhe do orçamento
-                    </a>
-                    <a class="nav-link" asp-action="ResumoOrcamento" asp-controller="Budget">
-                        <span class="submenu-item-circle"></span> Resumo do orçamento
-                    </a>
-                </div>
+                }
 
                 @if (User.IsInRole("Admin"))
                 {
@@ -102,7 +91,7 @@
         </nav>
     </div>
 
-    <!-- Topbar (Seu código original, intacto) -->
+    <!-- Topbar (código original) -->
     <div class="topbar d-flex align-items-center p-2">
         <button class="menu-toggle btn btn-link text-white me-auto" id="menuToggleBtn" type="button" title="Alternar menu">
             <i class="bi bi-list" style="font-size: 1.5rem;"></i>
@@ -110,7 +99,6 @@
 
         @if (User.Identity != null && User.Identity.IsAuthenticated)
         {
-            @* SEU BLOCO ORIGINAL PARA O NOME DO UTILIZADOR - RESTAURADO *@
             <span class="me-3 text-white">Olá, <strong>@User.FindFirst("FullName")?.Value</strong></span>
             <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="d-inline">
                 @Html.AntiForgeryToken()
@@ -134,67 +122,29 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    @* SCRIPT PARA O TOGGLE DO MENU PRINCIPAL (Seu código original) *@
+    @* Scripts para os menus *@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Script do menu principal (hambúrguer)
             const menuToggleBtn = document.getElementById('menuToggleBtn');
             const sidebar = document.querySelector('.sidebar');
-
             if (menuToggleBtn && sidebar) {
                 menuToggleBtn.addEventListener('click', function () {
                     sidebar.classList.toggle('active');
                 });
             }
-        });
-    </script>
 
-    @* SCRIPT PARA CONTROLAR O SUBMENU (A adição necessária) *@
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const submenu = document.getElementById('qualidadeArSubmenu');
-            const closeSubmenuBtn = document.getElementById('closeSubmenuBtn');
-
-            // Expor as funções para que possam ser chamadas de outras views
-            window.showQualidadeArSubmenu = function() {
-                if (submenu) submenu.classList.add('show');
-            }
-
-            window.hideQualidadeArSubmenu = function() {
-                if (submenu) submenu.classList.remove('show');
-            }
-
-            // Evento para o botão de fechar do submenu
-            if (closeSubmenuBtn) {
-                closeSubmenuBtn.addEventListener('click', function() {
-                    window.hideQualidadeArSubmenu();
-                });
-            }
-
-            // Lógica para manter o submenu aberto se estivermos numa das suas páginas
+            // Script para marcar o item ativo no submenu
             const currentPath = window.location.pathname.toLowerCase();
-            const submenuPaths = [
-                '/budget/tipologiaconstrutiva',
-                '/budget/colecaodados',
-                '/budget/objetivos',
-                '/budget/volumes',
-                '/budget/detalheorcamento',
-                '/budget/resumoorcamento'
-            ];
-
-            // Verifica se a URL atual contém algum dos caminhos do submenu
-            const isInSubmenu = submenuPaths.some(path => currentPath.includes(path));
-
-            if (isInSubmenu) {
-                window.showQualidadeArSubmenu();
-
-                // Tenta encontrar o link ativo e marcar o círculo
+            const submenu = document.getElementById('qualidadeArSubmenu');
+            if (submenu) {
                 try {
-                    const activeLink = document.querySelector(`.submenu a.nav-link[href*='${currentPath.split('/').pop()}']`);
+                    const activeLink = submenu.querySelector(`a.nav-link[href*='${currentPath.split('/').pop()}']`);
                     if (activeLink) {
                         activeLink.classList.add('active');
                     }
                 } catch(e) {
-                    console.error("Erro ao tentar encontrar o link ativo do submenu:", e);
+                    console.error("Erro ao marcar link ativo do submenu:", e);
                 }
             }
         });

@@ -5,8 +5,8 @@ using MSPremiumProject.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using MSPremiumProject.ViewModels; // Necessário para o SelectTreatmentViewModel
-using Microsoft.AspNetCore.Http; // Necessário para usar HttpContext.Session
+using MSPremiumProject.ViewModels;
+using Microsoft.AspNetCore.Http;
 
 namespace MSPremiumProject.Controllers
 {
@@ -21,13 +21,14 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // PASSO 1: PÁGINA DE SELEÇÃO DE CLIENTE (O teu código original, está perfeito)
+        // ETAPA 1: PÁGINA DE SELEÇÃO DE CLIENTE
         //================================================================================
-        // GET: /Budget ou /Budget/Index
+        [HttpGet]
         public async Task<IActionResult> Index(string searchTerm)
         {
             ViewData["Title"] = "Novo Orçamento - Selecionar Cliente";
             ViewData["CurrentFilter"] = searchTerm;
+            HttpContext.Session.Clear(); // Limpa qualquer orçamento antigo ao voltar para o início
 
             IQueryable<Cliente> clientesQuery = _context.Clientes
                                         .Include(c => c.LocalidadeNavigation)
@@ -53,59 +54,110 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // PASSO 2: MOSTRAR A PÁGINA DE ESCOLHA DE TRATAMENTO (Estrutural ou Qualidade do Ar)
+        // ETAPA 2: INICIAR ORÇAMENTO E IR PARA ESCOLHA DA TIPOLOGIA
         //================================================================================
-        // GET: /Budget/CreateBudgetForClient/5
         [HttpGet]
         public async Task<IActionResult> CreateBudgetForClient(ulong id)
         {
             var cliente = await _context.Clientes.FindAsync(id);
-
-            if (cliente == null)
-            {
-                TempData["MensagemErro"] = "Cliente não encontrado. Por favor, tente novamente.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            var viewModel = new SelectTreatmentViewModel
-            {
-                ClienteId = cliente.ClienteId,
-                NomeCliente = $"{cliente.Nome} {cliente.Apelido}"
-            };
-
-            // Mostra a página com os dois cartões de escolha
-            return View("SelectTreatment", viewModel);
-        }
-
-        //================================================================================
-        // PASSO 3: PROCESSAR A ESCOLHA DO TRATAMENTO E REDIRECIONAR
-        //================================================================================
-        // GET: /Budget/Create?clienteId=5&treatmentType=QualidadeAr
-        [HttpGet]
-        public async Task<IActionResult> Create(ulong clienteId, string treatmentType)
-        {
-            var cliente = await _context.Clientes.FindAsync(clienteId);
             if (cliente == null)
             {
                 TempData["MensagemErro"] = "Cliente não encontrado.";
                 return RedirectToAction(nameof(Index));
             }
 
-            // Guarda as informações essenciais na Sessão para usar nos próximos passos
-            HttpContext.Session.SetString("CurrentBudget_TreatmentType", treatmentType);
-            HttpContext.Session.SetString("CurrentBudget_ClienteId", clienteId.ToString());
+            HttpContext.Session.Clear();
+            HttpContext.Session.SetString("CurrentBudget_ClienteId", id.ToString());
             HttpContext.Session.SetString("CurrentBudget_ClienteNome", $"{cliente.Nome} {cliente.Apelido}");
 
+            return RedirectToAction(nameof(TipologiaConstrutiva));
+        }
+
+        //================================================================================
+        // ETAPA 3: PÁGINA DE ESCOLHA DA TIPOLOGIA CONSTRUTIVA
+        //================================================================================
+        [HttpGet]
+        public async Task<IActionResult> TipologiaConstrutiva()
+        {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("CurrentBudget_ClienteId")))
+            {
+                TempData["MensagemErro"] = "Sessão de orçamento inválida. Por favor, selecione o cliente novamente.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var tipologiasDisponiveis = await _context.TipologiasConstrutivas.OrderBy(t => t.Nome).ToListAsync();
+            return View(tipologiasDisponiveis);
+        }
+
+        //================================================================================
+        // ETAPA 4: GUARDAR TIPOLOGIA E IR PARA ESCOLHA DO TRATAMENTO
+        //================================================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveTipologiaAndContinue(ulong selectedTipologiaId)
+        {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("CurrentBudget_ClienteId")))
+            {
+                TempData["MensagemErro"] = "Sessão de orçamento expirada.";
+                return RedirectToAction("Index");
+            }
+
+            if (selectedTipologiaId <= 0)
+            {
+                TempData["MensagemErro"] = "Por favor, selecione uma tipologia construtiva.";
+                return RedirectToAction(nameof(TipologiaConstrutiva));
+            }
+
+            HttpContext.Session.SetString("CurrentBudget_TipologiaId", selectedTipologiaId.ToString());
+
+            return RedirectToAction(nameof(SelectTreatment));
+        }
+
+        //================================================================================
+        // ETAPA 5: PÁGINA DE ESCOLHA DO TIPO DE TRATAMENTO
+        //================================================================================
+        [HttpGet]
+        public IActionResult SelectTreatment()
+        {
+            var clienteId = HttpContext.Session.GetString("CurrentBudget_ClienteId");
+            var clienteNome = HttpContext.Session.GetString("CurrentBudget_ClienteNome");
+
+            if (string.IsNullOrEmpty(clienteId))
+            {
+                TempData["MensagemErro"] = "Sessão de orçamento expirada.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var viewModel = new SelectTreatmentViewModel
+            {
+                ClienteId = ulong.Parse(clienteId),
+                NomeCliente = clienteNome
+            };
+
+            return View(viewModel);
+        }
+
+        //================================================================================
+        // ETAPA 6: PROCESSAR ESCOLHA DO TRATAMENTO E INICIAR FLUXO FINAL
+        //================================================================================
+        [HttpGet]
+        public IActionResult Create(string treatmentType)
+        {
+            var clienteId = HttpContext.Session.GetString("CurrentBudget_ClienteId");
+            if (string.IsNullOrEmpty(clienteId))
+            {
+                TempData["MensagemErro"] = "Sessão de orçamento expirada.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            HttpContext.Session.SetString("CurrentBudget_TreatmentType", treatmentType);
 
             if (treatmentType.Equals("QualidadeAr", StringComparison.OrdinalIgnoreCase))
             {
-                // Inicia o fluxo de "Qualidade do Ar", redirecionando para a primeira etapa do submenu
-                return RedirectToAction(nameof(TipologiaConstrutiva));
+                return RedirectToAction("ColecaoDados");
             }
             else if (treatmentType.Equals("Estrutural", StringComparison.OrdinalIgnoreCase))
             {
-                // Inicia o fluxo de "Tratamento Estrutural"
-                // (Por agora, podemos redirecionar para uma action placeholder)
                 return RedirectToAction(nameof(EditTratamentoEstrutural));
             }
             else
@@ -116,40 +168,21 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // PASSO 4: PÁGINAS DO SUBMENU "QUALIDADE DO AR"
+        // PÁGINAS PLACEHOLDER PARA OS FLUXOS FINAIS
         //================================================================================
 
-        // GET: /Budget/TipologiaConstrutiva
         [HttpGet]
-        public IActionResult TipologiaConstrutiva()
+        public IActionResult ColecaoDados()
         {
-            // Verifica se a sessão de orçamento ainda está ativa
-            var clienteId = HttpContext.Session.GetString("CurrentBudget_ClienteId");
-            if (string.IsNullOrEmpty(clienteId))
-            {
-                TempData["MensagemErro"] = "Sessão de orçamento expirada. Por favor, selecione o cliente novamente.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            // Futuramente, podes passar dados para a view se necessário (ex: uma lista de tipologias da BD)
-            // Por agora, apenas mostra a view estática
+            ViewData["Title"] = "Coleção de Dados";
+            // Aqui irás construir o formulário para a coleção de dados
             return View();
         }
 
-        // Adicione aqui as outras actions do submenu (ColecaoDados, Objetivos, etc.) quando as criares
-        // [HttpGet]
-        // public IActionResult ColecaoDados() { ... }
-
-
-        //================================================================================
-        // PLACEHOLDER PARA O FLUXO DE TRATAMENTO ESTRUTURAL
-        //================================================================================
         [HttpGet]
         public IActionResult EditTratamentoEstrutural()
         {
             ViewData["Title"] = "Editar Tratamento Estrutural";
-            var clienteNome = HttpContext.Session.GetString("CurrentBudget_ClienteNome");
-            ViewData["Message"] = $"Esta é a página de edição para o tratamento estrutural do cliente {clienteNome}.";
             return View();
         }
     }

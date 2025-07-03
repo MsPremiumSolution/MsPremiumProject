@@ -1,85 +1,64 @@
-﻿@{
+﻿@* A view agora espera receber uma lista de TipologiaConstrutiva *@
+@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
+
+@{
     ViewData["Title"] = "Tipologia Construtiva";
-    // O Layout já está definido no _Layout.cshtml, não precisa de ser redefinido.
+    var clienteNome = Context.Session.GetString("CurrentBudget_ClienteNome");
 }
 
 <style>
-    .construction-type-card {
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-        transition: all 0.2s ease-in-out;
-        text-decoration: none;
-        color: #333;
-    }
-
-        .construction-type-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-color: #007bff;
-        }
-
-        .construction-type-card.selected {
-            border-color: #28a745; /* Verde para selecionado */
-            border-width: 3px;
-            box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.25);
-        }
-
-        .construction-type-card img {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-        }
-
-        .construction-type-card .card-body {
-            padding: 1rem;
-            text-align: center;
-        }
+    /* ... (os teus estilos para os cartões continuam aqui, sem alterações) ... */
 </style>
 
 <div class="container-fluid mt-4">
-    <h1 class="mb-4">@ViewData["Title"]</h1>
-
-    <div class="row g-4">
-
-        <!-- Exemplo de um item -->
-        <div class="col-md-4 col-lg-3">
-            <a href="#" class="d-block construction-type-card">
-                <img src="~/images/tipologias/portal.jpg" alt="Portal">
-                <div class="card-body">
-                    <h5 class="card-title">Portal</h5>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-4 col-lg-3">
-            <a href="#" class="d-block construction-type-card selected">
-                <img src="~/images/tipologias/residencia.jpg" alt="Residência Unifamiliar">
-                <div class="card-body">
-                    <h5 class="card-title">Residência Unifamiliar</h5>
-                </div>
-            </a>
-        </div>
-
-        <!-- Adicione os outros 7 itens da mesma forma -->
-        <div class="col-md-4 col-lg-3">
-            <a href="#" class="d-block construction-type-card">
-                <img src="~/images/tipologias/geminadas.jpg" alt="Casas geminadas">
-                <div class="card-body"><h5 class="card-title">Casas geminadas</h5></div>
-            </a>
-        </div>
-        <div class="col-md-4 col-lg-3">
-            <a href="#" class="d-block construction-type-card">
-                <img src="~/images/tipologias/apartamento.jpg" alt="Apartamento em comunidade">
-                <div class="card-body"><h5 class="card-title">Apartamento em comunidade</h5></div>
-            </a>
-        </div>
-        <!-- ... etc ... -->
+    <div class="mb-4">
+        <h1 class="mb-1">@ViewData["Title"]</h1>
+        <p class="text-muted">Orçamento para: <strong>@clienteNome</strong></p>
     </div>
 
-    <div class="mt-5 d-flex justify-content-end">
-        <a asp-action="ColecaoDados" class="btn btn-primary btn-lg">
-            Próximo Passo <i class="bi bi-arrow-right"></i>
-        </a>
-    </div>
+    <form asp-action="SaveTipologiaAndContinue" method="post">
+
+        @* O campo escondido agora guarda o ID. Vamos pré-selecionar o primeiro da lista. *@
+        <input type="hidden" id="selectedTipologiaId" name="selectedTipologiaId" value="@Model.FirstOrDefault()?.TipologiaConstrutivaId" />
+
+        <div class="row g-4" id="tipologiaContainer">
+
+            @* GERA OS CARTÕES DINAMICAMENTE A PARTIR DOS DADOS DA BD *@
+            @foreach (var tipologia in Model)
+            {
+                <div class="col-md-4 col-lg-3">
+                    @* O data-value agora é o ID da tipologia. *@
+                    <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
+                        <img src="@Url.Content(tipologia.ImagemUrl ?? "~/images/placeholder.jpg")" alt="@tipologia.Nome">
+                        <div class="card-body"><h5 class="card-title">@tipologia.Nome</h5></div>
+                    </div>
+                </div>
+            }
+
+        </div>
+
+        <div class="mt-5 d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary btn-lg">
+                Próximo Passo <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+    </form>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const container = $('#tipologiaContainer');
+            const hiddenInput = $('#selectedTipologiaId');
+
+            container.on('click', '.construction-type-card', function() {
+                container.find('.construction-type-card').removeClass('selected');
+                $(this).addClass('selected');
+
+                // O valor que estamos a guardar agora é o ID
+                const selectedId = $(this).data('value');
+                hiddenInput.val(selectedId);
+            });
+        });
+    </script>
+}
