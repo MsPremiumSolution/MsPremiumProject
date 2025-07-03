@@ -1,6 +1,4 @@
-﻿@using System.Text.RegularExpressions; // <<< ADICIONA ESTE USING NO TOPO DA TUA VIEW
-
-@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
+﻿@model IEnumerable<MSPremiumProject.Models.TipologiaConstrutiva>
 
 @{
     ViewData["Title"] = "Tipologia Construtiva";
@@ -8,7 +6,6 @@
 }
 
 <style>
-    /* O teu CSS continua aqui... */
     .construction-type-card {
         border: 2px solid #e9ecef;
         border-radius: 0.5rem;
@@ -63,35 +60,27 @@
                     <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
 
                         @{
-                            // Prepara as variáveis para o debug e para a correção
-                            var originalUrl = tipologia.ImagemUrl;
-                            var cleanedUrl = "";
-
-                            if (!string.IsNullOrEmpty(originalUrl))
+                            // ================== A SOLUÇÃO FINAL: ISOLAMENTO TOTAL DA VARIÁVEL ==================
+                            // A teoria é que a string vinda do modelo tem um estado interno estranho.
+                            // Para corrigir isto, decompomos a string num array de caracteres e construímos
+                            // uma instância de string completamente nova e limpa a partir dele.
+                            // Isto quebra qualquer ligação com o objeto original vindo do Entity Framework.
+                            var imageUrlFinal = "";
+                            if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
                             {
-                                // Limpeza agressiva: remove tudo o que não for letra, número, hífen, ponto ou barra
-                                cleanedUrl = Regex.Replace(originalUrl, @"[^a-zA-Z0-9\-\.\/]", "");
+                                imageUrlFinal = new string(tipologia.ImagemUrl.ToCharArray());
                             }
                         }
 
-                        <!-- ================== ÁREA DE DEBUG AVANÇADA ================== -->
-                        <div style="background-color: #ffc; border: 1px solid #ccc; padding: 5px; font-family: monospace; font-size: 10px; word-wrap: break-word;">
-                            Original: [@originalUrl]<br>
-                            Limpa (Regex): [@cleanedUrl]<br>
-                            Comprimento Original: @(originalUrl?.Length ?? 0)<br>
-                            Comprimento Limpa: @(cleanedUrl?.Length ?? 0)
-                        </div>
-                        <!-- ============================================================= -->
-                        <!-- ================== A SOLUÇÃO FINAL ================== -->
-                        @if (!string.IsNullOrEmpty(cleanedUrl))
+                        @* A IMAGEM QUE, POR TODA A LÓGICA, TEM DE FUNCIONAR AGORA *@
+                        @if (!string.IsNullOrEmpty(imageUrlFinal))
                         {
-                            <img src="@Url.Content("~/" + cleanedUrl)" alt="@tipologia.Nome" asp-append-version="true" />
+                            <img src="@Url.Content($"~/{imageUrlFinal}")" alt="@tipologia.Nome" asp-append-version="true" />
                         }
                         else
                         {
                             <img src="~/images/placeholder.jpg" alt="@tipologia.Nome" asp-append-version="true" />
                         }
-                        <!-- ==================================================== -->
 
                         <div class="card-body">
                             <h5 class="card-title">@tipologia.Nome</h5>
