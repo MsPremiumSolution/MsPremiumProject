@@ -65,7 +65,7 @@
     <div class="row g-3 mt-1">
         <div class="col-md-4">
             <label asp-for="SelectedPaisId" class="form-label">País</label>
-            @* REMOVIDO: id="paisDropdown" - Deixe o asp-for gerar o ID * @
+            <!-- REMOVIDO: id="paisDropdown" - Deixe o asp-for gerar o ID -->
             <select asp-for="SelectedPaisId" asp-items="Model.PaisesList" class="form-select">
                 <option value="">-- Selecione um País --</option>
             </select>
@@ -75,7 +75,7 @@
         <!-- DROPDOWN PARA O DISTRITO -->
         <div class="col-md-4" id="distritoContainer">
             <label asp-for="Cliente.LocalidadeId" class="form-label"></label>
-            @* REMOVIDO: id="distritoDropdown" - Deixe o asp-for gerar o ID * @
+            
             <select asp-for="Cliente.LocalidadeId" asp-items="Model.DistritosList" class="form-select">
                 <option value="">-- Selecione um Distrito --</option>
             </select>
