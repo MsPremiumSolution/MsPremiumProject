@@ -42,7 +42,7 @@ public partial class Proposta
 
     // --- NOVA PROPRIEDADE DE NAVEGAÇÃO ---
     [ForeignKey("TipologiaConstrutivaId")]
-    public virtual TipologiaConstrutiva TipologiaConstrutiva { get; set; } = null!;
+    public virtual TipologiaConstrutiva? TipologiaConstrutiva { get; set; } = null!;
 
     // Relação com Cliente (Muitas Propostas para Um Cliente)
     [ForeignKey("ClienteId")]
