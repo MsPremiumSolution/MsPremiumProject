@@ -60,18 +60,30 @@
                 <div class="col-xl-3 col-lg-4 col-md-6">
                     <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
 
-                        <!-- ================== A FORMA MAIS SIMPLES ================== -->
-                        <!-- Usamos um "/" no início para garantir que o caminho é desde a raiz do site. -->
-                        @if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
-                        {
-                            <img src="/@tipologia.ImagemUrl" alt="@tipologia.Nome" />
-                        }
-                        else
-                        {
-                            <img src="/images/placeholder.jpg" alt="@tipologia.Nome" />
-                        }
-                        <!-- ======================================================== -->
+                        @{
+                            // ================== SOLUÇÃO HÍBRIDA ==================
+                            // Mapeamos o Nome da tipologia para o nome do ficheiro de imagem.
+                            // Isto mantém os dados da BD (ID, Nome) mas ignora a coluna ImagemUrl.
+                            // Nota: Isto assume que os nomes dos ficheiros seguem um padrão previsível.
 
+                            var imageName = "";
+                            switch (tipologia.Nome)
+                            {
+                                case "Apartamento em comunidade": imageName = "apartamento-comunidade.jpg"; break;
+                                case "Casas geminadas": imageName = "casas-geminadas.jpg"; break;
+                                case "Garagem comunitária": imageName = "garagem-comunitaria.jpg"; break;
+                                case "Garagem individual": imageName = "garagem-individual.jpg"; break;
+                                case "Instalações comerciais": imageName = "instalacoes-comerciais.jpg"; break;
+                                case "Poço do elevador": imageName = "poco-elevador.jpg"; break;
+                                case "Portal": imageName = "portal.jpg"; break;
+                                case "Residência Unifamiliar": imageName = "residencia-unifamiliar.jpg"; break;
+                                case "Salas de armazenamento": imageName = "salas-armazenamento.jpg"; break;
+                                default: imageName = "placeholder.jpg"; break; // Imagem de fallback
+                            }
+                        }
+
+                        <!-- Usamos o imageName que definimos acima -->
+                        <img src="~/images/tipologias/@imageName" alt="@tipologia.Nome" asp-append-version="true" />
 
                         <div class="card-body">
                             <h5 class="card-title">@tipologia.Nome</h5>
