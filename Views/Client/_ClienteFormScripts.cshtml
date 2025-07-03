@@ -7,89 +7,93 @@
         var regioesContainer = $('#regioesContainer');
         var cpPortugalContainer = $('#cpPortugalContainer');
         var cpEstrangeiroContainer = $('#cpEstrangeiroContainer');
-        var clienteNomeLocalidadeTextoInput = $('#Cliente_NomeLocalidadeTexto'); // Referência ao input do campo de texto da localidade
+        var clienteNomeLocalidadeTextoInput = $('#Cliente_NomeLocalidadeTexto');
 
         var savedSelectedRegiao = "@Model.SelectedRegiao";
         var savedNomeLocalidadeTexto = "@Model.Cliente.NomeLocalidadeTexto";
 
         function toggleFieldsByCountry() {
             var selectedPaisOption = paisDropdown.find('option:selected');
-            var selectedPaisText = selectedPaisOption.text();
+            var selectedPaisText = selectedPaisOption.text().toLowerCase();
             var selectedPaisId = paisDropdown.val();
 
-            regioesContainer.hide();
+            // Esconde todos os containers de CP por padrão
             cpPortugalContainer.hide();
             cpEstrangeiroContainer.hide();
 
-            // Limpa campos que serão ocultados
+            // Limpa campos de CP que serão ocultados
             $('#Cliente_Cp4').val('');
             $('#Cliente_Cp3').val('');
             $('#Cliente_CodigoPostalEstrangeiro').val('');
-            regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região --'));
-            // Não limpa clienteNomeLocalidadeTextoInput aqui, será preenchido condicionalmente
 
             if (selectedPaisId) {
-                if (selectedPaisText.toLowerCase() === 'portugal') {
-                    regioesContainer.show();
+                regioesContainer.show(); // SEMPRE mostra o container das regiões se um país for selecionado
+
+                // Determina qual container de CP mostrar
+                if (selectedPaisText === 'portugal') {
                     cpPortugalContainer.show();
-                    $('#Cliente_CodigoPostalEstrangeiro').val(''); // Garante que este campo está vazio
-
-                    // Preenche o campo de texto da localidade com a região selecionada (para Portugal)
-                    clienteNomeLocalidadeTextoInput.val(savedSelectedRegiao);
-
-                    $.ajax({
-                        url: '@Url.Action("GetRegioesPorPais", "Client")',
-                        type: 'GET',
-                        dataType: 'json',
-                        data: { paisId: selectedPaisId },
-                        success: function (data) {
-                            regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região --'));
-                            if (data && data.length > 0) {
-                                $.each(data, function (index, item) {
-                                    var option = $('<option></option>').val(item).text(item);
-                                    if (item === savedSelectedRegiao) {
-                                        option.prop('selected', true);
-                                    }
-                                    regiaoDropdown.append(option);
-                                });
-                            }
-                            // Assegura que o campo de texto da localidade é preenchido com a região ao carregar,
-                            // caso selectedRegiao já tenha um valor.
-                            if (savedSelectedRegiao) {
-                                clienteNomeLocalidadeTextoInput.val(savedSelectedRegiao);
-                            }
-                        },
-                        error: function () { console.error("Erro ao buscar regiões."); }
-                    });
-                } else { // Países Estrangeiros
+                } else {
                     cpEstrangeiroContainer.show();
-                    $('#Cliente_Cp4').val(''); // Garante que estes campos estão vazios
-                    $('#Cliente_Cp3').val('');
-
-                    // Preenche o campo de texto da localidade com o valor original (para estrangeiro)
-                    clienteNomeLocalidadeTextoInput.val(savedNomeLocalidadeTexto);
-                    regiaoDropdown.empty().append($('<option></option>').val('').text('-- N/A --'));
                 }
+
+                // Faz a chamada AJAX para obter regiões para o país selecionado (agora para QUALQUER país)
+                $.ajax({
+                    url: '@Url.Action("GetRegioesPorPais", "Client")',
+                    type: 'GET',
+                    dataType: 'json',
+                    data: { paisId: selectedPaisId },
+                    success: function (data) {
+                        regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região / Distrito --'));
+                        if (data && data.length > 0) {
+                            $.each(data, function (index, item) {
+                                var option = $('<option></option>').val(item).text(item);
+                                if (item === savedSelectedRegiao) {
+                                    option.prop('selected', true);
+                                }
+                                regiaoDropdown.append(option);
+                            });
+                        }
+
+                        // No carregamento/mudança de país:
+                        // Se for Portugal e houver uma região salva, preenche o campo de texto da localidade com ela.
+                        // Caso contrário (países estrangeiros ou Portugal sem região salva), preenche com o valor salvo do campo de texto.
+                        if (selectedPaisText === 'portugal') {
+                            clienteNomeLocalidadeTextoInput.val(savedSelectedRegiao);
+                        } else {
+                            clienteNomeLocalidadeTextoInput.val(savedNomeLocalidadeTexto);
+                        }
+                    },
+                    error: function () {
+                        console.error("Erro ao buscar regiões.");
+                        regiaoDropdown.empty().append($('<option></option>').val('').text('-- N/A --'));
+                        // Se a chamada AJAX falhar, o campo de texto deve reter o valor salvo
+                        clienteNomeLocalidadeTextoInput.val(savedNomeLocalidadeTexto);
+                    }
+                });
             } else { // Nenhum país selecionado
+                regioesContainer.hide();
+                regiaoDropdown.empty().append($('<option></option>').val('').text('-- Selecione uma Região / Distrito --'));
                 clienteNomeLocalidadeTextoInput.val(''); // Limpa o campo de texto da localidade
             }
         }
 
-        // Atualiza o campo Cliente.NomeLocalidadeTexto quando a região para Portugal muda
+        // Listener para quando uma região é selecionada no dropdown
         regiaoDropdown.on('change', function () {
-            if (paisDropdown.find('option:selected').text().toLowerCase() === 'portugal') {
-                clienteNomeLocalidadeTextoInput.val(regiaoDropdown.val());
-            }
+            var selectedRegiaoValue = regiaoDropdown.val();
+            // Sempre que uma região é selecionada, o campo de texto da localidade é atualizado.
+            // O valor do dropdown é o que será levado para o campo de texto da localidade
+            clienteNomeLocalidadeTextoInput.val(selectedRegiaoValue);
         });
 
+        // Listener para quando o país é mudado
         paisDropdown.on('change', function () {
-            // Ao mudar o país, resetamos os valores salvos para que não influenciem a nova seleção
+            // Resetamos os valores salvos para que a lógica de preenchimento inicie do zero
             savedSelectedRegiao = "";
-            savedNomeLocalidadeTexto = "";
+            savedNomeLocalidadeTexto = ""; // Resetar para que o campo de texto seja reavaliado pela nova seleção/país
             toggleFieldsByCountry();
         });
 
-        // Executa a função no carregamento da página para definir o estado inicial
+        // Executa a função no carregamento da página para definir o estado inicial (útil para modo Edit)
         toggleFieldsByCountry();
     });
 </script>
