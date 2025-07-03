@@ -273,7 +273,7 @@ namespace MSPremiumProject.Controllers
         [ValidateAntiForgeryToken] // Importante para segurança em ações POST que modificam dados
         public async Task<IActionResult> DeleteProposta(ulong id)
         {
-            var proposta = await _context.Propostas.FindAsync(id);
+            var proposta = await _context.Proposta.FindAsync(id);
 
             if (proposta == null)
             {
@@ -290,7 +290,7 @@ namespace MSPremiumProject.Controllers
 
             try
             {
-                _context.Propostas.Remove(proposta);
+                _context.Proposta.Remove(proposta);
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = $"A proposta Nº {id} foi apagada com sucesso.";
             }
