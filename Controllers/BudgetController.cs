@@ -266,6 +266,43 @@ namespace MSPremiumProject.Controllers
             return View(); // Passa o ViewModel para a View
         }
 
+
+        // No teu BudgetController.cs
+
+        [HttpPost]
+        [ValidateAntiForgeryToken] // Importante para segurança em ações POST que modificam dados
+        public async Task<IActionResult> DeleteProposta(ulong id)
+        {
+            var proposta = await _context.Propostas.FindAsync(id);
+
+            if (proposta == null)
+            {
+                TempData["MensagemErro"] = "A proposta que tentou apagar não foi encontrada.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+
+            // Medida de segurança extra: só permitir apagar propostas "Em Curso"
+            if (proposta.EstadoPropostaId != 1) // 1 = Em Curso
+            {
+                TempData["MensagemErro"] = "Apenas propostas 'Em Curso' podem ser apagadas.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+
+            try
+            {
+                _context.Propostas.Remove(proposta);
+                await _context.SaveChangesAsync();
+                TempData["MensagemSucesso"] = $"A proposta Nº {id} foi apagada com sucesso.";
+            }
+            catch (DbUpdateException ex)
+            {
+                // Se houver um erro a apagar (ex: por causa de relações na BD)
+                TempData["MensagemErro"] = $"Ocorreu um erro ao apagar a proposta: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(OrçamentosEmCurso));
+        }
+
         // [HttpGet]
         // public IActionResult EditTratamentoEstrutural(ulong id)
         // {

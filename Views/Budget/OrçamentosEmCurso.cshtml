@@ -13,6 +13,10 @@
         </a>
     </div>
 
+    @if (TempData["MensagemSucesso"] != null)
+    {
+        <div class="alert alert-success">@TempData["MensagemSucesso"]</div>
+    }
     @if (TempData["MensagemAviso"] != null)
     {
         <div class="alert alert-warning">@TempData["MensagemAviso"]</div>
@@ -62,10 +66,11 @@
                                         <a asp-controller="Budget" asp-action="ContinuarOrcamento" asp-route-id="@proposta.PropostaId" class="btn btn-primary">
                                             Continuar Orçamento <i class="bi bi-arrow-right-circle-fill"></i>
                                         </a>
-                                        <!-- Opcional: Botão para cancelar -->
-                                        <a href="#" class="btn btn-outline-danger ms-2" title="Cancelar Orçamento">
+
+                                        <!-- BOTÃO DE APAGAR QUE ABRE O MODAL -->
+                                        <button type="button" class="btn btn-outline-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteModal" data-proposta-id="@proposta.PropostaId" data-proposta-cliente="@(proposta.Cliente?.Nome) @(proposta.Cliente?.Apelido)" title="Apagar Orçamento">
                                             <i class="bi bi-trash-fill"></i>
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -76,3 +81,52 @@
         </div>
     }
 </div>
+
+<!-- ================== MODAL DE CONFIRMAÇÃO DE APAGAR ================== -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem a certeza que deseja apagar a proposta <strong id="propostaIdText"></strong> para o cliente <strong id="propostaClienteText"></strong>?</p>
+                <p class="text-danger">Esta ação não pode ser revertida.</p>
+            </div>
+            <div class="modal-footer">
+                <form asp-action="DeleteProposta" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="propostaIdToDelete" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sim, Apagar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        // JavaScript para passar os dados para o modal
+        const deleteModal = document.getElementById('deleteModal');
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            // Botão que ativou o modal
+            const button = event.relatedTarget;
+
+            // Extrai a informação dos atributos data-*
+            const propostaId = button.getAttribute('data-proposta-id');
+            const propostaCliente = button.getAttribute('data-proposta-cliente');
+
+            // Atualiza o conteúdo do modal
+            const modalBodyPropostaId = deleteModal.querySelector('#propostaIdText');
+            const modalBodyPropostaCliente = deleteModal.querySelector('#propostaClienteText');
+            const inputIdToDelete = deleteModal.querySelector('#propostaIdToDelete');
+
+            modalBodyPropostaId.textContent = '#' + propostaId;
+            modalBodyPropostaCliente.textContent = propostaCliente;
+            inputIdToDelete.value = propostaId;
+        });
+    </script>
+}
