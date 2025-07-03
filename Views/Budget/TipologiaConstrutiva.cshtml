@@ -59,21 +59,30 @@
                 <div class="col-xl-3 col-lg-4 col-md-6">
                     <div class="construction-type-card @(Model.First() == tipologia ? "selected" : "")" data-value="@tipologia.TipologiaConstrutivaId">
 
-                        @* ================== ÁREA DE DEBUG ================== *@
-                        <div style="background-color: #ffc; border: 1px solid #ccc; padding: 5px; font-family: monospace; font-size: 12px;">
-                            Valor de ImagemUrl: [@tipologia.ImagemUrl]
-                        </div>
-                        @* ==================================================== *@
-
-                        @* A TUA IMAGEM ORIGINAL *@
+                        <!-- ================== ÁREA DE DEBUG DEFINITIVA ================== -->
+                        <!-- Esta caixa irá provar se existem caracteres invisíveis         -->
+                        @if (tipologia.ImagemUrl != null)
+                        {
+                            <div style="background-color: #ffc; border: 1px solid #ccc; padding: 5px; font-family: monospace; font-size: 10px; word-wrap: break-word;">
+                                Original: [@tipologia.ImagemUrl]<br>
+                                Comprimento Original: @tipologia.ImagemUrl.Length<br>
+                                Com Trim: [@tipologia.ImagemUrl.Trim()]<br>
+                                Comprimento Trim: @tipologia.ImagemUrl.Trim().Length
+                            </div>
+                        }
+                        <!-- ================================================================ -->
+                        <!-- ================== AQUI ESTÁ A CORREÇÃO ================== -->
+                        <!-- Usamos .Trim() para remover espaços/caracteres invisíveis   -->
                         @if (!string.IsNullOrEmpty(tipologia.ImagemUrl))
                         {
-                            <img src="@Url.Content("~/" + tipologia.ImagemUrl)" alt="@tipologia.Nome" asp-append-version="true" />
+                            <img src="@Url.Content("~/" + tipologia.ImagemUrl.Trim())" alt="@tipologia.Nome" asp-append-version="true" />
                         }
                         else
                         {
                             <img src="~/images/placeholder.jpg" alt="@tipologia.Nome" asp-append-version="true" />
                         }
+                        <!-- ======================================================== -->
+
 
                         <div class="card-body">
                             <h5 class="card-title">@tipologia.Nome</h5>
