@@ -1,0 +1,78 @@
+﻿@model IEnumerable<MSPremiumProject.Models.Proposta>
+
+@{
+    ViewData["Title"] = "Orçamentos por Concluir";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>@ViewData["Title"]</h1>
+        <a asp-controller="Budget" asp-action="Index" class="btn btn-lg btn-success">
+            <i class="bi bi-plus-circle-fill"></i> Novo Orçamento
+        </a>
+    </div>
+
+    @if (TempData["MensagemAviso"] != null)
+    {
+        <div class="alert alert-warning">@TempData["MensagemAviso"]</div>
+    }
+    @if (TempData["MensagemErro"] != null)
+    {
+        <div class="alert alert-danger">@TempData["MensagemErro"]</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-body text-center p-5">
+                <p class="lead">Não existem orçamentos por concluir de momento.</p>
+                <p>Clique em "Novo Orçamento" para começar um.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Proposta Nº</th>
+                                <th>Cliente</th>
+                                <th>Data de Criação</th>
+                                <th>Estado</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var proposta in Model)
+                            {
+                                <tr>
+                                    <td><strong>#@proposta.PropostaId</strong></td>
+                                    <td>@(proposta.Cliente?.Nome) @(proposta.Cliente?.Apelido)</td>
+                                    <td>@proposta.DataProposta.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark rounded-pill">
+                                            <i class="bi bi-pencil"></i> @(proposta.Estado?.Nome)
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a asp-controller="Budget" asp-action="ContinuarOrcamento" asp-route-id="@proposta.PropostaId" class="btn btn-primary">
+                                            Continuar Orçamento <i class="bi bi-arrow-right-circle-fill"></i>
+                                        </a>
+                                        <!-- Opcional: Botão para cancelar -->
+                                        <a href="#" class="btn btn-outline-danger ms-2" title="Cancelar Orçamento">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
