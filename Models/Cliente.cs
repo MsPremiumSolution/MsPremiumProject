@@ -35,7 +35,7 @@ namespace MSPremiumProject.Models
         public string Morada { get; set; } = null!;
 
         // CAMPO NOVO: Para guardar o texto da localidade diretamente no Cliente
-        [Required(ErrorMessage = "A localidade é obrigatória.")]
+        
         [StringLength(100, ErrorMessage = "A localidade não pode exceder 100 caracteres.")]
         [Display(Name = "Localidade")] // Renomeado para coincidir com o formulário
         public string? NomeLocalidadeTexto { get; set; }
