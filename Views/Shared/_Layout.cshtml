@@ -1,15 +1,48 @@
 ﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="utf-8" />
+    <meta charset="utf-g" />
     <title>@ViewBag.Title - MS Premium Solutions</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
-    @* Se você tiver um ficheiro NomeDoSeuProjeto.styles.css para CSS isolation, inclua-o:
-       <link rel="stylesheet" href="~/[NomeDoSeuProjeto].styles.css" asp-append-version="true" />
-    *@
+
+    <style>
+        /* Estilos para o submenu. Adicione isto ao seu site.css ou aqui mesmo */
+        .submenu {
+            display: none; /* Escondido por defeito */
+            padding-left: 20px; /* Indentação para mostrar que é um submenu */
+            background-color: rgba(0,0,0,0.1); /* Um fundo ligeiramente diferente */
+            border-left: 3px solid #ffc107; /* Borda amarela para destaque */
+            margin-left: 10px;
+            border-radius: 0 5px 5px 0;
+        }
+
+            .submenu.show {
+                display: block; /* Mostra o submenu */
+            }
+
+            .submenu .nav-link {
+                font-size: 0.9em; /* Texto um pouco mais pequeno */
+                padding-top: .4rem;
+                padding-bottom: .4rem;
+            }
+
+        .submenu-item-circle {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .submenu-item.active .submenu-item-circle {
+            background-color: #ffc107; /* Cor de preenchimento quando ativo */
+        }
+    </style>
 </head>
 <body>
     <!-- Sidebar -->
@@ -21,8 +54,37 @@
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
-                <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
-                <a class="nav-link" asp-controller="Budget" asp-action="Index"><i class="bi bi-calculator-fill"></i> Orçamento</a> // ou bi-folder
+                <a class="nav-link" asp-controller="Client" asp-action="Index"><i class="bi bi-people-fill"></i> Clientes</a>
+
+                <!-- LINK PRINCIPAL DO ORÇAMENTO -->
+                <a class="nav-link" asp-controller="Budget" asp-action="Index"><i class="bi bi-calculator-fill"></i> Orçamento</a>
+
+                <!-- SUBMENU PARA QUALIDADE DO AR -->
+                <div id="qualidadeArSubmenu" class="submenu">
+                    <div class="d-flex justify-content-between align-items-center ps-3 pe-2 pt-2">
+                        <h6 class="text-white mb-0">Qualidade do ar</h6>
+                        <button id="closeSubmenuBtn" class="btn btn-sm btn-link text-white p-0"><i class="bi bi-x-circle"></i></button>
+                    </div>
+                    <a class="nav-link submenu-item" asp-controller="Budget" asp-action="TipologiaConstrutiva">
+                        <span class="submenu-item-circle"></span> Tipologia construtiva
+                    </a>
+                    <a class="nav-link submenu-item" asp-controller="Budget" asp-action="ColecaoDados">
+                        <span class="submenu-item-circle"></span> Coleção de dados
+                    </a>
+                    <a class="nav-link submenu-item" asp-controller="Budget" asp-action="Objetivos">
+                        <span class="submenu-item-circle"></span> Objetivos
+                    </a>
+                    <a class="nav-link submenu-item" asp-controller="Budget" asp-action="Volumes">
+                        <span class="submenu-item-circle"></span> Volumes
+                    </a>
+                    <a class="nav-link submenu-item" asp-action="DetalheOrcamento" asp-controller="Budget">
+                        <span class="submenu-item-circle"></span> Detalhe do orçamento
+                    </a>
+                    <a class="nav-link submenu-item" asp-action="ResumoOrcamento" asp-controller="Budget">
+                        <span class="submenu-item-circle"></span> Resumo do orçamento
+                    </a>
+                </div>
+
 
                 @if (User.IsInRole("Admin"))
                 {
@@ -36,29 +98,9 @@
         </nav>
     </div>
 
-    <!-- Topbar -->
-    <div class="topbar d-flex align-items-center p-2">
-        @* Botão de Menu (Hambúrguer) - será visível em ecrãs pequenos devido ao CSS *@
-        <button class="menu-toggle btn btn-link text-white me-auto" id="menuToggleBtn" type="button" title="Alternar menu">
-            <i class="bi bi-list" style="font-size: 1.5rem;"></i>
-        </button>
-
-        @if (User.Identity != null && User.Identity.IsAuthenticated)
-        {
-            <span class="me-3 text-white">Olá, <strong>@User.FindFirst("FullName")?.Value</strong></span>
-            <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="d-inline">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-outline-light btn-sm" title="Logout">
-                    @* Alterado para btn-outline-light para melhor contraste com topbar preta *@
-                    <i class="bi bi-box-arrow-right"></i> Sair
-                </button>
-            </form>
-        }
-        else
-        {
-            @* Espaço reservado ou link de login se o sidebar estiver escondido *@
-            <span> </span>
-        }
+    <!-- Topbar (sem alterações) -->
+    <div class="topbar ...">
+        ...
     </div>
 
     <!-- Main Content -->
@@ -69,32 +111,60 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    @* Script para o toggle do menu (pode ir no site.js ou aqui) *@
+
+    @* SCRIPT PARA CONTROLAR O SUBMENU *@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const menuToggleBtn = document.getElementById('menuToggleBtn');
-            const sidebar = document.querySelector('.sidebar');
-            // const content = document.querySelector('.content'); // Descomente se precisar ajustar margem do conteúdo
-            // const topbar = document.querySelector('.topbar');   // Descomente se precisar ajustar margem da topbar
+            const submenu = document.getElementById('qualidadeArSubmenu');
+            const closeSubmenuBtn = document.getElementById('closeSubmenuBtn');
 
-            if (menuToggleBtn && sidebar) {
-                menuToggleBtn.addEventListener('click', function () {
-                    sidebar.classList.toggle('active');
+            // Função para mostrar o submenu
+            window.showQualidadeArSubmenu = function() {
+                if (submenu) submenu.classList.add('show');
+            }
 
-                    // Opcional: Adicionar uma classe ao body para escurecer o conteúdo quando o menu está aberto
-                    // document.body.classList.toggle('sidebar-open-overlay');
+            // Função para esconder o submenu
+            window.hideQualidadeArSubmenu = function() {
+                if (submenu) submenu.classList.remove('show');
+            }
 
-                    // Se o sidebar EMPURRAR o conteúdo em vez de SOBREPOR em mobile (depende do seu CSS)
-                    // if (sidebar.classList.contains('active')) {
-                    //    content.style.marginLeft = '250px';
-                    //    // topbar.style.marginLeft = '250px'; // Topbar já deve ajustar-se com o CSS
-                    // } else {
-                    //    content.style.marginLeft = '0';
-                    //    // topbar.style.marginLeft = '0';
-                    // }
+            // Evento para o botão de fechar
+            if (closeSubmenuBtn) {
+                closeSubmenuBtn.addEventListener('click', function() {
+                    window.hideQualidadeArSubmenu();
+                    // Opcional: redirecionar para a página principal de orçamento
+                    // window.location.href = '@Url.Action("Index", "Budget")';
                 });
             }
+
+            // Lógica para manter o submenu aberto se estivermos numa das suas páginas
+            const currentPath = window.location.pathname.toLowerCase();
+            const submenuPaths = [
+                '/budget/tipologiaconstrutiva',
+                '/budget/colecaodados',
+                '/budget/objetivos',
+                '/budget/volumes',
+                '/budget/detalheorcamento',
+                '/budget/resumoorcamento'
+            ];
+
+            if (submenuPaths.some(path => currentPath.includes(path))) {
+                window.showQualidadeArSubmenu();
+
+                // Marcar o item ativo
+                const activeLink = document.querySelector(`.submenu a[href*='${currentPath.split('/').pop()}']`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                    const circle = activeLink.querySelector('.submenu-item-circle');
+                    if(circle) circle.style.backgroundColor = '#ffc107'; // Preenche o círculo
+                }
+            }
         });
+    </script>
+
+    @* Script para o toggle do menu principal (sem alterações) *@
+    <script>
+        ...
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

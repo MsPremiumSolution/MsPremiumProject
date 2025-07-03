@@ -1,0 +1,85 @@
+﻿@{
+    ViewData["Title"] = "Tipologia Construtiva";
+    // O Layout já está definido no _Layout.cshtml, não precisa de ser redefinido.
+}
+
+<style>
+    .construction-type-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+        color: #333;
+    }
+
+        .construction-type-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+
+        .construction-type-card.selected {
+            border-color: #28a745; /* Verde para selecionado */
+            border-width: 3px;
+            box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.25);
+        }
+
+        .construction-type-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+
+        .construction-type-card .card-body {
+            padding: 1rem;
+            text-align: center;
+        }
+</style>
+
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">@ViewData["Title"]</h1>
+
+    <div class="row g-4">
+
+        <!-- Exemplo de um item -->
+        <div class="col-md-4 col-lg-3">
+            <a href="#" class="d-block construction-type-card">
+                <img src="~/images/tipologias/portal.jpg" alt="Portal">
+                <div class="card-body">
+                    <h5 class="card-title">Portal</h5>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <a href="#" class="d-block construction-type-card selected">
+                <img src="~/images/tipologias/residencia.jpg" alt="Residência Unifamiliar">
+                <div class="card-body">
+                    <h5 class="card-title">Residência Unifamiliar</h5>
+                </div>
+            </a>
+        </div>
+
+        <!-- Adicione os outros 7 itens da mesma forma -->
+        <div class="col-md-4 col-lg-3">
+            <a href="#" class="d-block construction-type-card">
+                <img src="~/images/tipologias/geminadas.jpg" alt="Casas geminadas">
+                <div class="card-body"><h5 class="card-title">Casas geminadas</h5></div>
+            </a>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <a href="#" class="d-block construction-type-card">
+                <img src="~/images/tipologias/apartamento.jpg" alt="Apartamento em comunidade">
+                <div class="card-body"><h5 class="card-title">Apartamento em comunidade</h5></div>
+            </a>
+        </div>
+        <!-- ... etc ... -->
+    </div>
+
+    <div class="mt-5 d-flex justify-content-end">
+        <a asp-action="ColecaoDados" class="btn btn-primary btn-lg">
+            Próximo Passo <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>

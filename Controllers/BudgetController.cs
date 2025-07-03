@@ -5,7 +5,8 @@ using MSPremiumProject.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using MSPremiumProject.ViewModels; // <<---- 1. ADICIONAR ESTA DIRECTIVA para encontrar o SelectTreatmentViewModel
+using MSPremiumProject.ViewModels; // Necessário para o SelectTreatmentViewModel
+using Microsoft.AspNetCore.Http; // Necessário para usar HttpContext.Session
 
 namespace MSPremiumProject.Controllers
 {
@@ -19,8 +20,10 @@ namespace MSPremiumProject.Controllers
             _context = context;
         }
 
-        // GET: Budget/Index ou Budget/Index?searchTerm=Maria
-        // Esta action já está ótima, não precisa de alterações.
+        //================================================================================
+        // PASSO 1: PÁGINA DE SELEÇÃO DE CLIENTE (O teu código original, está perfeito)
+        //================================================================================
+        // GET: /Budget ou /Budget/Index
         public async Task<IActionResult> Index(string searchTerm)
         {
             ViewData["Title"] = "Novo Orçamento - Selecionar Cliente";
@@ -46,40 +49,108 @@ namespace MSPremiumProject.Controllers
                 return PartialView("_ClientListPartial", clientes);
             }
 
-            if (TempData["MensagemSucesso"] != null)
-                ViewData["MensagemSucesso"] = TempData["MensagemSucesso"];
-            if (TempData["MensagemErro"] != null)
-                ViewData["MensagemErro"] = TempData["MensagemErro"];
-
             return View(clientes);
         }
 
-        // <<---- 2. CORREÇÃO PRINCIPAL ESTÁ AQUI ---->>
-        // GET: Budget/CreateBudgetForClient/5
-        // Renomeei o parâmetro de 'clientId' para 'id' para corresponder à configuração de rota padrão do ASP.NET Core (ex: {controller}/{action}/{id?})
-        // Se a tua rota estiver configurada de outra forma, podes manter 'clientId'. 'id' é mais comum.
+        //================================================================================
+        // PASSO 2: MOSTRAR A PÁGINA DE ESCOLHA DE TRATAMENTO (Estrutural ou Qualidade do Ar)
+        //================================================================================
+        // GET: /Budget/CreateBudgetForClient/5
         [HttpGet]
         public async Task<IActionResult> CreateBudgetForClient(ulong id)
         {
-            // Procura o cliente na base de dados pelo ID recebido.
             var cliente = await _context.Clientes.FindAsync(id);
 
-            // Se o cliente não for encontrado, mostra uma mensagem de erro e volta para a lista.
             if (cliente == null)
             {
                 TempData["MensagemErro"] = "Cliente não encontrado. Por favor, tente novamente.";
-                return RedirectToAction(nameof(Index)); // Volta para a lista de clientes
+                return RedirectToAction(nameof(Index));
             }
 
-            // Prepara o ViewModel com os dados que a view de seleção de tratamento precisa.
             var viewModel = new SelectTreatmentViewModel
             {
                 ClienteId = cliente.ClienteId,
                 NomeCliente = $"{cliente.Nome} {cliente.Apelido}"
             };
 
-            // Chama a view "SelectTreatment.cshtml" e envia-lhe os dados através do ViewModel.
+            // Mostra a página com os dois cartões de escolha
             return View("SelectTreatment", viewModel);
+        }
+
+        //================================================================================
+        // PASSO 3: PROCESSAR A ESCOLHA DO TRATAMENTO E REDIRECIONAR
+        //================================================================================
+        // GET: /Budget/Create?clienteId=5&treatmentType=QualidadeAr
+        [HttpGet]
+        public async Task<IActionResult> Create(ulong clienteId, string treatmentType)
+        {
+            var cliente = await _context.Clientes.FindAsync(clienteId);
+            if (cliente == null)
+            {
+                TempData["MensagemErro"] = "Cliente não encontrado.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Guarda as informações essenciais na Sessão para usar nos próximos passos
+            HttpContext.Session.SetString("CurrentBudget_TreatmentType", treatmentType);
+            HttpContext.Session.SetString("CurrentBudget_ClienteId", clienteId.ToString());
+            HttpContext.Session.SetString("CurrentBudget_ClienteNome", $"{cliente.Nome} {cliente.Apelido}");
+
+
+            if (treatmentType.Equals("QualidadeAr", StringComparison.OrdinalIgnoreCase))
+            {
+                // Inicia o fluxo de "Qualidade do Ar", redirecionando para a primeira etapa do submenu
+                return RedirectToAction(nameof(TipologiaConstrutiva));
+            }
+            else if (treatmentType.Equals("Estrutural", StringComparison.OrdinalIgnoreCase))
+            {
+                // Inicia o fluxo de "Tratamento Estrutural"
+                // (Por agora, podemos redirecionar para uma action placeholder)
+                return RedirectToAction(nameof(EditTratamentoEstrutural));
+            }
+            else
+            {
+                TempData["MensagemErro"] = "Tipo de tratamento desconhecido.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        //================================================================================
+        // PASSO 4: PÁGINAS DO SUBMENU "QUALIDADE DO AR"
+        //================================================================================
+
+        // GET: /Budget/TipologiaConstrutiva
+        [HttpGet]
+        public IActionResult TipologiaConstrutiva()
+        {
+            // Verifica se a sessão de orçamento ainda está ativa
+            var clienteId = HttpContext.Session.GetString("CurrentBudget_ClienteId");
+            if (string.IsNullOrEmpty(clienteId))
+            {
+                TempData["MensagemErro"] = "Sessão de orçamento expirada. Por favor, selecione o cliente novamente.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Futuramente, podes passar dados para a view se necessário (ex: uma lista de tipologias da BD)
+            // Por agora, apenas mostra a view estática
+            return View();
+        }
+
+        // Adicione aqui as outras actions do submenu (ColecaoDados, Objetivos, etc.) quando as criares
+        // [HttpGet]
+        // public IActionResult ColecaoDados() { ... }
+
+
+        //================================================================================
+        // PLACEHOLDER PARA O FLUXO DE TRATAMENTO ESTRUTURAL
+        //================================================================================
+        [HttpGet]
+        public IActionResult EditTratamentoEstrutural()
+        {
+            ViewData["Title"] = "Editar Tratamento Estrutural";
+            var clienteNome = HttpContext.Session.GetString("CurrentBudget_ClienteNome");
+            ViewData["Message"] = $"Esta é a página de edição para o tratamento estrutural do cliente {clienteNome}.";
+            return View();
         }
     }
 }
