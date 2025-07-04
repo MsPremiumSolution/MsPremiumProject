@@ -20,7 +20,7 @@ public partial class Higrometria
     public decimal? NivelCO2 { get; set; }
     public decimal? NivelTCOV { get; set; }
     public decimal? NivelHCHO { get; set; }
-    public string? DataLoggerSensores { get; set; }
+    public decimal? DataLoggerSensores { get; set; }
 
     public virtual DadosGerais? DadosGerais { get; set; }
 }

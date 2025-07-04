@@ -12,7 +12,7 @@ namespace MSPremiumProject.ViewModels
         // --- IDs e Dados de Contexto ---
         public ulong PropostaId { get; set; }
         public ulong QualidadeDoArId { get; set; }
-        public string NomeCliente { get; set; }
+        public string NomeCliente { get; set; } = string.Empty; // Inicializado para evitar null reference
 
         // ===============================================
         // CAMPOS DA TABELA DadosConstrutivos
@@ -52,7 +52,7 @@ namespace MSPremiumProject.ViewModels
         public string? CoberturaFachadaPosterior { get; set; }
 
         [Display(Name = "Tratamento de hidrofugação")]
-        public bool TratamentoHidrofugacao { get; set; }
+        public bool? TratamentoHidrofugacao { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Isolamento da câmara")]
         public string? IsolamentoCamara { get; set; }
@@ -62,6 +62,34 @@ namespace MSPremiumProject.ViewModels
 
         [Display(Name = "Tipo de aquecimento")]
         public string? TipoAquecimento { get; set; }
+
+        // ===============================================
+        // CAMPOS DA TABELA Janela (para a primeira janela)
+        // >>> ADICIONADOS AQUI <<<
+        // ===============================================
+        public ulong? JanelaId { get; set; } // ID da entidade Janela que estamos a editar/criar
+
+        [Display(Name = "Tipo de janela")]
+        public string? TipoJanelaPrincipal { get; set; } // Mapeia para Janela.TipoJanela
+
+        [Display(Name = "Material")]
+        public string? MaterialJanela { get; set; } // Mapeia para Janela.Material
+
+        [Display(Name = "Janelas duplas")]
+        public bool? JanelasDuplas { get; set; } // Mapeia para Janela.PossuiJanelasDuplas
+
+        [Display(Name = "Tipo de vidro")]
+        public string? TipoVidro { get; set; } // Mapeia para Janela.TipoVidro
+
+        [Display(Name = "R.P.T.")]
+        public bool? RPT { get; set; } // Mapeia para Janela.PossuiRPT
+
+        [Display(Name = "Caixas de persiana")]
+        public bool? CaixasPersiana { get; set; } // Mapeia para Janela.PossuiCaixaPersiana
+
+        [Display(Name = "Nº unidades")]
+        public int? NumeroUnidadesJanela { get; set; } // Mapeia para Janela.NumeroUnidades
+
 
         // ===============================================
         // CAMPOS DA TABELA Higrometria
@@ -85,51 +113,53 @@ namespace MSPremiumProject.ViewModels
         public decimal? TemperaturaPontoOrvalho { get; set; }
 
         [Display(Name = "Ponto de Orvalho")]
+        // Se PontoDeOrvalho no modelo Higrometria é string, mantém string.
+        // Se é decimal, ajusta aqui. Pelas imagens, parece string (Baixo/Médio/Alto)
         public decimal? PontoDeOrvalho { get; set; }
 
         [Display(Name = "Pontos Frios")]
         public decimal? PontosFrios { get; set; }
 
         [Display(Name = "Nível CO² (ppm)")]
-        public decimal? NivelCO2 { get; set; }
+        public decimal? NivelCO2 { get; set; } // Ajustado para int?
 
         [Display(Name = "Nível TCOV (mg/m³)")]
-        public decimal? NivelTCOV { get; set; }
+        public decimal? NivelTCOV { get; set; } // Ajustado para int?
 
         [Display(Name = "Nível HCHO (mg/m³)")]
         public decimal? NivelHCHO { get; set; }
 
         [Display(Name = "Data Logger Sensores")]
-        public string? DataLoggerSensores { get; set; }
+        public decimal? DataLoggerSensores { get; set; } // Ajustado para DateTime?
 
         // ===============================================
         // CAMPOS DA TABELA Sintomatologia
         // ===============================================
         [Display(Name = "Presença de fungos")]
-        public bool Fungos { get; set; }
+        public bool? Fungos { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Presença de cheiros (mofo)")]
-        public bool Cheiros { get; set; }
+        public bool? Cheiros { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Mofo em roupas/armários")]
-        public bool MofoEmRoupasArmarios { get; set; }
+        public bool? MofoEmRoupasArmarios { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Condensação nas janelas")]
-        public bool CondensacaoNasJanelas { get; set; }
+        public bool? CondensacaoNasJanelas { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Consumo excessivo de aquecimento")]
-        public bool ConsumoExcessivoAquecimento { get; set; }
+        public bool? ConsumoExcessivoAquecimento { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Presença de alergias nos habitantes")]
-        public bool Alergias { get; set; }
+        public bool? Alergias { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Problemas respiratórios nos habitantes")]
-        public bool ProblemasRespiratorios { get; set; }
+        public bool? ProblemasRespiratorios { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Suspeita de Gás Radão")]
-        public bool GasRadao { get; set; }
+        public bool? GasRadao { get; set; } // Ajustado para nullable bool?
 
         [Display(Name = "Esporos em superfícies")]
-        public bool EsporosEmSuperficies { get; set; }
+        public bool? EsporosEmSuperficies { get; set; } // Ajustado para nullable bool?
     }
 }

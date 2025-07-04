@@ -6,7 +6,7 @@ using MSPremiumProject.Data;
 using MSPremiumProject.Models;
 using MSPremiumProject.ViewModels;
 using System;
-using System.Collections.Generic; // Adicionar este using
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -36,37 +36,40 @@ namespace MSPremiumProject.Controllers
 
             var stepsCompleted = new Dictionary<string, bool>();
 
-            var proposta = await _context.Proposta
+            var proposta = await _context.Proposta // Certifica-te que está "Propostas" aqui
                                  .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.DadosGerais)
+                                         .ThenInclude(dg => dg.DadosConstrutivo)
                                  .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.Objetivos)
                                  .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.Volumes) // Certifica-te que 'Volumes' é uma coleção no modelo QualidadeDoAr
+                                 .Include(p => p.QualidadeDoAr)
+                                     .ThenInclude(qa => qa.DadosGerais)
+                                         .ThenInclude(dg => dg.Higrometria)
+                                 .Include(p => p.QualidadeDoAr)
+                                     .ThenInclude(qa => qa.DadosGerais)
+                                         .ThenInclude(dg => dg.Sintomatologia)
                                  .FirstOrDefaultAsync(p => p.PropostaId == propostaId);
 
             if (proposta?.QualidadeDoAr != null)
             {
                 // Coleção de Dados: Considerado completo se DadosGerais e suas sub-partes existirem
-                stepsCompleted["ColecaoDados"] = proposta.QualidadeDoAr.DadosGeraisId.HasValue &&
-                                                 proposta.QualidadeDoAr.DadosGerais?.DadosConstrutivo != null &&
-                                                 proposta.QualidadeDoAr.DadosGerais?.Higrometria != null &&
-                                                 proposta.QualidadeDoAr.DadosGerais?.Sintomatologia != null;
+                // Verifica se o ID das FKs são diferentes de 0 (se não forem nullable) ou se têm valor (se forem nullable)
+                stepsCompleted["ColecaoDados"] = proposta.QualidadeDoAr.DadosGeraisId.HasValue && // Se DadosGeraisId é nullable
+                                                 proposta.QualidadeDoAr.DadosGerais?.DadosConstrutivo?.Id != 0 &&
+                                                 proposta.QualidadeDoAr.DadosGerais?.Higrometria?.Id != 0 &&
+                                                 proposta.QualidadeDoAr.DadosGerais?.Sintomatologia?.Id != 0;
 
-                // Objetivos: Considerado completo se a entidade Objetivos estiver associada
-                stepsCompleted["Objetivos"] = proposta.QualidadeDoAr.ObjetivosId.HasValue;
-
-                // Volumes: Considerado completo se existirem Volumes associados
+                stepsCompleted["Objetivos"] = proposta.QualidadeDoAr.ObjetivosId.HasValue; // Se ObjetivosId é nullable
                 stepsCompleted["Volumes"] = proposta.QualidadeDoAr.Volumes != null && proposta.QualidadeDoAr.Volumes.Any();
 
-                // Detalhe/Resumo: Considerado completo se os dados anteriores estiverem preenchidos
                 stepsCompleted["DetalheOrcamento"] = stepsCompleted["ColecaoDados"] && stepsCompleted["Objetivos"] && stepsCompleted["Volumes"];
-                stepsCompleted["ResumoOrcamento"] = stepsCompleted["DetalheOrcamento"]; // Pode ser ajustado para ser diferente
+                stepsCompleted["ResumoOrcamento"] = stepsCompleted["DetalheOrcamento"];
             }
 
             ViewData["StepsCompleted"] = stepsCompleted;
         }
-
 
         //================================================================================
         // PÁGINA PRINCIPAL: LISTAGEM DE ORÇAMENTOS POR CONCLUIR
@@ -83,7 +86,6 @@ namespace MSPremiumProject.Controllers
                                          .ToListAsync();
             return View(propostasEmCurso);
         }
-
 
         //================================================================================
         // ETAPA 1: PÁGINA DE SELEÇÃO DE CLIENTE (para criar um NOVO orçamento)
@@ -135,7 +137,6 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
 
-            // O submenu não aparece aqui, só depois de escolher o tipo de tratamento
             return RedirectToAction(nameof(TipologiaConstrutiva));
         }
 
@@ -151,20 +152,15 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", proposta.PropostaId.ToString());
 
-            // Carrega a proposta novamente com as relações para verificar o tipo de tratamento
             proposta = await _context.Proposta
                                      .Include(p => p.QualidadeDoAr)
                                      .FirstOrDefaultAsync(p => p.PropostaId == id);
 
-            // Redireciona para a etapa correta
-            if (proposta.QualidadeDoArId.HasValue) // Se já tem um tratamento de Qualidade do Ar
+            if (proposta.QualidadeDoArId.HasValue)
             {
-                await SetQualidadeArSubmenuState(id, "ColecaoDados"); // Ativa o submenu e a primeira etapa
                 return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
             }
-            // else if (proposta.TratamentoEstruturalId.HasValue) { // Lógica similar para Tratamento Estrutural }
 
-            // Se não tem tratamento, redireciona para o passo apropriado sem submenu ainda
             if (proposta.TipologiaConstrutivaId == null)
             {
                 return RedirectToAction(nameof(TipologiaConstrutiva));
@@ -191,8 +187,6 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            // O submenu só será ativado se a proposta já tiver um tratamento de Qualidade do Ar (ao continuar)
-            // Ou se for um novo orçamento e o utilizador escolher QA na próxima etapa.
             if (proposta.QualidadeDoArId.HasValue)
             {
                 await SetQualidadeArSubmenuState(propostaId, "TipologiaConstrutiva");
@@ -244,7 +238,6 @@ namespace MSPremiumProject.Controllers
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null) return NotFound();
 
-            // O submenu só será ativado se a proposta já tiver um tratamento de Qualidade do Ar (ao continuar)
             if (proposta.QualidadeDoArId.HasValue)
             {
                 await SetQualidadeArSubmenuState(propostaId, "SelectTreatment");
@@ -273,7 +266,6 @@ namespace MSPremiumProject.Controllers
             var proposta = await _context.Proposta.FindAsync(propostaId);
             if (proposta == null) return NotFound();
 
-            // Se já tem um tratamento de Qualidade do Ar, redireciona para a edição existente.
             if (proposta.QualidadeDoArId.HasValue)
             {
                 return RedirectToAction(nameof(ContinuarOrcamento), new { id = proposta.PropostaId });
@@ -284,7 +276,6 @@ namespace MSPremiumProject.Controllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    // 1. Cria todas as entidades dependentes primeiro para obter os seus IDs
                     var novosDadosConstrutivos = new DadosConstrutivos { DataVisita = DateTime.Today };
                     var novaHigrometria = new Higrometria();
                     var novaSintomatologia = new Sintomatologia();
@@ -294,7 +285,6 @@ namespace MSPremiumProject.Controllers
                     _context.AddRange(novosDadosConstrutivos, novaHigrometria, novaSintomatologia, novosObjetivos, novoOrcamentoAr);
                     await _context.SaveChangesAsync();
 
-                    // 2. Agora cria DadosGerais que referencia os IDs anteriores
                     var novosDadosGerais = new DadosGerais
                     {
                         DadosConstrutivosId = novosDadosConstrutivos.Id,
@@ -304,7 +294,6 @@ namespace MSPremiumProject.Controllers
                     _context.DadosGerais.Add(novosDadosGerais);
                     await _context.SaveChangesAsync();
 
-                    // 3. Finalmente, cria QualidadeDoAr que referencia os IDs anteriores
                     var novoTratamentoAr = new QualidadeDoAr
                     {
                         DadosGeraisId = novosDadosGerais.Id,
@@ -314,19 +303,16 @@ namespace MSPremiumProject.Controllers
                     _context.QualidadeDoAr.Add(novoTratamentoAr);
                     await _context.SaveChangesAsync();
 
-                    // 4. Associa o ID do tratamento de Qualidade do Ar à Proposta principal
                     proposta.QualidadeDoArId = novoTratamentoAr.Id;
                     await _context.SaveChangesAsync();
 
-                    await transaction.CommitAsync(); // Confirma todas as alterações na BD
+                    await transaction.CommitAsync();
 
-                    // Redireciona para a página de edição do tratamento recém-criado
-                    // O submenu será ativado pelo método EditQualidadeDoAr
                     return RedirectToAction("EditQualidadeDoAr", new { id = novoTratamentoAr.Id });
                 }
                 catch (Exception ex)
                 {
-                    await transaction.RollbackAsync(); // Reverte tudo em caso de erro
+                    await transaction.RollbackAsync();
                     TempData["MensagemErro"] = $"Erro crítico ao criar estrutura do orçamento: {ex.Message}. Tente novamente.";
                     return RedirectToAction(nameof(SelectTreatment));
                 }
@@ -339,7 +325,7 @@ namespace MSPremiumProject.Controllers
         // PÁGINAS DE EDIÇÃO - TODAS ATIVAM O SUBMENU E O LINK CORRETO
         //================================================================================
         [HttpGet]
-        public async Task<IActionResult> ColecaoDados() // Este é o link no submenu para Dados Construtivos/Higrometria/Sintomatologia
+        public async Task<IActionResult> ColecaoDados()
         {
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
@@ -351,18 +337,17 @@ namespace MSPremiumProject.Controllers
             if (proposta == null || !proposta.QualidadeDoArId.HasValue)
             {
                 TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
-                return RedirectToAction(nameof(SelectTreatment)); // Redireciona para selecionar tipo se não houver QA
+                return RedirectToAction(nameof(SelectTreatment));
             }
 
-            // Redireciona para a ação principal de edição com o ID correto e ativa o submenu lá.
             return RedirectToAction(nameof(EditQualidadeDoAr), new { id = proposta.QualidadeDoArId.Value });
         }
 
         [HttpGet]
-        public async Task<IActionResult> EditQualidadeDoAr(ulong id) // Página real para o formulário de Coleção de Dados
+        public async Task<IActionResult> EditQualidadeDoAr(ulong id)
         {
             ViewData["Title"] = $"Editar Orçamento de Qualidade do Ar (ID: {id})";
-            await SetQualidadeArSubmenuState(id, "ColecaoDados"); // Ativa o submenu e o link "Coleção de dados"
+            await SetQualidadeArSubmenuState(id, "ColecaoDados");
 
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
@@ -376,6 +361,7 @@ namespace MSPremiumProject.Controllers
             var tratamento = await _context.QualidadeDoAr
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.DadosConstrutivo)
+                        .ThenInclude(dc => dc.Janelas)
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.Higrometria)
                 .Include(q => q.DadosGerais)
@@ -384,6 +370,8 @@ namespace MSPremiumProject.Controllers
                 .FirstOrDefaultAsync(q => q.Id == id);
 
             if (tratamento?.DadosGerais?.DadosConstrutivo == null) return NotFound("A estrutura de dados para este orçamento não foi encontrada ou está incompleta.");
+
+            var primeiraJanela = tratamento.DadosGerais.DadosConstrutivo.Janelas?.FirstOrDefault();
 
             var viewModel = new QualidadeArViewModel
             {
@@ -406,6 +394,15 @@ namespace MSPremiumProject.Controllers
                 IsolamentoCamara = tratamento.DadosGerais.DadosConstrutivo.IsolamentoCamara,
                 IsolamentoInterno = tratamento.DadosGerais.DadosConstrutivo.IsolamentoInterno,
                 TipoAquecimento = tratamento.DadosGerais.DadosConstrutivo.TipoAquecimento,
+
+                JanelaId = primeiraJanela?.Id,
+                TipoJanelaPrincipal = primeiraJanela?.TipoJanela,
+                MaterialJanela = primeiraJanela?.Material,
+                JanelasDuplas = primeiraJanela?.PossuiJanelasDuplas,
+                TipoVidro = primeiraJanela?.TipoVidro,
+                RPT = primeiraJanela?.PossuiRPT,
+                CaixasPersiana = primeiraJanela?.PossuiCaixaPersiana,
+                NumeroUnidadesJanela = primeiraJanela?.NumeroUnidades,
 
                 HumidadeRelativaExterior = tratamento.DadosGerais.Higrometria.HumidadeRelativaExterior,
                 TemperaturaExterior = tratamento.DadosGerais.Higrometria.TemperaturaExterior,
@@ -438,17 +435,17 @@ namespace MSPremiumProject.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditQualidadeDoAr(QualidadeArViewModel model)
         {
-            await SetQualidadeArSubmenuState(model.PropostaId, "ColecaoDados"); // Ativa o submenu, mesmo em POST com erro de validação
+            await SetQualidadeArSubmenuState(model.PropostaId, "ColecaoDados");
 
             if (!ModelState.IsValid)
             {
-                // TODO: Recarregar dados do cliente e proposta se forem necessários na View em caso de erro.
                 return View(model);
             }
 
             var tratamentoParaAtualizar = await _context.QualidadeDoAr
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.DadosConstrutivo)
+                        .ThenInclude(dc => dc.Janelas)
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.Higrometria)
                 .Include(q => q.DadosGerais)
@@ -458,11 +455,86 @@ namespace MSPremiumProject.Controllers
             if (tratamentoParaAtualizar == null) return NotFound();
 
             var dc = tratamentoParaAtualizar.DadosGerais.DadosConstrutivo;
-            dc.DataVisita = model.DataVisita; dc.AnoConstrucao = model.AnoConstrucao; dc.AreaM2 = model.AreaM2; dc.NumeroAndares = model.NumeroAndares; dc.NumeroHabitantes = model.NumeroHabitantes; dc.Localidade = model.Localidade; dc.Altitude = model.Altitude; dc.TipoFachada = model.TipoFachada; dc.OrientacaoFachada = model.OrientacaoFachada; dc.CoberturaFachadaPrincipal = model.CoberturaFachadaPrincipal; dc.CoberturaFachadaPosterior = model.CoberturaFachadaPosterior; dc.TratamentoHidrofugacao = model.TratamentoHidrofugacao; dc.IsolamentoCamara = model.IsolamentoCamara; dc.IsolamentoInterno = model.IsolamentoInterno; dc.TipoAquecimento = model.TipoAquecimento;
+            dc.DataVisita = model.DataVisita;
+            dc.AnoConstrucao = model.AnoConstrucao;
+            dc.AreaM2 = model.AreaM2;
+            dc.NumeroAndares = model.NumeroAndares;
+            dc.NumeroHabitantes = model.NumeroHabitantes;
+            dc.Localidade = model.Localidade;
+            dc.Altitude = model.Altitude;
+            dc.TipoFachada = model.TipoFachada;
+            dc.OrientacaoFachada = model.OrientacaoFachada;
+            dc.CoberturaFachadaPrincipal = model.CoberturaFachadaPrincipal;
+            dc.CoberturaFachadaPosterior = model.CoberturaFachadaPosterior;
+
+            // CORREÇÃO AQUI: Garante que 'TratamentoHidrofugacao' (bool?) se converte para 'bool'
+            dc.TratamentoHidrofugacao = model.TratamentoHidrofugacao ?? false;
+
+            dc.IsolamentoCamara = model.IsolamentoCamara;
+            dc.IsolamentoInterno = model.IsolamentoInterno;
+            dc.TipoAquecimento = model.TipoAquecimento;
+
+            // Lógica para Salvar/Atualizar a PRIMEIRA Janela
+            Janela janelaParaAtualizar;
+
+            if (model.JanelaId.HasValue) // Se já existe um ID de Janela, tenta carregá-la
+            {
+                janelaParaAtualizar = dc.Janelas.FirstOrDefault(j => j.Id == model.JanelaId.Value);
+                if (janelaParaAtualizar == null)
+                {
+                    janelaParaAtualizar = new Janela { DadosConstrutivosId = dc.Id };
+                    dc.Janelas.Add(janelaParaAtualizar);
+                }
+            }
+            else
+            {
+                // Verifica se pelo menos um campo da janela foi preenchido para evitar criar janelas vazias
+                // Também inclui as booleanas da Janela na condição
+                if (!string.IsNullOrEmpty(model.TipoJanelaPrincipal) || model.NumeroUnidadesJanela.HasValue || model.JanelasDuplas.HasValue || model.RPT.HasValue || model.CaixasPersiana.HasValue)
+                {
+                    janelaParaAtualizar = new Janela { DadosConstrutivosId = dc.Id };
+                    dc.Janelas.Add(janelaParaAtualizar);
+                }
+                else
+                {
+                    janelaParaAtualizar = null;
+                }
+            }
+
+            if (janelaParaAtualizar != null)
+            {
+                janelaParaAtualizar.TipoJanela = model.TipoJanelaPrincipal;
+                janelaParaAtualizar.Material = model.MaterialJanela;
+                janelaParaAtualizar.TipoVidro = model.TipoVidro;
+                janelaParaAtualizar.NumeroUnidades = model.NumeroUnidadesJanela;
+                // CORREÇÃO AQUI: Garante que 'bool?' se convertem para 'bool' se necessário
+                janelaParaAtualizar.PossuiJanelasDuplas = model.JanelasDuplas ?? false;
+                janelaParaAtualizar.PossuiRPT = model.RPT ?? false;
+                janelaParaAtualizar.PossuiCaixaPersiana = model.CaixasPersiana ?? false;
+            }
+
+
+            // Atualizar Higrometria
             var hg = tratamentoParaAtualizar.DadosGerais.Higrometria;
-            hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior; hg.TemperaturaExterior = model.TemperaturaExterior; hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior; hg.TemperaturaInterior = model.TemperaturaInterior; hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas; hg.TemperaturaPontoOrvalho = model.TemperaturaPontoOrvalho; hg.PontoDeOrvalho = model.PontoDeOrvalho; hg.PontosFrios = model.PontosFrios; hg.NivelCO2 = model.NivelCO2; hg.NivelTCOV = model.NivelTCOV; hg.NivelHCHO = model.NivelHCHO; hg.DataLoggerSensores = model.DataLoggerSensores;
+            hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior; hg.TemperaturaExterior = model.TemperaturaExterior; hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior; hg.TemperaturaInterior = model.TemperaturaInterior; hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas; hg.TemperaturaPontoOrvalho = model.TemperaturaPontoOrvalho;
+            hg.PontoDeOrvalho = model.PontoDeOrvalho;
+            // CORREÇÃO AQUI: Garante que 'PontosFrios' (bool?) se converte para 'bool'
+            //hg.PontosFrios = model.PontosFrios ?? false;
+
+            hg.NivelCO2 = model.NivelCO2; hg.NivelTCOV = model.NivelTCOV; hg.NivelHCHO = model.NivelHCHO; hg.DataLoggerSensores = model.DataLoggerSensores;
+
+            // Atualizar Sintomatologia
             var st = tratamentoParaAtualizar.DadosGerais.Sintomatologia;
-            st.Fungos = model.Fungos; st.Cheiros = model.Cheiros; st.MofoEmRoupasArmarios = model.MofoEmRoupasArmarios; st.CondensacaoNasJanelas = model.CondensacaoNasJanelas; st.ConsumoExcessivoAquecimento = model.ConsumoExcessivoAquecimento; st.Alergias = model.Alergias; st.ProblemasRespiratorios = model.ProblemasRespiratorios; st.GasRadao = model.GasRadao; st.EsporosEmSuperficies = model.EsporosEmSuperficies;
+            // CORREÇÃO AQUI para todas as booleanas de Sintomatologia
+            st.Fungos = model.Fungos ?? false;
+            st.Cheiros = model.Cheiros ?? false;
+            st.MofoEmRoupasArmarios = model.MofoEmRoupasArmarios ?? false;
+            st.CondensacaoNasJanelas = model.CondensacaoNasJanelas ?? false;
+            st.ConsumoExcessivoAquecimento = model.ConsumoExcessivoAquecimento ?? false;
+            st.Alergias = model.Alergias ?? false;
+            st.ProblemasRespiratorios = model.ProblemasRespiratorios ?? false;
+            st.GasRadao = model.GasRadao ?? false;
+            st.EsporosEmSuperficies = model.EsporosEmSuperficies ?? false;
 
             await _context.SaveChangesAsync();
             TempData["MensagemSucesso"] = "Dados de Qualidade do Ar guardados com sucesso!";
@@ -482,10 +554,15 @@ namespace MSPremiumProject.Controllers
                 TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
-            await SetQualidadeArSubmenuState(propostaId, "Objetivos"); // Ativa o submenu e o link
+            var proposta = await _context.Proposta.FindAsync(propostaId);
+            if (proposta == null || !proposta.QualidadeDoArId.HasValue)
+            {
+                TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
+                return RedirectToAction(nameof(SelectTreatment));
+            }
+            await SetQualidadeArSubmenuState(propostaId, "Objetivos");
 
             ViewData["Title"] = "Objetivos";
-            // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
 
@@ -497,10 +574,15 @@ namespace MSPremiumProject.Controllers
                 TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
-            await SetQualidadeArSubmenuState(propostaId, "Volumes"); // Ativa o submenu e o link
+            var proposta = await _context.Proposta.FindAsync(propostaId);
+            if (proposta == null || !proposta.QualidadeDoArId.HasValue)
+            {
+                TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
+                return RedirectToAction(nameof(SelectTreatment));
+            }
+            await SetQualidadeArSubmenuState(propostaId, "Volumes");
 
             ViewData["Title"] = "Volumes";
-            // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
 
@@ -512,10 +594,15 @@ namespace MSPremiumProject.Controllers
                 TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
-            await SetQualidadeArSubmenuState(propostaId, "DetalheOrcamento"); // Ativa o submenu e o link
+            var proposta = await _context.Proposta.FindAsync(propostaId);
+            if (proposta == null || !proposta.QualidadeDoArId.HasValue)
+            {
+                TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
+                return RedirectToAction(nameof(SelectTreatment));
+            }
+            await SetQualidadeArSubmenuState(propostaId, "DetalheOrcamento");
 
             ViewData["Title"] = "Detalhe do Orçamento";
-            // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
 
@@ -527,10 +614,15 @@ namespace MSPremiumProject.Controllers
                 TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
-            await SetQualidadeArSubmenuState(propostaId, "ResumoOrcamento"); // Ativa o submenu e o link
+            var proposta = await _context.Proposta.FindAsync(propostaId);
+            if (proposta == null || !proposta.QualidadeDoArId.HasValue)
+            {
+                TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
+                return RedirectToAction(nameof(SelectTreatment));
+            }
+            await SetQualidadeArSubmenuState(propostaId, "ResumoOrcamento");
 
             ViewData["Title"] = "Resumo do Orçamento";
-            // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
 
