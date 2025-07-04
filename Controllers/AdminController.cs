@@ -11,11 +11,13 @@ namespace MSPremiumProject.Controllers
             return View();
         }
 
+        [Authorize(Roles = "Admin,Comercial")]
         public IActionResult adminMenu()
         {
             return View("~/Views/Admin/AdminMenu.cshtml");
         }
 
+        [Authorize(Roles = "Admin")]
         public IActionResult CreateRole()
         {
             return View("~/Views/Admin/CreateRole.cshtml");

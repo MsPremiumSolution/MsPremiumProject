@@ -1,67 +1,67 @@
 ﻿@* Views/Admin/AdminMenu.cshtml *@
 @{
-    ViewData["Title"] = "Menu de Administração";
+    ViewData["Title"] = "Menu de Configurações"; // Título mais genérico
     Layout = "~/Views/Shared/_Layout.cshtml"; // Ou o seu layout de Admin, se tiver um específico
 }
 
 <div class="container mt-4">
     <h1>@ViewData["Title"]</h1>
-    <p>Bem-vindo à área de administração, @User.FindFirst("FullName")?.Value.</p>
+    <p>Bem-vindo à área de configurações, @User.FindFirst("FullName")?.Value.</p>
     <hr />
 
     <div class="row">
-        <div class="col-md-4">
-            <h4>Gestão de Utilizadores</h4>
-            <div class="list-group">
-                <a asp-controller="Users" asp-action="Index" class="list-group-item list-group-item-action">
-                    <i class="bi bi-list-ul me-2"></i> Listar Utilizadores
-                </a>
-                <a asp-controller="Users" asp-action="Create" class="list-group-item list-group-item-action">
-                    <i class="bi bi-person-plus-fill me-2"></i> Adicionar Novo Utilizador
-                </a>
-                @* Se "CreateUser" for apenas um redirecionamento para "Create", use "Create" diretamente *@
+        @* Gestão de Utilizadores (APENAS PARA ADMINS) *@
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="col-md-4 mb-4">
+                <h4>Gestão de Utilizadores</h4>
+                <div class="list-group">
+                    <a asp-controller="Users" asp-action="Index" class="list-group-item list-group-item-action">
+                        <i class="bi bi-people-fill me-2"></i> Listar Utilizadores
+                    </a>
+                    <a asp-controller="Users" asp-action="Create" class="list-group-item list-group-item-action">
+                        <i class="bi bi-person-plus-fill me-2"></i> Adicionar Novo Utilizador
+                    </a>
+                </div>
             </div>
-        </div>
+        }
 
-        <div class="col-md-4">
-            <h4>Gestão de Roles</h4>
-            <div class="list-group">
-                @* Supondo que você terá um AdminController ou RoleController para gerir roles *@
-                @* Se CreateRole estiver no AdminController e o controller estiver protegido por [Authorize(Roles="Admin")] *@
-                <a asp-controller="Admin" asp-action="CreateRole" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock-fill me-2"></i> Criar Roles
-                </a>
-                @*
-                <a asp-controller="Admin" asp-action="ListRoles" class="list-group-item list-group-item-action">
-                     <i class="bi bi-view-list me-2"></i> Listar Roles
-                </a>
-                *@
+        @* Gestão de Roles (APENAS PARA ADMINS) *@
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="col-md-4 mb-4">
+                <h4>Gestão de Roles</h4>
+                <div class="list-group">
+                    <a asp-controller="Admin" asp-action="CreateRole" class="list-group-item list-group-item-action">
+                        <i class="bi bi-shield-lock-fill me-2"></i> Criar Roles
+                    </a>
+                    @* <a asp-controller="Admin" asp-action="ListRoles" class="list-group-item list-group-item-action">
+                         <i class="bi bi-view-list me-2"></i> Listar Roles
+                    </a> *@
+                </div>
             </div>
-        </div>
+        }
 
-        <div class="col-md-4">
-            <h4>Gestão de Localidades</h4>
-            <div class="list-group">
-                @* Supondo que você terá um AdminController ou RoleController para gerir roles *@
-                @* Se CreateRole estiver no AdminController e o controller estiver protegido por [Authorize(Roles="Admin")] *@
-                <a asp-controller="Country" asp-action="Create" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock-fill me-2"></i> Criar País
-                </a>
-                <a asp-controller="Country" asp-action="Index" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock-fill me-2"></i> Listagem de Países
-                </a>
-                <a asp-controller="Locality" asp-action="Create" class="list-group-item list-group-item-action">
-                    <i class="bi bi-geo-alt-fill me-2"></i> Criar Localidade  @* Ícone sugerido para localidade *@
-                </a>
-                <a asp-controller="Locality" asp-action="Index" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock-fill me-2"></i> Listagem de Localidades
-                </a>
-                @*
-                <a asp-controller="Admin" asp-action="ListRoles" class="list-group-item list-group-item-action">
-                     <i class="bi bi-view-list me-2"></i> Listar Roles
-                </a>
-                *@
+        @* Gestão de Localidades (PARA ADMINS E COMERCIAIS) *@
+        @if (User.IsInRole("Admin") || User.IsInRole("Comercial"))
+        {
+            <div class="col-md-4 mb-4">
+                <h4>Gestão de Localidades</h4>
+                <div class="list-group">
+                    <a asp-controller="Country" asp-action="Create" class="list-group-item list-group-item-action">
+                        <i class="bi bi-globe-americas me-2"></i> Criar País
+                    </a>
+                    <a asp-controller="Country" asp-action="Index" class="list-group-item list-group-item-action">
+                        <i class="bi bi-map me-2"></i> Listagem de Países
+                    </a>
+                    <a asp-controller="Locality" asp-action="Create" class="list-group-item list-group-item-action">
+                        <i class="bi bi-pin-map-fill me-2"></i> Criar Localidade
+                    </a>
+                    <a asp-controller="Locality" asp-action="Index" class="list-group-item list-group-item-action">
+                        <i class="bi bi-geo-alt-fill me-2"></i> Listagem de Localidades
+                    </a>
+                </div>
             </div>
-        </div>
+        }
     </div>
 </div>
