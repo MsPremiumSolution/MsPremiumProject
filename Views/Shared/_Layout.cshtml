@@ -11,46 +11,46 @@
     <style>
         /* Estilo para o item de menu principal quando o submenu está ativo */
         .nav-link.has-active-submenu {
-            background-color: #0056b3; /* Cor de destaque */
-            border-left: 4px solid #ffc107;
-            padding-left: calc(0.75rem - 4px); /* Ajusta o padding para alinhar o texto */
-        }
-        
-        .submenu {
-            padding-left: 20px;
-            background-color: rgba(0,0,0,0.1);
-            border-left: 3px solid #ffc107;
-            margin-left: 10px;
-            border-radius: 0 5px 5px 0;
-            padding-bottom: 10px;
+        background-color: #0056b3; /* Cor de destaque */
+        border-left: 4px solid #ffc107;
+        padding-left: calc(0.75rem - 4px); /* Ajusta o padding para alinhar o texto */
         }
 
-            .submenu .nav-link {
-                font-size: 0.9em;
-                padding-top: .4rem;
-                padding-bottom: .4rem;
-            }
+        .submenu {
+        padding-left: 20px;
+        background-color: rgba(0,0,0,0.1);
+        border-left: 3px solid #ffc107;
+        margin-left: 10px;
+        border-radius: 0 5px 5px 0;
+        padding-bottom: 10px;
+        }
+
+        .submenu .nav-link {
+        font-size: 0.9em;
+        padding-top: .4rem;
+        padding-bottom: .4rem;
+        }
 
         .submenu-item-circle {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255, 255, 255, 0.7);
-            border-radius: 50%;
-            margin-right: 10px;
-            vertical-align: middle;
-            transition: background-color 0.2s;
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.7);
+        border-radius: 50%;
+        margin-right: 10px;
+        vertical-align: middle;
+        transition: background-color 0.2s;
         }
 
         .submenu a.nav-link.active .submenu-item-circle,
         .submenu a.nav-link.active {
-            color: #fff !important;
-            font-weight: bold;
+        color: #fff !important;
+        font-weight: bold;
         }
-        
+
         .submenu a.nav-link.active .submenu-item-circle {
-            background-color: #ffc107;
-            border-color: #ffc107;
+        background-color: #ffc107;
+        border-color: #ffc107;
         }
     </style>
 </head>
@@ -65,12 +65,13 @@
             {
                 <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
                 <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
-                
-                @{
-                    // Verifica se estamos no contexto de um orçamento de Qualidade do Ar
-                    var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
-                }
-                
+
+
+                // Verifica se estamos no contexto de um orçamento de Qualidade do Ar
+                // Verifica se estamos no contexto de um orçamento de Qualidade do Ar
+                var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
+
+
                 <!-- Adiciona uma classe de destaque se o submenu estiver ativo -->
                 <a class="nav-link @(inQualidadeArContext ? "has-active-submenu" : "")" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
 
