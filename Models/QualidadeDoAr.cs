@@ -15,16 +15,16 @@ public partial class QualidadeDoAr
 
     [Key]
     public ulong Id { get; set; }
-    public ulong DadosGeraisId { get; set; }
-    public ulong ObjetivosId { get; set; }
-    public ulong OrcamentoArId { get; set; }
+    public ulong? DadosGeraisId { get; set; }
+    public ulong? ObjetivosId { get; set; }
+    public ulong? OrcamentoArId { get; set; }
 
     [ForeignKey("DadosGeraisId")]
-    public virtual DadosGerais DadosGerais { get; set; } = null!;
+    public virtual DadosGerais? DadosGerais { get; set; } = null!;
     [ForeignKey("ObjetivosId")]
-    public virtual Objetivos Objetivos { get; set; } = null!;
+    public virtual Objetivos? Objetivos { get; set; } = null!;
     [ForeignKey("OrcamentoArId")]
-    public virtual OrcamentoAr OrcamentoAr { get; set; } = null!;
+    public virtual OrcamentoAr? OrcamentoAr { get; set; } = null!;
 
     public virtual ICollection<Volume> Volumes { get; set; }
     public virtual Proposta? Proposta { get; set; }

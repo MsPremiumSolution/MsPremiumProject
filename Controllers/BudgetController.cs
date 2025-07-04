@@ -6,6 +6,7 @@ using MSPremiumProject.Data;
 using MSPremiumProject.Models;
 using MSPremiumProject.ViewModels;
 using System;
+using System.Collections.Generic; // Adicionar este using
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -25,6 +26,48 @@ namespace MSPremiumProject.Controllers
             _context = context;
         }
 
+        // ================================================================================
+        // Helper para definir o estado do submenu e a conclusão dos passos
+        // ================================================================================
+        private async Task SetQualidadeArSubmenuState(ulong propostaId, string activeLinkName)
+        {
+            ViewData["CurrentBudgetContext"] = "QualidadeAr";
+            ViewData["ActiveSubmenuLink"] = activeLinkName;
+
+            var stepsCompleted = new Dictionary<string, bool>();
+
+            var proposta = await _context.Proposta
+                                 .Include(p => p.QualidadeDoAr)
+                                     .ThenInclude(qa => qa.DadosGerais)
+                                 .Include(p => p.QualidadeDoAr)
+                                     .ThenInclude(qa => qa.Objetivos)
+                                 .Include(p => p.QualidadeDoAr)
+                                     .ThenInclude(qa => qa.Volumes) // Certifica-te que 'Volumes' é uma coleção no modelo QualidadeDoAr
+                                 .FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+
+            if (proposta?.QualidadeDoAr != null)
+            {
+                // Coleção de Dados: Considerado completo se DadosGerais e suas sub-partes existirem
+                stepsCompleted["ColecaoDados"] = proposta.QualidadeDoAr.DadosGeraisId.HasValue &&
+                                                 proposta.QualidadeDoAr.DadosGerais?.DadosConstrutivo != null &&
+                                                 proposta.QualidadeDoAr.DadosGerais?.Higrometria != null &&
+                                                 proposta.QualidadeDoAr.DadosGerais?.Sintomatologia != null;
+
+                // Objetivos: Considerado completo se a entidade Objetivos estiver associada
+                stepsCompleted["Objetivos"] = proposta.QualidadeDoAr.ObjetivosId.HasValue;
+
+                // Volumes: Considerado completo se existirem Volumes associados
+                stepsCompleted["Volumes"] = proposta.QualidadeDoAr.Volumes != null && proposta.QualidadeDoAr.Volumes.Any();
+
+                // Detalhe/Resumo: Considerado completo se os dados anteriores estiverem preenchidos
+                stepsCompleted["DetalheOrcamento"] = stepsCompleted["ColecaoDados"] && stepsCompleted["Objetivos"] && stepsCompleted["Volumes"];
+                stepsCompleted["ResumoOrcamento"] = stepsCompleted["DetalheOrcamento"]; // Pode ser ajustado para ser diferente
+            }
+
+            ViewData["StepsCompleted"] = stepsCompleted;
+        }
+
+
         //================================================================================
         // PÁGINA PRINCIPAL: LISTAGEM DE ORÇAMENTOS POR CONCLUIR
         //================================================================================
@@ -38,7 +81,6 @@ namespace MSPremiumProject.Controllers
                                          .Include(p => p.Estado)
                                          .OrderByDescending(p => p.DataProposta)
                                          .ToListAsync();
-            // Nenhuma definição de ViewData["CurrentBudgetContext"] aqui, pois não estamos num fluxo específico.
             return View(propostasEmCurso);
         }
 
@@ -62,7 +104,6 @@ namespace MSPremiumProject.Controllers
             }
 
             var clientes = await clientesQuery.OrderBy(c => c.Nome).ThenBy(c => c.Apelido).ToListAsync();
-            // Nenhuma definição de ViewData["CurrentBudgetContext"] aqui.
             return View(clientes);
         }
 
@@ -85,7 +126,7 @@ namespace MSPremiumProject.Controllers
             {
                 ClienteId = clienteId,
                 UtilizadorId = utilizadorId,
-                EstadoPropostaId = ESTADO_EM_CURSO,
+                EstadoPropostaId = ESTADO_EM_CURSO, // 1 = "Em Curso"
                 DataProposta = DateTime.UtcNow
             };
 
@@ -94,8 +135,7 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
 
-            // Não define ViewData["CurrentBudgetContext"] aqui.
-            // O submenu só aparecerá após o utilizador escolher o tipo de tratamento.
+            // O submenu não aparece aqui, só depois de escolher o tipo de tratamento
             return RedirectToAction(nameof(TipologiaConstrutiva));
         }
 
@@ -114,19 +154,17 @@ namespace MSPremiumProject.Controllers
             // Carrega a proposta novamente com as relações para verificar o tipo de tratamento
             proposta = await _context.Proposta
                                      .Include(p => p.QualidadeDoAr)
-                                     // .Include(p => p.TratamentoEstrutural) // se existisse
                                      .FirstOrDefaultAsync(p => p.PropostaId == id);
 
-            // Redireciona para a etapa correta e define o contexto do submenu APENAS se já for QA
-            if (proposta.QualidadeDoArId.HasValue)
+            // Redireciona para a etapa correta
+            if (proposta.QualidadeDoArId.HasValue) // Se já tem um tratamento de Qualidade do Ar
             {
-                ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu, pois já tem um tratamento QA
-                ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Assume que começa na coleção de dados se já tem tratamento
+                await SetQualidadeArSubmenuState(id, "ColecaoDados"); // Ativa o submenu e a primeira etapa
                 return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
             }
             // else if (proposta.TratamentoEstruturalId.HasValue) { // Lógica similar para Tratamento Estrutural }
 
-            // Se não tem tratamento, redireciona para o passo apropriado sem ativar o submenu de QA ainda.
+            // Se não tem tratamento, redireciona para o passo apropriado sem submenu ainda
             if (proposta.TipologiaConstrutivaId == null)
             {
                 return RedirectToAction(nameof(TipologiaConstrutiva));
@@ -153,12 +191,12 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            // Ativa o submenu APENAS se já existir um tratamento de Qualidade do Ar na proposta
+            // O submenu só será ativado se a proposta já tiver um tratamento de Qualidade do Ar (ao continuar)
+            // Ou se for um novo orçamento e o utilizador escolher QA na próxima etapa.
             if (proposta.QualidadeDoArId.HasValue)
             {
-                ViewData["CurrentBudgetContext"] = "QualidadeAr";
+                await SetQualidadeArSubmenuState(propostaId, "TipologiaConstrutiva");
             }
-            ViewData["ActiveSubmenuLink"] = "TipologiaConstrutiva"; // Este link está sempre ativo nesta página
 
             ViewData["ClienteNome"] = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
             ViewData["SelectedTipologiaId"] = proposta.TipologiaConstrutivaId;
@@ -206,12 +244,11 @@ namespace MSPremiumProject.Controllers
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null) return NotFound();
 
-            // Ativa o submenu APENAS se já existir um tratamento de Qualidade do Ar na proposta
+            // O submenu só será ativado se a proposta já tiver um tratamento de Qualidade do Ar (ao continuar)
             if (proposta.QualidadeDoArId.HasValue)
             {
-                ViewData["CurrentBudgetContext"] = "QualidadeAr";
+                await SetQualidadeArSubmenuState(propostaId, "SelectTreatment");
             }
-            ViewData["ActiveSubmenuLink"] = "SelectTreatment"; // Este link está sempre ativo nesta página
 
             var viewModel = new SelectTreatmentViewModel
             {
@@ -239,7 +276,6 @@ namespace MSPremiumProject.Controllers
             // Se já tem um tratamento de Qualidade do Ar, redireciona para a edição existente.
             if (proposta.QualidadeDoArId.HasValue)
             {
-                // Note: ViewData is not needed here as we are redirecting, the target action will set it.
                 return RedirectToAction(nameof(ContinuarOrcamento), new { id = proposta.PropostaId });
             }
 
@@ -248,6 +284,7 @@ namespace MSPremiumProject.Controllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
+                    // 1. Cria todas as entidades dependentes primeiro para obter os seus IDs
                     var novosDadosConstrutivos = new DadosConstrutivos { DataVisita = DateTime.Today };
                     var novaHigrometria = new Higrometria();
                     var novaSintomatologia = new Sintomatologia();
@@ -257,6 +294,7 @@ namespace MSPremiumProject.Controllers
                     _context.AddRange(novosDadosConstrutivos, novaHigrometria, novaSintomatologia, novosObjetivos, novoOrcamentoAr);
                     await _context.SaveChangesAsync();
 
+                    // 2. Agora cria DadosGerais que referencia os IDs anteriores
                     var novosDadosGerais = new DadosGerais
                     {
                         DadosConstrutivosId = novosDadosConstrutivos.Id,
@@ -266,6 +304,7 @@ namespace MSPremiumProject.Controllers
                     _context.DadosGerais.Add(novosDadosGerais);
                     await _context.SaveChangesAsync();
 
+                    // 3. Finalmente, cria QualidadeDoAr que referencia os IDs anteriores
                     var novoTratamentoAr = new QualidadeDoAr
                     {
                         DadosGeraisId = novosDadosGerais.Id,
@@ -275,17 +314,19 @@ namespace MSPremiumProject.Controllers
                     _context.QualidadeDoAr.Add(novoTratamentoAr);
                     await _context.SaveChangesAsync();
 
+                    // 4. Associa o ID do tratamento de Qualidade do Ar à Proposta principal
                     proposta.QualidadeDoArId = novoTratamentoAr.Id;
                     await _context.SaveChangesAsync();
 
-                    await transaction.CommitAsync();
+                    await transaction.CommitAsync(); // Confirma todas as alterações na BD
 
-                    // Não define ViewData aqui, o EditQualidadeDoAr (destino) vai fazê-lo.
+                    // Redireciona para a página de edição do tratamento recém-criado
+                    // O submenu será ativado pelo método EditQualidadeDoAr
                     return RedirectToAction("EditQualidadeDoAr", new { id = novoTratamentoAr.Id });
                 }
                 catch (Exception ex)
                 {
-                    await transaction.RollbackAsync();
+                    await transaction.RollbackAsync(); // Reverte tudo em caso de erro
                     TempData["MensagemErro"] = $"Erro crítico ao criar estrutura do orçamento: {ex.Message}. Tente novamente.";
                     return RedirectToAction(nameof(SelectTreatment));
                 }
@@ -298,12 +339,8 @@ namespace MSPremiumProject.Controllers
         // PÁGINAS DE EDIÇÃO - TODAS ATIVAM O SUBMENU E O LINK CORRETO
         //================================================================================
         [HttpGet]
-        public async Task<IActionResult> ColecaoDados()
+        public async Task<IActionResult> ColecaoDados() // Este é o link no submenu para Dados Construtivos/Higrometria/Sintomatologia
         {
-            ViewData["Title"] = "Coleção de Dados";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
-            ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Ativa este link no submenu
-
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
                 TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
@@ -317,16 +354,15 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(SelectTreatment)); // Redireciona para selecionar tipo se não houver QA
             }
 
-            // Redireciona para a ação principal de edição com o ID correto
+            // Redireciona para a ação principal de edição com o ID correto e ativa o submenu lá.
             return RedirectToAction(nameof(EditQualidadeDoAr), new { id = proposta.QualidadeDoArId.Value });
         }
 
         [HttpGet]
-        public async Task<IActionResult> EditQualidadeDoAr(ulong id) // Esta é a página real do formulário
+        public async Task<IActionResult> EditQualidadeDoAr(ulong id) // Página real para o formulário de Coleção de Dados
         {
             ViewData["Title"] = $"Editar Orçamento de Qualidade do Ar (ID: {id})";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
-            ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Ativa "Coleção de dados" como esta é a sua página principal
+            await SetQualidadeArSubmenuState(id, "ColecaoDados"); // Ativa o submenu e o link "Coleção de dados"
 
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
@@ -345,14 +381,14 @@ namespace MSPremiumProject.Controllers
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.Sintomatologia)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(q => q.Id == id); // Usa 'Id' como no teu modelo QualidadeDoAr.cs
+                .FirstOrDefaultAsync(q => q.Id == id);
 
             if (tratamento?.DadosGerais?.DadosConstrutivo == null) return NotFound("A estrutura de dados para este orçamento não foi encontrada ou está incompleta.");
 
             var viewModel = new QualidadeArViewModel
             {
                 PropostaId = propostaId,
-                QualidadeDoArId = tratamento.Id, // Usa 'Id' aqui
+                QualidadeDoArId = tratamento.Id,
                 NomeCliente = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}",
 
                 DataVisita = tratamento.DadosGerais.DadosConstrutivo.DataVisita,
@@ -402,8 +438,7 @@ namespace MSPremiumProject.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditQualidadeDoAr(QualidadeArViewModel model)
         {
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu, mesmo em POST com erro de validação
-            ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Ativa "Coleção de dados"
+            await SetQualidadeArSubmenuState(model.PropostaId, "ColecaoDados"); // Ativa o submenu, mesmo em POST com erro de validação
 
             if (!ModelState.IsValid)
             {
@@ -440,41 +475,61 @@ namespace MSPremiumProject.Controllers
         // Todas ativam o submenu e o link correto
         //================================================================================
         [HttpGet]
-        public IActionResult Objetivos()
+        public async Task<IActionResult> Objetivos()
         {
+            if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
+            {
+                TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+            await SetQualidadeArSubmenuState(propostaId, "Objetivos"); // Ativa o submenu e o link
+
             ViewData["Title"] = "Objetivos";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
-            ViewData["ActiveSubmenuLink"] = "Objetivos"; // Ativa este link no submenu
             // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
 
         [HttpGet]
-        public IActionResult Volumes()
+        public async Task<IActionResult> Volumes()
         {
+            if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
+            {
+                TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+            await SetQualidadeArSubmenuState(propostaId, "Volumes"); // Ativa o submenu e o link
+
             ViewData["Title"] = "Volumes";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
-            ViewData["ActiveSubmenuLink"] = "Volumes"; // Ativa este link no submenu
             // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
 
         [HttpGet]
-        public IActionResult DetalheOrcamento()
+        public async Task<IActionResult> DetalheOrcamento()
         {
+            if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
+            {
+                TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+            await SetQualidadeArSubmenuState(propostaId, "DetalheOrcamento"); // Ativa o submenu e o link
+
             ViewData["Title"] = "Detalhe do Orçamento";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
-            ViewData["ActiveSubmenuLink"] = "DetalheOrcamento"; // Ativa este link no submenu
             // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
 
         [HttpGet]
-        public IActionResult ResumoOrcamento()
+        public async Task<IActionResult> ResumoOrcamento()
         {
+            if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
+            {
+                TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+            await SetQualidadeArSubmenuState(propostaId, "ResumoOrcamento"); // Ativa o submenu e o link
+
             ViewData["Title"] = "Resumo do Orçamento";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
-            ViewData["ActiveSubmenuLink"] = "ResumoOrcamento"; // Ativa este link no submenu
             // TODO: Lógica para carregar e passar dados para a View
             return View();
         }

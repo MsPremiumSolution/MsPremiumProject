@@ -39,19 +39,31 @@
             border-radius: 50%;
             margin-right: 10px;
             vertical-align: middle;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, border-color 0.2s; /* Adiciona transição para cores */
         }
 
-        .submenu a.nav-link.active .submenu-item-circle,
+        /* Cor do círculo quando o link está ATIVO (página atual) */
+        .submenu a.nav-link.active .submenu-item-circle {
+            background-color: #ffc107; /* Laranja preenchido */
+            border-color: #ffc107;     /* Borda laranja */
+        }
+        /* Estilo do texto do link ativo */
         .submenu a.nav-link.active {
             color: #fff !important;
             font-weight: bold;
         }
 
-            .submenu a.nav-link.active .submenu-item-circle {
-                background-color: #ffc107;
-                border-color: #ffc107;
-            }
+        /* Estilo para o círculo quando o passo está COMPLETO (mas não é a página atual) */
+        .submenu-item-circle.completed {
+            background-color: rgba(255, 255, 255, 0.3); /* Um cinzento claro/semi-transparente preenchido */
+            border-color: rgba(255, 255, 255, 0.5); /* Borda um pouco mais escura */
+        }
+        
+        /* Prioridade para o estado 'active' sobre 'completed' */
+        .submenu a.nav-link.active .submenu-item-circle.completed {
+            background-color: #ffc107;
+            border-color: #ffc107;
+        }
     </style>
 </head>
 <body>
@@ -68,6 +80,14 @@
 
                 
                     var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
+                    var stepsCompleted = ViewData["StepsCompleted"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
+
+                    // Helper para verificar se um passo está completo
+                    bool IsStepCompleted(string stepName) => stepsCompleted.GetValueOrDefault(stepName);
+
+                    // Helper para verificar se um link é o ativo
+                    string activeSubmenuLinkName = ViewData["ActiveSubmenuLink"] as string ?? "";
+                    bool IsActiveLink(string actionName) => activeSubmenuLinkName == actionName;
                 
 
                 <a class="nav-link @(inQualidadeArContext ? "has-active-submenu" : "")" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
@@ -79,25 +99,34 @@
                             <h6 class="text-white mb-0">Qualidade do ar</h6>
                             <a asp-controller="Budget" asp-action="SelectTreatment" class="btn btn-sm btn-link text-white p-0" title="Alterar tipo de tratamento"><i class="bi bi-x-lg"></i></a>
                         </div>
-                        <a class="nav-link" asp-controller="Budget" asp-action="ColecaoDados">
-                            <span class="submenu-item-circle"></span> Coleção de dados
+                        
+                        <!-- Coleção de dados -->
+                        <a class="nav-link @(IsActiveLink("ColecaoDados") ? "active" : "")" asp-controller="Budget" asp-action="ColecaoDados">
+                            <span class="submenu-item-circle @(IsStepCompleted("ColecaoDados") ? "completed" : "")"></span> Coleção de dados
                         </a>
-                        <a class="nav-link" asp-controller="Budget" asp-action="Objetivos">
-                            <span class="submenu-item-circle"></span> Objetivos
+                        
+                        <!-- Objetivos -->
+                        <a class="nav-link @(IsActiveLink("Objetivos") ? "active" : "")" asp-controller="Budget" asp-action="Objetivos">
+                            <span class="submenu-item-circle @(IsStepCompleted("Objetivos") ? "completed" : "")"></span> Objetivos
                         </a>
-                        <a class="nav-link" asp-controller="Budget" asp-action="Volumes">
-                            <span class="submenu-item-circle"></span> Volumes
+                        
+                        <!-- Volumes -->
+                        <a class="nav-link @(IsActiveLink("Volumes") ? "active" : "")" asp-controller="Budget" asp-action="Volumes">
+                            <span class="submenu-item-circle @(IsStepCompleted("Volumes") ? "completed" : "")"></span> Volumes
                         </a>
-                        <a class="nav-link" asp-controller="Budget" asp-action="DetalheOrcamento">
-                            <span class="submenu-item-circle"></span> Detalhe do orçamento
+                        
+                        <!-- Detalhe do orçamento -->
+                        <a class="nav-link @(IsActiveLink("DetalheOrcamento") ? "active" : "")" asp-controller="Budget" asp-action="DetalheOrcamento">
+                            <span class="submenu-item-circle @(IsStepCompleted("DetalheOrcamento") ? "completed" : "")"></span> Detalhe do orçamento
                         </a>
-                        <a class="nav-link" asp-controller="Budget" asp-action="ResumoOrcamento">
-                            <span class="submenu-item-circle"></span> Resumo do orçamento
+                        
+                        <!-- Resumo do orçamento -->
+                        <a class="nav-link @(IsActiveLink("ResumoOrcamento") ? "active" : "")" asp-controller="Budget" asp-action="ResumoOrcamento">
+                            <span class="submenu-item-circle @(IsStepCompleted("ResumoOrcamento") ? "completed" : "")"></span> Resumo do orçamento
                         </a>
                     </div>
                 }
 
-                @* Permite acesso a "Settings" para Admins E Comerciais *@
                 @if (User.IsInRole("Admin") || User.IsInRole("Comercial"))
                 {
                     <a class="nav-link" asp-controller="Admin" asp-action="AdminMenu"><i class="bi bi-gear-fill"></i> Settings</a>
@@ -165,21 +194,9 @@
             }
 
             // Script para marcar o item ativo no submenu
-            const submenu = document.getElementById('qualidadeArSubmenu');
-            const activeSubmenuLinkName = "@(ViewData["ActiveSubmenuLink"] as string ?? "")"; // Recebe o nome da ação ativa do ViewData
-
-            if (submenu && activeSubmenuLinkName) {
-                try {
-                    // Procura pelo link no submenu que tem o asp-action correspondente ao nome da ação ativa
-                    // O 'i' no final de 'a.nav-link[href*='...']' faz a pesquisa case-insensitive
-                    const activeLink = submenu.querySelector(`a.nav-link[asp-action='${activeSubmenuLinkName.toLowerCase()}' i]`);
-                    if (activeLink) {
-                        activeLink.classList.add('active');
-                    }
-                } catch(e) {
-                    console.error("Erro ao marcar link ativo do submenu:", e);
-                }
-            }
+            // Este script agora é mais simples porque o estado "active" já vem do Razor
+            // e os "completed" são gerados com a classe .completed.
+            // Não precisa de fazer manipulação de classes aqui.
         });
     </script>
 
