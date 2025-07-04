@@ -23,30 +23,7 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <h4>Gestão de Localidades</h4>
-            <div class="list-group">
-                @* Supondo que você terá um AdminController ou RoleController para gerir roles *@
-                @* Se CreateRole estiver no AdminController e o controller estiver protegido por [Authorize(Roles="Admin")] *@
-                <a asp-controller="Country" asp-action="Create" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock-fill me-2"></i> Criar País
-                </a>
-                <a asp-controller="Country" asp-action="Index" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock-fill me-2"></i> Listagem de Países
-                </a>
-                <a asp-controller="Locality" asp-action="Create" class="list-group-item list-group-item-action">
-                    <i class="bi bi-geo-alt-fill me-2"></i> Criar Localidade  @* Ícone sugerido para localidade *@
-                </a>
-                <a asp-controller="Locality" asp-action="Index" class="list-group-item list-group-item-action">
-                    <i class="bi bi-shield-lock-fill me-2"></i> Listagem de Localidades
-                </a>
-                @*
-                <a asp-controller="Admin" asp-action="ListRoles" class="list-group-item list-group-item-action">
-                     <i class="bi bi-view-list me-2"></i> Listar Roles
-                </a>
-                *@
-            </div>
-        </div>
+        
 
         <div class="col-md-4">
             <h4>Outras Configurações</h4>
