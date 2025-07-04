@@ -32,7 +32,7 @@ namespace MSPremiumProject.Controllers
         public async Task<IActionResult> OrçamentosEmCurso()
         {
             ViewData["Title"] = "Orçamentos por Concluir";
-            var propostasEmCurso = await _context.Proposta // Usando "Propostas" se mudaste no DbContext
+            var propostasEmCurso = await _context.Propostas
                                          .Where(p => p.EstadoPropostaId == ESTADO_EM_CURSO)
                                          .Include(p => p.Cliente)
                                          .Include(p => p.Estado)
@@ -83,24 +83,26 @@ namespace MSPremiumProject.Controllers
             {
                 ClienteId = clienteId,
                 UtilizadorId = utilizadorId,
-                EstadoPropostaId = ESTADO_EM_CURSO, // 1 = "Em Curso"
+                EstadoPropostaId = ESTADO_EM_CURSO,
                 DataProposta = DateTime.UtcNow
             };
 
-            _context.Proposta.Add(novaProposta);
+            _context.Propostas.Add(novaProposta);
             await _context.SaveChangesAsync();
 
             HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
 
-            // Redireciona para a primeira etapa do formulário.
-            // O ViewData é definido no método de destino (TipologiaConstrutiva).
+            // Define o contexto para o submenu Qualidade do Ar e a ação inicial
+            ViewData["CurrentBudgetContext"] = "QualidadeAr";
+            ViewData["ActiveSubmenuLink"] = "TipologiaConstrutiva"; // OU "ColecaoDados" se fosse direto para QA
+
             return RedirectToAction(nameof(TipologiaConstrutiva));
         }
 
         [HttpGet]
         public async Task<IActionResult> ContinuarOrcamento(ulong id)
         {
-            var proposta = await _context.Proposta.FindAsync(id);
+            var proposta = await _context.Propostas.FindAsync(id);
             if (proposta == null || proposta.EstadoPropostaId != ESTADO_EM_CURSO)
             {
                 TempData["MensagemErro"] = "Orçamento inválido ou já concluído.";
@@ -109,23 +111,24 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", proposta.PropostaId.ToString());
 
-            // Primeiro, verifica se já tem um tratamento de Qualidade do Ar
-            if (proposta.QualidadeDoArId.HasValue)
+            // Lógica para decidir para onde redirecionar e definir o contexto do submenu
+            if (proposta.QualidadeDoArId.HasValue) // Se já tem um tratamento de Qualidade do Ar
             {
-                // Se sim, ativa o submenu e redireciona para a página de edição do tratamento.
-                // O ViewData será definido no EditQualidadeDoAr.
+                ViewData["CurrentBudgetContext"] = "QualidadeAr";
+                // A ação de edição da QA é a "Colecao de dados" no submenu
+                ViewData["ActiveSubmenuLink"] = "ColecaoDados";
                 return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
             }
-            // Se tiver TratamentoEstruturalId, fazer algo similar.
-            // if (proposta.TratamentoEstruturalId.HasValue) { ... }
-
+            // Add other treatment types here, e.g., if (proposta.TratamentoEstruturalId.HasValue) { ... }
 
             // Se não tem tratamento, redireciona para o passo apropriado.
-            // O ViewData será definido no método de destino.
+            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Assume que qualquer orçamento em curso terá submenu QA
             if (proposta.TipologiaConstrutivaId == null)
             {
+                ViewData["ActiveSubmenuLink"] = "TipologiaConstrutiva";
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
+            ViewData["ActiveSubmenuLink"] = "SelectTreatment";
             return RedirectToAction(nameof(SelectTreatment)); // Se já escolheu tipologia, vai para a seleção de tratamento.
         }
 
@@ -141,7 +144,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+            var proposta = await _context.Propostas.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null)
             {
                 TempData["MensagemErro"] = "Orçamento não encontrado.";
@@ -150,6 +153,8 @@ namespace MSPremiumProject.Controllers
 
             // Define o contexto para mostrar o submenu de Qualidade do Ar
             ViewData["CurrentBudgetContext"] = "QualidadeAr";
+            ViewData["ActiveSubmenuLink"] = "TipologiaConstrutiva"; // Destaca este link no submenu
+
             ViewData["ClienteNome"] = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
             ViewData["SelectedTipologiaId"] = proposta.TipologiaConstrutivaId;
 
@@ -172,7 +177,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
 
-            var proposta = await _context.Proposta.FindAsync(propostaId);
+            var proposta = await _context.Propostas.FindAsync(propostaId);
             if (proposta == null) return NotFound();
 
             proposta.TipologiaConstrutivaId = selectedTipologiaId;
@@ -193,11 +198,12 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+            var proposta = await _context.Propostas.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null) return NotFound();
 
             // Define o contexto para mostrar o submenu de Qualidade do Ar
             ViewData["CurrentBudgetContext"] = "QualidadeAr";
+            ViewData["ActiveSubmenuLink"] = "SelectTreatment"; // Destaca este link no submenu
 
             var viewModel = new SelectTreatmentViewModel
             {
@@ -219,7 +225,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Proposta.FindAsync(propostaId);
+            var proposta = await _context.Propostas.FindAsync(propostaId);
             if (proposta == null) return NotFound();
 
             // Se já tem um tratamento de Qualidade do Ar, redireciona para a edição existente.
@@ -233,28 +239,24 @@ namespace MSPremiumProject.Controllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    // 1. Cria todas as entidades dependentes primeiro para obter os seus IDs
                     var novosDadosConstrutivos = new DadosConstrutivos { DataVisita = DateTime.Today };
                     var novaHigrometria = new Higrometria();
                     var novaSintomatologia = new Sintomatologia();
                     var novosObjetivos = new Objetivos();
                     var novoOrcamentoAr = new OrcamentoAr();
 
-                    // Adiciona ao contexto e salva para obter os IDs gerados pela BD
                     _context.AddRange(novosDadosConstrutivos, novaHigrometria, novaSintomatologia, novosObjetivos, novoOrcamentoAr);
                     await _context.SaveChangesAsync();
 
-                    // 2. Agora cria DadosGerais que referencia os IDs anteriores
                     var novosDadosGerais = new DadosGerais
                     {
                         DadosConstrutivosId = novosDadosConstrutivos.Id,
                         HigrometriaId = novaHigrometria.Id,
-                        SintomalogiaId = novaSintomatologia.Id // Corrigido de SintomalogiaId
+                        SintomatologiaId = novaSintomatologia.Id
                     };
                     _context.DadosGerais.Add(novosDadosGerais);
                     await _context.SaveChangesAsync();
 
-                    // 3. Finalmente, cria QualidadeDoAr que referencia os IDs anteriores
                     var novoTratamentoAr = new QualidadeDoAr
                     {
                         DadosGeraisId = novosDadosGerais.Id,
@@ -264,21 +266,21 @@ namespace MSPremiumProject.Controllers
                     _context.QualidadeDoAr.Add(novoTratamentoAr);
                     await _context.SaveChangesAsync();
 
-                    // 4. Associa o ID do tratamento de Qualidade do Ar à Proposta principal
                     proposta.QualidadeDoArId = novoTratamentoAr.Id;
                     await _context.SaveChangesAsync();
 
-                    await transaction.CommitAsync(); // Confirma todas as alterações na BD
+                    await transaction.CommitAsync();
 
                     // Redireciona para a página de edição do tratamento recém-criado
+                    // E define o contexto do submenu
+                    ViewData["CurrentBudgetContext"] = "QualidadeAr";
+                    ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Ativa o link "Coleção de dados"
                     return RedirectToAction("EditQualidadeDoAr", new { id = novoTratamentoAr.Id });
                 }
                 catch (Exception ex)
                 {
-                    await transaction.RollbackAsync(); // Reverte tudo em caso de erro
+                    await transaction.RollbackAsync();
                     TempData["MensagemErro"] = $"Erro crítico ao criar estrutura do orçamento: {ex.Message}. Tente novamente.";
-                    // Log the exception for debugging on the server
-                    // _logger.LogError(ex, "Erro ao criar estrutura de orçamento de Qualidade do Ar");
                     return RedirectToAction(nameof(SelectTreatment));
                 }
             }
@@ -287,14 +289,14 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // ETAPA 6: PÁGINA DE EDIÇÃO (COLEÇÃO DE DADOS - Dados construtivos, Higrometria, Sintomatologia)
-        // Esta ação é chamada a partir do menu lateral ou de ProcessTreatmentSelection
+        // PÁGINAS DE EDIÇÃO - TODAS ATIVAM O SUBMENU E O LINK CORRETO
         //================================================================================
         [HttpGet]
-        public async Task<IActionResult> ColecaoDados() // Alterado para ColecaoDados sem ID diretamente
+        public async Task<IActionResult> ColecaoDados()
         {
             ViewData["Title"] = "Coleção de Dados";
             ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
+            ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Ativa este link no submenu
 
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
@@ -302,23 +304,22 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Proposta.FindAsync(propostaId);
+            var proposta = await _context.Propostas.FindAsync(propostaId);
             if (proposta == null || !proposta.QualidadeDoArId.HasValue)
             {
                 TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
                 return RedirectToAction(nameof(SelectTreatment)); // Redireciona para selecionar tipo se não houver QA
             }
 
-            // Redireciona para a ação principal de edição com o ID correto
             return RedirectToAction(nameof(EditQualidadeDoAr), new { id = proposta.QualidadeDoArId.Value });
         }
-
 
         [HttpGet]
         public async Task<IActionResult> EditQualidadeDoAr(ulong id) // Esta é a página real do formulário
         {
             ViewData["Title"] = $"Editar Orçamento de Qualidade do Ar (ID: {id})";
             ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
+            ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Ativa "Coleção de dados" como esta é a sua página principal
 
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
@@ -326,7 +327,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+            var proposta = await _context.Propostas.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null) return NotFound();
 
             var tratamento = await _context.QualidadeDoAr
@@ -395,6 +396,7 @@ namespace MSPremiumProject.Controllers
         public async Task<IActionResult> EditQualidadeDoAr(QualidadeArViewModel model)
         {
             ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu, mesmo em POST com erro de validação
+            ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Ativa "Coleção de dados"
 
             if (!ModelState.IsValid)
             {
@@ -428,13 +430,14 @@ namespace MSPremiumProject.Controllers
 
         //================================================================================
         // PÁGINAS PLACEHOLDER PARA AS OUTRAS SUB-ETAPAS DA QUALIDADE DO AR
-        // Adiciona ViewData["CurrentBudgetContext"] a todas elas
+        // Todas ativam o submenu e o link correto
         //================================================================================
         [HttpGet]
         public IActionResult Objetivos()
         {
             ViewData["Title"] = "Objetivos";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // <<< Essencial para o submenu
+            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
+            ViewData["ActiveSubmenuLink"] = "Objetivos"; // Ativa este link no submenu
             // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
@@ -443,7 +446,8 @@ namespace MSPremiumProject.Controllers
         public IActionResult Volumes()
         {
             ViewData["Title"] = "Volumes";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // <<< Essencial para o submenu
+            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
+            ViewData["ActiveSubmenuLink"] = "Volumes"; // Ativa este link no submenu
             // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
@@ -452,7 +456,8 @@ namespace MSPremiumProject.Controllers
         public IActionResult DetalheOrcamento()
         {
             ViewData["Title"] = "Detalhe do Orçamento";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // <<< Essencial para o submenu
+            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
+            ViewData["ActiveSubmenuLink"] = "DetalheOrcamento"; // Ativa este link no submenu
             // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
@@ -461,7 +466,8 @@ namespace MSPremiumProject.Controllers
         public IActionResult ResumoOrcamento()
         {
             ViewData["Title"] = "Resumo do Orçamento";
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // <<< Essencial para o submenu
+            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu
+            ViewData["ActiveSubmenuLink"] = "ResumoOrcamento"; // Ativa este link no submenu
             // TODO: Lógica para carregar e passar dados para a View
             return View();
         }
@@ -473,7 +479,7 @@ namespace MSPremiumProject.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteProposta(ulong id)
         {
-            var proposta = await _context.Proposta.FindAsync(id);
+            var proposta = await _context.Propostas.FindAsync(id);
 
             if (proposta == null)
             {
@@ -489,7 +495,7 @@ namespace MSPremiumProject.Controllers
 
             try
             {
-                _context.Proposta.Remove(proposta);
+                _context.Propostas.Remove(proposta);
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = $"A proposta Nº {id} foi apagada com sucesso.";
             }

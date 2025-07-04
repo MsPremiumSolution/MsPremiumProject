@@ -164,7 +164,7 @@
 
     @* Scripts para os menus *@
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+                document.addEventListener('DOMContentLoaded', function () {
             // Script do menu principal (hambúrguer)
             const menuToggleBtn = document.getElementById('menuToggleBtn');
             const sidebar = document.querySelector('.sidebar');
@@ -175,13 +175,13 @@
             }
 
             // Script para marcar o item ativo no submenu
-            const currentPath = window.location.pathname.toLowerCase();
             const submenu = document.getElementById('qualidadeArSubmenu');
-            if (submenu) {
+            const activeSubmenuLinkName = "@(ViewData["ActiveSubmenuLink"] as string ?? "")"; // Recebe o nome da ação ativa do ViewData
+
+            if (submenu && activeSubmenuLinkName) {
                 try {
-                    // Procura pelo link que corresponde à ação atual (última parte do URL)
-                    const actionName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
-                    const activeLink = submenu.querySelector(`a.nav-link[href*='/${actionName}' i]`);
+                    // Procura pelo link no submenu que tem o asp-action correspondente ao nome da ação ativa
+                    const activeLink = submenu.querySelector(`a.nav-link[asp-action='${activeSubmenuLinkName}']`);
                     if (activeLink) {
                         activeLink.classList.add('active');
                     }
