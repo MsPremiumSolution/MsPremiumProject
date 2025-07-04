@@ -38,6 +38,7 @@ namespace MSPremiumProject.Controllers
                                          .Include(p => p.Estado)
                                          .OrderByDescending(p => p.DataProposta)
                                          .ToListAsync();
+            // Nenhuma definição de ViewData["CurrentBudgetContext"] aqui, pois não estamos num fluxo específico.
             return View(propostasEmCurso);
         }
 
@@ -61,6 +62,7 @@ namespace MSPremiumProject.Controllers
             }
 
             var clientes = await clientesQuery.OrderBy(c => c.Nome).ThenBy(c => c.Apelido).ToListAsync();
+            // Nenhuma definição de ViewData["CurrentBudgetContext"] aqui.
             return View(clientes);
         }
 
@@ -92,10 +94,8 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
 
-            // Define o contexto para o submenu Qualidade do Ar e a ação inicial
-            ViewData["CurrentBudgetContext"] = "QualidadeAr";
-            ViewData["ActiveSubmenuLink"] = "TipologiaConstrutiva"; // OU "ColecaoDados" se fosse direto para QA
-
+            // Não define ViewData["CurrentBudgetContext"] aqui.
+            // O submenu só aparecerá após o utilizador escolher o tipo de tratamento.
             return RedirectToAction(nameof(TipologiaConstrutiva));
         }
 
@@ -111,25 +111,27 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", proposta.PropostaId.ToString());
 
-            // Lógica para decidir para onde redirecionar e definir o contexto do submenu
-            if (proposta.QualidadeDoArId.HasValue) // Se já tem um tratamento de Qualidade do Ar
+            // Carrega a proposta novamente com as relações para verificar o tipo de tratamento
+            proposta = await _context.Proposta
+                                     .Include(p => p.QualidadeDoAr)
+                                     // .Include(p => p.TratamentoEstrutural) // se existisse
+                                     .FirstOrDefaultAsync(p => p.PropostaId == id);
+
+            // Redireciona para a etapa correta e define o contexto do submenu APENAS se já for QA
+            if (proposta.QualidadeDoArId.HasValue)
             {
-                ViewData["CurrentBudgetContext"] = "QualidadeAr";
-                // A ação de edição da QA é a "Colecao de dados" no submenu
-                ViewData["ActiveSubmenuLink"] = "ColecaoDados";
+                ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Ativa o submenu, pois já tem um tratamento QA
+                ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Assume que começa na coleção de dados se já tem tratamento
                 return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
             }
-            // Add other treatment types here, e.g., if (proposta.TratamentoEstruturalId.HasValue) { ... }
+            // else if (proposta.TratamentoEstruturalId.HasValue) { // Lógica similar para Tratamento Estrutural }
 
-            // Se não tem tratamento, redireciona para o passo apropriado.
-            ViewData["CurrentBudgetContext"] = "QualidadeAr"; // Assume que qualquer orçamento em curso terá submenu QA
+            // Se não tem tratamento, redireciona para o passo apropriado sem ativar o submenu de QA ainda.
             if (proposta.TipologiaConstrutivaId == null)
             {
-                ViewData["ActiveSubmenuLink"] = "TipologiaConstrutiva";
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
-            ViewData["ActiveSubmenuLink"] = "SelectTreatment";
-            return RedirectToAction(nameof(SelectTreatment)); // Se já escolheu tipologia, vai para a seleção de tratamento.
+            return RedirectToAction(nameof(SelectTreatment));
         }
 
         //================================================================================
@@ -151,9 +153,12 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
-            // Define o contexto para mostrar o submenu de Qualidade do Ar
-            ViewData["CurrentBudgetContext"] = "QualidadeAr";
-            ViewData["ActiveSubmenuLink"] = "TipologiaConstrutiva"; // Destaca este link no submenu
+            // Ativa o submenu APENAS se já existir um tratamento de Qualidade do Ar na proposta
+            if (proposta.QualidadeDoArId.HasValue)
+            {
+                ViewData["CurrentBudgetContext"] = "QualidadeAr";
+            }
+            ViewData["ActiveSubmenuLink"] = "TipologiaConstrutiva"; // Este link está sempre ativo nesta página
 
             ViewData["ClienteNome"] = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
             ViewData["SelectedTipologiaId"] = proposta.TipologiaConstrutivaId;
@@ -201,9 +206,12 @@ namespace MSPremiumProject.Controllers
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null) return NotFound();
 
-            // Define o contexto para mostrar o submenu de Qualidade do Ar
-            ViewData["CurrentBudgetContext"] = "QualidadeAr";
-            ViewData["ActiveSubmenuLink"] = "SelectTreatment"; // Destaca este link no submenu
+            // Ativa o submenu APENAS se já existir um tratamento de Qualidade do Ar na proposta
+            if (proposta.QualidadeDoArId.HasValue)
+            {
+                ViewData["CurrentBudgetContext"] = "QualidadeAr";
+            }
+            ViewData["ActiveSubmenuLink"] = "SelectTreatment"; // Este link está sempre ativo nesta página
 
             var viewModel = new SelectTreatmentViewModel
             {
@@ -231,6 +239,7 @@ namespace MSPremiumProject.Controllers
             // Se já tem um tratamento de Qualidade do Ar, redireciona para a edição existente.
             if (proposta.QualidadeDoArId.HasValue)
             {
+                // Note: ViewData is not needed here as we are redirecting, the target action will set it.
                 return RedirectToAction(nameof(ContinuarOrcamento), new { id = proposta.PropostaId });
             }
 
@@ -271,10 +280,7 @@ namespace MSPremiumProject.Controllers
 
                     await transaction.CommitAsync();
 
-                    // Redireciona para a página de edição do tratamento recém-criado
-                    // E define o contexto do submenu
-                    ViewData["CurrentBudgetContext"] = "QualidadeAr";
-                    ViewData["ActiveSubmenuLink"] = "ColecaoDados"; // Ativa o link "Coleção de dados"
+                    // Não define ViewData aqui, o EditQualidadeDoAr (destino) vai fazê-lo.
                     return RedirectToAction("EditQualidadeDoAr", new { id = novoTratamentoAr.Id });
                 }
                 catch (Exception ex)
@@ -311,6 +317,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(SelectTreatment)); // Redireciona para selecionar tipo se não houver QA
             }
 
+            // Redireciona para a ação principal de edição com o ID correto
             return RedirectToAction(nameof(EditQualidadeDoAr), new { id = proposta.QualidadeDoArId.Value });
         }
 
