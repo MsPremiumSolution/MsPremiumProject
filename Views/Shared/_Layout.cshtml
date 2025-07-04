@@ -73,12 +73,18 @@
                 <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
                 <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
 
-                <!-- Condição do submenu baseada na Session, como estavas a usar -->
-                @if (Context.Session.GetString("CurrentBudget_TreatmentType") == "QualidadeAr")
-                {
-                    <!-- Adiciona a classe de destaque ao link principal do Orçamento, se o submenu estiver visível -->
-                    <a class="nav-link has-active-submenu" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
+                
+                    // Verifica se estamos no contexto de um orçamento de Qualidade do Ar
+                    // AGORA USA O VALOR DO ViewData, que o Controller define
+                    var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
+                
 
+                <!-- Adiciona uma classe de destaque se o submenu estiver visível -->
+                <a class="nav-link @(inQualidadeArContext ? "has-active-submenu" : "")" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
+
+                @* SUBMENU DINÂMICO: AGORA USA A VARIÁVEL inQualidadeArContext CORRETAMENTE *@
+                @if (inQualidadeArContext)
+                {
                     <div id="qualidadeArSubmenu" class="submenu">
                         <div class="d-flex justify-content-between align-items-center ps-3 pe-2 pt-2">
                             <h6 class="text-white mb-0">Qualidade do ar</h6>
@@ -101,11 +107,8 @@
                         </a>
                     </div>
                 }
-                else
-                {
-                    <!-- Link normal do Orçamento se o submenu não estiver visível -->
-                    <a class="nav-link" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
-                }
+                @* Removemos o 'else' redundante aqui, pois a linha acima já lida com o link principal *@
+                @* if (Context.Session.GetString("CurrentBudget_TreatmentType") == "QualidadeAr") { ... } else { ... } *@
 
 
                 @if (User.IsInRole("Admin"))
@@ -119,7 +122,7 @@
             }
         </nav>
         <div class="mt-auto p-3 text-center">
-            <a href="#" class="btn btn-outline-light btn-sm">Ver certificações</a>
+             <a href="#" class="btn btn-outline-light btn-sm">Ver certificações</a>
         </div>
     </div>
 
@@ -164,7 +167,7 @@
 
     @* Scripts para os menus *@
     <script>
-                document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function () {
             // Script do menu principal (hambúrguer)
             const menuToggleBtn = document.getElementById('menuToggleBtn');
             const sidebar = document.querySelector('.sidebar');
@@ -181,7 +184,8 @@
             if (submenu && activeSubmenuLinkName) {
                 try {
                     // Procura pelo link no submenu que tem o asp-action correspondente ao nome da ação ativa
-                    const activeLink = submenu.querySelector(`a.nav-link[asp-action='${activeSubmenuLinkName}']`);
+                    // O 'i' no final de 'a.nav-link[href*='...']' faz a pesquisa case-insensitive
+                    const activeLink = submenu.querySelector(`a.nav-link[href*='${activeSubmenuLinkName.toLowerCase()}' i]`);
                     if (activeLink) {
                         activeLink.classList.add('active');
                     }
