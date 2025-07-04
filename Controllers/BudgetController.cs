@@ -117,7 +117,6 @@ namespace MSPremiumProject.Controllers
             }
             if (proposta.QualidadeDoArId.HasValue)
             {
-                // Salta diretamente para a página de edição correta.
                 return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
             }
 
@@ -141,6 +140,12 @@ namespace MSPremiumProject.Controllers
             {
                 TempData["MensagemErro"] = "Orçamento não encontrado.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+
+            // Ativa o submenu se já estivermos a editar um orçamento de Qualidade do Ar
+            if (proposta.QualidadeDoArId.HasValue)
+            {
+                ViewData["CurrentBudgetContext"] = "QualidadeAr";
             }
 
             ViewData["ClienteNome"] = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
@@ -189,6 +194,11 @@ namespace MSPremiumProject.Controllers
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null) return NotFound();
 
+            if (proposta.QualidadeDoArId.HasValue)
+            {
+                ViewData["CurrentBudgetContext"] = "QualidadeAr";
+            }
+
             var viewModel = new SelectTreatmentViewModel
             {
                 NomeCliente = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}"
@@ -198,7 +208,7 @@ namespace MSPremiumProject.Controllers
         }
 
         //================================================================================
-        // ETAPA 5: PROCESSAR ESCOLHA E CRIAR TODA A ESTRUTURA DE DADOS (VERSÃO CORRIGIDA)
+        // ETAPA 5: PROCESSAR ESCOLHA E CRIAR TODA A ESTRUTURA DE DADOS
         //================================================================================
         [HttpGet]
         public async Task<IActionResult> ProcessTreatmentSelection(string treatmentType)
@@ -222,17 +232,15 @@ namespace MSPremiumProject.Controllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    // 1. Criar todas as entidades dependentes como registos vazios/padrão
                     var novosDadosConstrutivos = new DadosConstrutivos { DataVisita = DateTime.Today };
                     var novaHigrometria = new Higrometria();
                     var novaSintomatologia = new Sintomatologia();
                     var novosObjetivos = new Objetivos();
-                    var novoOrcamentoAr = new OrcamentoAr(); // Assumindo que o seu modelo OrcamentoAr existe
+                    var novoOrcamentoAr = new OrcamentoAr();
 
                     _context.AddRange(novosDadosConstrutivos, novaHigrometria, novaSintomatologia, novosObjetivos, novoOrcamentoAr);
                     await _context.SaveChangesAsync();
 
-                    // 2. Criar a entidade de ligação DadosGerais
                     var novosDadosGerais = new DadosGerais
                     {
                         DadosConstrutivosId = novosDadosConstrutivos.Id,
@@ -242,7 +250,6 @@ namespace MSPremiumProject.Controllers
                     _context.DadosGerais.Add(novosDadosGerais);
                     await _context.SaveChangesAsync();
 
-                    // 3. Criar a entidade "raiz" QualidadeDoAr, ligando TUDO
                     var novoTratamentoAr = new QualidadeDoAr
                     {
                         DadosGeraisId = novosDadosGerais.Id,
@@ -252,7 +259,6 @@ namespace MSPremiumProject.Controllers
                     _context.QualidadeDoAr.Add(novoTratamentoAr);
                     await _context.SaveChangesAsync();
 
-                    // 4. Ligar a QualidadeDoAr à Proposta
                     proposta.QualidadeDoArId = novoTratamentoAr.Id;
                     await _context.SaveChangesAsync();
 
@@ -266,13 +272,12 @@ namespace MSPremiumProject.Controllers
                     return RedirectToAction(nameof(SelectTreatment));
                 }
             }
-
             TempData["MensagemErro"] = "Tipo de tratamento desconhecido.";
             return RedirectToAction(nameof(SelectTreatment));
         }
 
         //================================================================================
-        // ETAPA 6: PÁGINA DE EDIÇÃO (COLEÇÃO DE DADOS) (VERSÃO CORRIGIDA)
+        // ETAPA 6: PÁGINA DE EDIÇÃO (COLEÇÃO DE DADOS)
         //================================================================================
         [HttpGet]
         public async Task<IActionResult> EditQualidadeDoAr(ulong id)
@@ -341,7 +346,8 @@ namespace MSPremiumProject.Controllers
                 EsporosEmSuperficies = tratamento.DadosGerais.Sintomatologia.EsporosEmSuperficies
             };
 
-            ViewData["CurrentBudgetContext"] = "QualidadeDoAr";
+            // LINHA FINAL E MAIS IMPORTANTE: Ativa o submenu no layout.
+            ViewData["CurrentBudgetContext"] = "QualidadeAr";
             return View(viewModel);
         }
 
@@ -351,7 +357,7 @@ namespace MSPremiumProject.Controllers
         {
             if (!ModelState.IsValid)
             {
-                ViewData["CurrentBudgetContext"] = "QualidadeDoAr";
+                ViewData["CurrentBudgetContext"] = "QualidadeAr";
                 return View(model);
             }
 
@@ -364,53 +370,16 @@ namespace MSPremiumProject.Controllers
             if (tratamentoParaAtualizar == null) return NotFound();
 
             var dc = tratamentoParaAtualizar.DadosGerais.DadosConstrutivo;
-            dc.DataVisita = model.DataVisita;
-            dc.AnoConstrucao = model.AnoConstrucao;
-            dc.AreaM2 = model.AreaM2;
-            dc.NumeroAndares = model.NumeroAndares;
-            dc.NumeroHabitantes = model.NumeroHabitantes;
-            dc.Localidade = model.Localidade;
-            dc.Altitude = model.Altitude;
-            dc.TipoFachada = model.TipoFachada;
-            dc.OrientacaoFachada = model.OrientacaoFachada;
-            dc.CoberturaFachadaPrincipal = model.CoberturaFachadaPrincipal;
-            dc.CoberturaFachadaPosterior = model.CoberturaFachadaPosterior;
-            dc.TratamentoHidrofugacao = model.TratamentoHidrofugacao;
-            dc.IsolamentoCamara = model.IsolamentoCamara;
-            dc.IsolamentoInterno = model.IsolamentoInterno;
-            dc.TipoAquecimento = model.TipoAquecimento;
-
+            dc.DataVisita = model.DataVisita; dc.AnoConstrucao = model.AnoConstrucao; dc.AreaM2 = model.AreaM2; dc.NumeroAndares = model.NumeroAndares; dc.NumeroHabitantes = model.NumeroHabitantes; dc.Localidade = model.Localidade; dc.Altitude = model.Altitude; dc.TipoFachada = model.TipoFachada; dc.OrientacaoFachada = model.OrientacaoFachada; dc.CoberturaFachadaPrincipal = model.CoberturaFachadaPrincipal; dc.CoberturaFachadaPosterior = model.CoberturaFachadaPosterior; dc.TratamentoHidrofugacao = model.TratamentoHidrofugacao; dc.IsolamentoCamara = model.IsolamentoCamara; dc.IsolamentoInterno = model.IsolamentoInterno; dc.TipoAquecimento = model.TipoAquecimento;
             var hg = tratamentoParaAtualizar.DadosGerais.Higrometria;
-            hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior;
-            hg.TemperaturaExterior = model.TemperaturaExterior;
-            hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior;
-            hg.TemperaturaInterior = model.TemperaturaInterior;
-            hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas;
-            hg.TemperaturaPontoOrvalho = model.TemperaturaPontoOrvalho;
-            hg.PontoDeOrvalho = model.PontoDeOrvalho;
-            hg.PontosFrios = model.PontosFrios;
-            hg.NivelCO2 = model.NivelCO2;
-            hg.NivelTCOV = model.NivelTCOV;
-            hg.NivelHCHO = model.NivelHCHO;
-            hg.DataLoggerSensores = model.DataLoggerSensores;
-
+            hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior; hg.TemperaturaExterior = model.TemperaturaExterior; hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior; hg.TemperaturaInterior = model.TemperaturaInterior; hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas; hg.TemperaturaPontoOrvalho = model.TemperaturaPontoOrvalho; hg.PontoDeOrvalho = model.PontoDeOrvalho; hg.PontosFrios = model.PontosFrios; hg.NivelCO2 = model.NivelCO2; hg.NivelTCOV = model.NivelTCOV; hg.NivelHCHO = model.NivelHCHO; hg.DataLoggerSensores = model.DataLoggerSensores;
             var st = tratamentoParaAtualizar.DadosGerais.Sintomatologia;
-            st.Fungos = model.Fungos;
-            st.Cheiros = model.Cheiros;
-            st.MofoEmRoupasArmarios = model.MofoEmRoupasArmarios;
-            st.CondensacaoNasJanelas = model.CondensacaoNasJanelas;
-            st.ConsumoExcessivoAquecimento = model.ConsumoExcessivoAquecimento;
-            st.Alergias = model.Alergias;
-            st.ProblemasRespiratorios = model.ProblemasRespiratorios;
-            st.GasRadao = model.GasRadao;
-            st.EsporosEmSuperficies = model.EsporosEmSuperficies;
+            st.Fungos = model.Fungos; st.Cheiros = model.Cheiros; st.MofoEmRoupasArmarios = model.MofoEmRoupasArmarios; st.CondensacaoNasJanelas = model.CondensacaoNasJanelas; st.ConsumoExcessivoAquecimento = model.ConsumoExcessivoAquecimento; st.Alergias = model.Alergias; st.ProblemasRespiratorios = model.ProblemasRespiratorios; st.GasRadao = model.GasRadao; st.EsporosEmSuperficies = model.EsporosEmSuperficies;
 
             await _context.SaveChangesAsync();
-
             TempData["MensagemSucesso"] = "Dados de Qualidade do Ar guardados com sucesso!";
             return RedirectToAction("EditQualidadeDoAr", new { id = model.QualidadeDoArId });
         }
-
 
         //================================================================================
         // AÇÃO PARA APAGAR PROPOSTAS EM CURSO
