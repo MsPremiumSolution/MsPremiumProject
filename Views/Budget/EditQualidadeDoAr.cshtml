@@ -1,0 +1,226 @@
+﻿@model MSPremiumProject.ViewModels.QualidadeArViewModel
+
+@{
+    ViewData["Title"] = $"Orçamento Qualidade do Ar - {Model.NomeCliente}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .budget-creation-container {
+        display: flex;
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .sidebar {
+        width: 280px;
+        flex-shrink: 0;
+        background-color: #003366;
+        color: white;
+        padding: 20px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        overflow-y: auto;
+    }
+
+        .sidebar .menu-header {
+            font-weight: bold;
+            padding: 12px 10px;
+            cursor: pointer;
+            position: relative;
+            border-radius: 5px;
+            text-decoration: none;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a.menu-header:hover {
+            background-color: #004488;
+        }
+
+        .sidebar .menu-header-toggle::after {
+            content: '▼';
+            font-size: 0.7em;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar .menu-header-toggle.active::after {
+            transform: translateY(-50%) rotate(-180deg);
+        }
+
+        .sidebar .sub-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out;
+            padding-left: 20px;
+        }
+
+            .sidebar .sub-menu.active {
+                max-height: 500px;
+            }
+
+            .sidebar .sub-menu a {
+                display: block;
+                color: #ccc;
+                text-decoration: none;
+                padding: 10px;
+                border-left: 3px solid transparent;
+            }
+
+                .sidebar .sub-menu a.active, .sidebar .sub-menu a:hover {
+                    color: white;
+                    background-color: #004d99;
+                    border-left-color: #00bfff;
+                }
+
+    .main-content {
+        flex-grow: 1;
+        padding: 2rem 3rem;
+        background-color: #f8f9fa;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #003366;
+        font-weight: bold;
+    }
+
+    .tab-content {
+        border: 1px solid #dee2e6;
+        border-top: none;
+    }
+
+    .form-section-divider {
+        margin-top: 2rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="budget-creation-container">
+    <aside class="sidebar">
+        <div class="mb-4 text-center"><h4>MURPROTEC</h4><p class="small text-white-50 mb-0">Tratamentos definitivos</p></div>
+        <a asp-action="TipologiaConstrutiva" asp-controller="Budget" class="menu-header">Dados do orçamento</a>
+        <a href="#" class="menu-header">Tipologia construtiva</a>
+        <div class="menu-header menu-header-toggle @(ViewData["CurrentBudgetContext"]?.ToString() == "QualidadeDoAr" ? "active" : "")" id="qualidadeArToggle">Qualidade do ar</div>
+        <div class="sub-menu @(ViewData["CurrentBudgetContext"]?.ToString() == "QualidadeDoAr" ? "active" : "")" id="qualidadeArSubMenu">
+            <a href="#" class="active">Coleção de dados</a>
+            <a href="#">Objetivos</a>
+            <a href="#">Volumes</a>
+            <a href="#">Detalhe do orçamento</a>
+            <a href="#">Resumo do orçamento</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <form asp-action="EditQualidadeDoAr" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="PropostaId" /><input type="hidden" asp-for="QualidadeDoArId" />
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Coleção de dados</h1>
+                <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-2"></i>Guardar Dados</button>
+            </div>
+
+            @if (TempData["MensagemSucesso"] != null)
+            {
+                <div class="alert alert-success">@TempData["MensagemSucesso"]</div>
+            }
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <ul class="nav nav-tabs" id="colecaoDadosTab" role="tablist">
+                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#construtivos-pane" type="button">Dados construtivos</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#higrometria-pane" type="button">Higrometria</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#sintomatologia-pane" type="button">Sintomatologia</button></li>
+            </ul>
+
+            <div class="tab-content bg-white" id="colecaoDadosTabContent">
+                <!-- ======================= ABA DADOS CONSTRUTIVOS ======================= -->
+                <div class="tab-pane fade show active p-4" id="construtivos-pane" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label asp-for="DataVisita" class="form-label"></label><input asp-for="DataVisita" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="AnoConstrucao" class="form-label"></label><input asp-for="AnoConstrucao" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="AreaM2" class="form-label"></label><input asp-for="AreaM2" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="NumeroAndares" class="form-label"></label><input asp-for="NumeroAndares" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="NumeroHabitantes" class="form-label"></label><input asp-for="NumeroHabitantes" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="Localidade" class="form-label"></label><input asp-for="Localidade" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="Altitude" class="form-label"></label><input asp-for="Altitude" class="form-control" /></div>
+                    </div>
+                    <hr class="form-section-divider" />
+                    <h5 class="mb-3">Fechamento</h5>
+                    <div class="row g-3">
+                        <div class="col-md-4"><label asp-for="TipoFachada" class="form-label"></label><input asp-for="TipoFachada" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="OrientacaoFachada" class="form-label"></label><input asp-for="OrientacaoFachada" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="CoberturaFachadaPrincipal" class="form-label"></label><input asp-for="CoberturaFachadaPrincipal" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="CoberturaFachadaPosterior" class="form-label"></label><input asp-for="CoberturaFachadaPosterior" class="form-control" /></div>
+                        <div class="col-md-4 d-flex align-items-center pt-3"><div class="form-check form-switch"><input asp-for="TratamentoHidrofugacao" class="form-check-input" /><label asp-for="TratamentoHidrofugacao" class="form-check-label"></label></div></div>
+                    </div>
+                    <hr class="form-section-divider" />
+                    <h5 class="mb-3">Isolamento</h5>
+                    <div class="row g-3">
+                        <div class="col-md-4"><label asp-for="IsolamentoCamara" class="form-label"></label><input asp-for="IsolamentoCamara" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="IsolamentoInterno" class="form-label"></label><input asp-for="IsolamentoInterno" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="TipoAquecimento" class="form-label"></label><input asp-for="TipoAquecimento" class="form-control" /></div>
+                    </div>
+                </div>
+
+                <!-- ======================= ABA HIGROMETRIA ======================= -->
+                <div class="tab-pane fade p-4" id="higrometria-pane" role="tabpanel">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label asp-for="HumidadeRelativaExterior" class="form-label"></label><input asp-for="HumidadeRelativaExterior" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="TemperaturaExterior" class="form-label"></label><input asp-for="TemperaturaExterior" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="DataLoggerSensores" class="form-label"></label><input asp-for="DataLoggerSensores" class="form-control" /></div>
+                    </div>
+                    <hr class="my-4" />
+                    <div class="row g-3">
+                        <div class="col-md-4"><label asp-for="HumidadeRelativaInterior" class="form-label"></label><input asp-for="HumidadeRelativaInterior" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="TemperaturaInterior" class="form-label"></label><input asp-for="TemperaturaInterior" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="TemperaturaParedesInternas" class="form-label"></label><input asp-for="TemperaturaParedesInternas" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="TemperaturaPontoOrvalho" class="form-label"></label><input asp-for="TemperaturaPontoOrvalho" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="PontoDeOrvalho" class="form-label"></label><input asp-for="PontoDeOrvalho" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="PontosFrios" class="form-label"></label><input asp-for="PontosFrios" class="form-control" /></div>
+                    </div>
+                    <hr class="my-4" />
+                    <div class="row g-3">
+                        <div class="col-md-4"><label asp-for="NivelCO2" class="form-label"></label><input asp-for="NivelCO2" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="NivelTCOV" class="form-label"></label><input asp-for="NivelTCOV" class="form-control" /></div>
+                        <div class="col-md-4"><label asp-for="NivelHCHO" class="form-label"></label><input asp-for="NivelHCHO" class="form-control" /></div>
+                    </div>
+                </div>
+
+                <!-- ======================= ABA SINTOMATOLOGIA ======================= -->
+                <div class="tab-pane fade p-4" id="sintomatologia-pane" role="tabpanel">
+                    <div class="row g-4">
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="Fungos" class="form-check-input" /><label asp-for="Fungos" class="form-check-label"></label></div></div>
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="Cheiros" class="form-check-input" /><label asp-for="Cheiros" class="form-check-label"></label></div></div>
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="MofoEmRoupasArmarios" class="form-check-input" /><label asp-for="MofoEmRoupasArmarios" class="form-check-label"></label></div></div>
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="CondensacaoNasJanelas" class="form-check-input" /><label asp-for="CondensacaoNasJanelas" class="form-check-label"></label></div></div>
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="ConsumoExcessivoAquecimento" class="form-check-input" /><label asp-for="ConsumoExcessivoAquecimento" class="form-check-label"></label></div></div>
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="Alergias" class="form-check-input" /><label asp-for="Alergias" class="form-check-label"></label></div></div>
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="ProblemasRespiratorios" class="form-check-input" /><label asp-for="ProblemasRespiratorios" class="form-check-label"></label></div></div>
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="GasRadao" class="form-check-input" /><label asp-for="GasRadao" class="form-check-label"></label></div></div>
+                        <div class="col-md-6"><div class="form-check form-switch fs-5"><input asp-for="EsporosEmSuperficies" class="form-check-input" /><label asp-for="EsporosEmSuperficies" class="form-check-label"></label></div></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </main>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggleButton = document.getElementById('qualidadeArToggle');
+            const subMenu = document.getElementById('qualidadeArSubMenu');
+            if(toggleButton) {
+                toggleButton.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    subMenu.classList.toggle('active');
+                });
+            }
+        });
+    </script>
+}
