@@ -2,152 +2,152 @@
 <html lang="pt">
 <head>
     <meta charset="utf-8" />
+    <title>@ViewData["Title"] - MS Premium Solutions</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - MSPremiumProject</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="~/MSPremiumProject.styles.css" asp-append-version="true" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
 
     <!-- ============================================= -->
     <!-- ESTILOS CSS PARA O SUBMENU DINÂMICO           -->
+    <!-- (Como tinhas fornecido antes)                  -->
     <!-- ============================================= -->
     <style>
-        /* Estilo para o link "Orçamento" quando o submenu está visível */
+        /* Estilo para o item de menu principal quando o submenu está ativo */
         .nav-link.has-active-submenu {
-            background-color: rgba(0, 0, 0, 0.15); /* Destaque subtil */
-            font-weight: bold;
-            border-left: 4px solid #f39c12; /* Cor de destaque laranja/amarelo */
+            background-color: #0056b3; /* Cor de destaque */
+            border-left: 4px solid #ffc107;
+            padding-left: calc(0.75rem - 4px); /* Ajusta o padding para alinhar o texto */
         }
 
-        /* O container do submenu */
         .submenu {
-            background-color: rgba(0, 0, 0, 0.2); /* Um pouco mais escuro que a sidebar */
-            padding: 5px 0 10px 20px;
-            margin: -5px 10px 10px 10px;
-            border-left: 4px solid #f39c12; /* Borda alinhada com o item pai */
+            padding-left: 20px;
+            background-color: rgba(0,0,0,0.1);
+            border-left: 3px solid #ffc107;
+            margin-left: 10px;
+            border-radius: 0 5px 5px 0;
+            padding-bottom: 10px;
         }
 
-        /* Estilo para os links dentro do submenu */
-        .submenu .nav-link {
-            font-size: 0.9em;
-            padding: 8px 15px;
-            color: rgba(255, 255, 255, 0.8); /* Cor mais suave */
-            display: flex;
-            align-items: center;
-            border-left: none; /* Remover borda individual dos itens */
-        }
-        
-        .submenu .nav-link:hover {
-            color: white;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
+            .submenu .nav-link {
+                font-size: 0.9em;
+                padding-top: .4rem;
+                padding-bottom: .4rem;
+            }
 
-        /* O círculo que você pediu */
         .submenu-item-circle {
             display: inline-block;
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.7);
             border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            margin-right: 12px;
-            position: relative;
+            margin-right: 10px;
+            vertical-align: middle;
+            transition: background-color 0.2s;
         }
 
-        /* Destaque para o item ATIVO do submenu */
-        .submenu a.nav-link.active .submenu-item-circle {
-            border-color: #f39c12; /* Laranja */
-        }
-        
-        /* O ponto laranja dentro do círculo */
-        .submenu a.nav-link.active .submenu-item-circle::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #f39c12;
-        }
-
+        .submenu a.nav-link.active .submenu-item-circle,
         .submenu a.nav-link.active {
+            color: #fff !important;
             font-weight: bold;
-            color: white;
         }
+
+            .submenu a.nav-link.active .submenu-item-circle {
+                background-color: #ffc107;
+                border-color: #ffc107;
+            }
     </style>
     <!-- ============================================= -->
     <!-- FIM DO BLOCO CSS                              -->
     <!-- ============================================= -->
-
-    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">MSPremiumProject</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+    <!-- Sidebar -->
+    <div class="sidebar d-flex flex-column">
+        <div class="logo">
+            <img src="~/images/Logo.JPG" alt="MS Premium Solutions" class="img-fluid" />
+        </div>
+        <nav class="nav flex-column mt-3">
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
+                <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
+
+                <!-- Condição do submenu baseada na Session, como estavas a usar -->
+                @if (Context.Session.GetString("CurrentBudget_TreatmentType") == "QualidadeAr")
+                {
+                    <!-- Adiciona a classe de destaque ao link principal do Orçamento, se o submenu estiver visível -->
+                    <a class="nav-link has-active-submenu" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
+
+                    <div id="qualidadeArSubmenu" class="submenu">
+                        <div class="d-flex justify-content-between align-items-center ps-3 pe-2 pt-2">
+                            <h6 class="text-white mb-0">Qualidade do ar</h6>
+                            <a asp-controller="Budget" asp-action="SelectTreatment" class="btn btn-sm btn-link text-white p-0" title="Alterar tipo de tratamento"><i class="bi bi-x-lg"></i></a>
+                        </div>
+                        <a class="nav-link" asp-controller="Budget" asp-action="ColecaoDados">
+                            <span class="submenu-item-circle"></span> Coleção de dados
+                        </a>
+                        <a class="nav-link" asp-controller="Budget" asp-action="Objetivos">
+                            <span class="submenu-item-circle"></span> Objetivos
+                        </a>
+                        <a class="nav-link" asp-controller="Budget" asp-action="Volumes">
+                            <span class="submenu-item-circle"></span> Volumes
+                        </a>
+                        <a class="nav-link" asp-action="DetalheOrcamento" asp-controller="Budget">
+                            <span class="submenu-item-circle"></span> Detalhe do orçamento
+                        </a>
+                        <a class="nav-link" asp-action="ResumoOrcamento" asp-controller="Budget">
+                            <span class="submenu-item-circle"></span> Resumo do orçamento
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <!-- Link normal do Orçamento se o submenu não estiver visível -->
+                    <a class="nav-link" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
+                }
+
+
+                @if (User.IsInRole("Admin"))
+                {
+                    <a class="nav-link" asp-controller="Admin" asp-action="AdminMenu"><i class="bi bi-gear-fill"></i> Settings (Admin)</a>
+                }
+            }
+            else
+            {
+                <a class="nav-link" asp-controller="Account" asp-action="Login"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+            }
+        </nav>
+        <div class="mt-auto p-3 text-center">
+            <a href="#" class="btn btn-outline-light btn-sm">Ver certificações</a>
+        </div>
+    </div>
+
+    <!-- Topbar (código original) -->
+    <div class="topbar d-flex align-items-center p-2">
+        <button class="menu-toggle btn btn-link text-white me-auto" id="menuToggleBtn" type="button" title="Alternar menu">
+            <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+        </button>
+
+        @if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            <span class="me-3 text-white">Olá, <strong>@User.FindFirst("FullName")?.Value</strong></span>
+            <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-light btn-sm" title="Sair">
+                    <i class="bi bi-box-arrow-right"></i> Sair
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                    </ul>
-                    
-                </div>
-            </div>
-        </nav>
-    </header>
+            </form>
+        }
+        else
+        {
+            <span> </span>
+        }
+    </div>
 
-    <div class="d-flex">
-        <nav id="sidebar" class="bg-dark text-white p-3" style="min-height: 100vh; width: 280px;">
-             @if (User.Identity != null && User.Identity.IsAuthenticated)
-             {
-                 <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
-                 <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
-
-                 
-                    // Verifica se estamos no contexto de um orçamento de Qualidade do Ar
-                    var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
-                 
-
-                 <!-- Adiciona uma classe de destaque se o submenu estiver visível -->
-                 <a class="nav-link @(inQualidadeArContext ? "has-active-submenu" : "")" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
-
-                 @if (inQualidadeArContext)
-                 {
-                     <div id="qualidadeArSubmenu" class="submenu">
-                         <div class="d-flex justify-content-between align-items-center ps-3 pe-2 pt-2">
-                             <h6 class="text-white mb-0">Qualidade do ar</h6>
-                             <a asp-controller="Budget" asp-action="SelectTreatment" class="btn btn-sm btn-link text-white p-0" title="Alterar tipo de tratamento"><i class="bi bi-x-lg"></i></a>
-                         </div>
-                         @* Adicione a classe 'active' ao link correspondente à página atual *@
-                         <a class="nav-link active" asp-controller="Budget" asp-action="EditQualidadeDoAr">
-                             <span class="submenu-item-circle"></span> Coleção de dados
-                         </a>
-                         <a class="nav-link" asp-controller="Budget" asp-action="Objetivos">
-                             <span class="submenu-item-circle"></span> Objetivos
-                         </a>
-                         <a class="nav-link" asp-controller="Budget" asp-action="Volumes">
-                             <span class="submenu-item-circle"></span> Volumes
-                         </a>
-                         <a class="nav-link" asp-action="DetalheOrcamento" asp-controller="Budget">
-                             <span class="submenu-item-circle"></span> Detalhe do orçamento
-                         </a>
-                         <a class="nav-link" asp-action="ResumoOrcamento" asp-controller="Budget">
-                             <span class="submenu-item-circle"></span> Resumo do orçamento
-                         </a>
-                     </div>
-                 }
-             }
-        </nav>
-
-        <main role="main" class="flex-grow-1 p-4">
+    <!-- Main Content -->
+    <div class="content">
+        <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
@@ -161,6 +161,36 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @* Scripts para os menus *@
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Script do menu principal (hambúrguer)
+            const menuToggleBtn = document.getElementById('menuToggleBtn');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuToggleBtn && sidebar) {
+                menuToggleBtn.addEventListener('click', function () {
+                    sidebar.classList.toggle('active');
+                });
+            }
+
+            // Script para marcar o item ativo no submenu
+            const currentPath = window.location.pathname.toLowerCase();
+            const submenu = document.getElementById('qualidadeArSubmenu');
+            if (submenu) {
+                try {
+                    // Procura pelo link que corresponde à ação atual (última parte do URL)
+                    const actionName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+                    const activeLink = submenu.querySelector(`a.nav-link[href*='/${actionName}' i]`);
+                    if (activeLink) {
+                        activeLink.classList.add('active');
+                    }
+                } catch(e) {
+                    console.error("Erro ao marcar link ativo do submenu:", e);
+                }
+            }
+        });
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
