@@ -10,36 +10,39 @@ using MSPremiumProject.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configuração de Logging para todos os níveis, incluindo Trace/Debug
+builder.Logging.ClearProviders(); // Limpa os providers padrão
+builder.Logging.AddConsole(); // Adiciona console logger
+builder.Logging.SetMinimumLevel(LogLevel.Trace); // Configura o nível mínimo para TRACE
+
 // --- CONFIGURAÇÃO DO AppDbContext (Para os seus dados de negócio) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         connectionString,
-        ServerVersion.AutoDetect(connectionString) // Detecção automática da versão do MySQL
+        ServerVersion.AutoDetect(connectionString)
     )
-    .LogTo(Console.WriteLine, LogLevel.Information) // Logging de queries SQL para depuração
+    .LogTo(Console.WriteLine, LogLevel.Information) // Já tem isto, mas o nível acima garante mais detalhes
 );
 
 // --- CONFIGURAÇÃO DO DataProtectionKeysContext (Para as chaves de segurança) ---
 builder.Services.AddDbContext<DataProtectionKeysContext>(options =>
     options.UseMySql(
-        connectionString, // Reutiliza a mesma string de conexão
+        connectionString,
         ServerVersion.AutoDetect(connectionString)
     )
-// Pode adicionar .LogTo(Console.WriteLine, LogLevel.Information) aqui também para ver as queries de Data Protection
+    .LogTo(Console.WriteLine, LogLevel.Information) // Adicionar log para este contexto também
 );
 
 // --- CONFIGURAÇÃO DO DATA PROTECTION ---
-// Persiste as chaves no DataProtectionKeysContext
 builder.Services.AddDataProtection()
-    .PersistKeysToDbContext<DataProtectionKeysContext>(); // Usa o DbContext dedicado
-
+    .PersistKeysToDbContext<DataProtectionKeysContext>();
 
 // Resto dos teus serviços
 builder.Services.AddControllersWithViews();
 
 // --- CONFIGURAÇÃO DA SESSÃO ---
-builder.Services.AddDistributedMemoryCache(); // ATENÇÃO: Sessões em memória não são persistentes entre restarts/instâncias
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -58,10 +61,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
     });
 
-// Resto dos teus serviços
 builder.Services.AddTransient<IEmailSender, EmailSender>();
-builder.Services.AddLogging();
-
+// builder.Services.AddLogging(); // Já configurado acima com ClearProviders e AddConsole
 
 // =========================================================================
 // Construção da Aplicação
@@ -69,30 +70,31 @@ var app = builder.Build();
 // =========================================================================
 
 // --- APLICAR MIGRATIONS E SEED DATA NO ARRANQUE ---
-// ESTE BLOCO É CRUCIAL E DEVE SER EXECUTADO ANTES DE app.Run();
 using (var scope = app.Services.CreateScope())
 {
     var serviceProvider = scope.ServiceProvider;
     try
     {
-        // Aplica migrações para AppDbContext (seus dados de negócio)
+        app.Logger.LogInformation("Attempting to apply database migrations and seeding...");
+
         var appDbContext = serviceProvider.GetRequiredService<AppDbContext>();
         appDbContext.Database.Migrate();
-        // Opcional: Seeding inicial de dados (se você tem o SeedData.cs)
-        await SeedData.Initialize(appDbContext);
+        app.Logger.LogInformation("AppDbContext migrations applied.");
 
-        // Aplica migrações para DataProtectionKeysContext (chaves de segurança)
+        await SeedData.Initialize(appDbContext);
+        app.Logger.LogInformation("SeedData initialization completed.");
+
         var dpContext = serviceProvider.GetRequiredService<DataProtectionKeysContext>();
         dpContext.Database.Migrate();
+        app.Logger.LogInformation("DataProtectionKeysContext migrations applied.");
 
         app.Logger.LogInformation("Database migrations and seeding applied successfully.");
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "An error occurred during database migration/seeding. Application startup might fail.");
-        // Em um ambiente de produção, é comum re-throw a exceção aqui
-        // ou parar a aplicação para que o ambiente (Render.com) perceba a falha.
-        // throw; // Se quiser que o startup falhe se a migração/seed falhar
+        // MUITO IMPORTANTE: Garante que qualquer erro no arranque da BD é fatal
+        app.Logger.LogCritical(ex, "FATAL ERROR: Application failed to start due to database or migration issues.");
+        throw; // Force o crash para que o Render.com mostre o erro nos logs
     }
 }
 // --- FIM DA APLICAÇÃO DE MIGRATIONS E SEED DATA NO ARRANQUE ---

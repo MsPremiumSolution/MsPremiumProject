@@ -73,6 +73,85 @@ namespace MSPremiumProject.Controllers
         //================================================================================
         // PÁGINA PRINCIPAL: LISTAGEM DE ORÇAMENTOS POR CONCLUIR
         //================================================================================
+
+        // Ficheiro: BudgetController.cs (Método IniciarOrcamento)
+
+        // ... (código existente do controlador) ...
+
+        //================================================================================
+        // ETAPA 2: INICIAR ORÇAMENTO (CRIAR PROPOSTA) OU CONTINUAR UM EXISTENTE
+        //================================================================================
+        [HttpGet]
+        public async Task<IActionResult> IniciarOrcamento(ulong clienteId)
+        {
+            TempData["Debug: IniciarOrcamento - Start"] = "Iniciando a acao IniciarOrcamento."; // DEBUG START
+            var cliente = await _context.Clientes.FindAsync(clienteId);
+            if (cliente == null)
+            {
+                TempData["MensagemErro"] = $"Cliente ID {clienteId} não encontrado.";
+                TempData["Debug: IniciarOrcamento - Client NotFound"] = "Cliente não encontrado, redirecionando para Index."; // DEBUG
+                return RedirectToAction(nameof(Index));
+            }
+            TempData["Debug: IniciarOrcamento - Client Found"] = $"Cliente '{cliente.Nome} {cliente.Apelido}' encontrado."; // DEBUG
+
+            try
+            {
+                // Verifica autenticação/autorização antes de prosseguir
+                if (!User.Identity.IsAuthenticated)
+                {
+                    TempData["MensagemErro"] = "Utilizador não autenticado.";
+                    return RedirectToAction("Login", "Account"); // Redireciona para a página de login
+                }
+
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userIdClaim))
+                {
+                    TempData["MensagemErro"] = "ID de utilizador não encontrado no token de autenticação.";
+                    return RedirectToAction("Login", "Account");
+                }
+                var utilizadorId = ulong.Parse(userIdClaim);
+                TempData["Debug: IniciarOrcamento - UserId"] = $"User ID {utilizadorId} obtido com sucesso."; // DEBUG
+
+                var novaProposta = new Proposta
+                {
+                    ClienteId = clienteId,
+                    UtilizadorId = utilizadorId,
+                    EstadoPropostaId = ESTADO_EM_CURSO, // 1 = "Em Curso"
+                    DataProposta = DateTime.UtcNow
+                };
+
+                _context.Proposta.Add(novaProposta);
+                TempData["Debug: IniciarOrcamento - Proposta Added"] = "Proposta adicionada ao contexto."; // DEBUG
+                await _context.SaveChangesAsync();
+                TempData["Debug: IniciarOrcamento - Proposta Saved"] = $"Proposta {novaProposta.PropostaId} salva na DB."; // DEBUG
+
+                HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
+                TempData["Debug: IniciarOrcamento - Session Set"] = $"Proposta ID {novaProposta.PropostaId} salva na sessão."; // DEBUG
+
+                // Redireciona para a Tipologia Construtiva
+                return RedirectToAction(nameof(TipologiaConstrutiva));
+            }
+            catch (FormatException fEx) // Erro de parsing (se userIdClaim não for um ulong válido)
+            {
+                TempData["MensagemErro"] = $"Erro de formato ao obter ID do utilizador: {fEx.Message}. Assegure-se que o ID é numérico.";
+                TempData["Debug: IniciarOrcamento - FormatError"] = $"FormatException: {fEx.Message}"; // DEBUG
+                return RedirectToAction("Login", "Account"); // Redireciona para login ou uma página de erro
+            }
+            catch (DbUpdateException dbEx) // Erros relacionados com a base de dados (FK, Unique, etc.)
+            {
+                TempData["MensagemErro"] = $"Erro DB ao iniciar orçamento: Falha ao guardar dados na base de dados. Detalhes: {dbEx.Message}";
+                TempData["Debug: IniciarOrcamento - DbUpdateError"] = $"DbUpdateException: {dbEx.InnerException?.Message ?? dbEx.Message}"; // DEBUG
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex) // Outros erros inesperados
+            {
+                TempData["MensagemErro"] = $"Erro inesperado ao iniciar orçamento: {ex.Message}. Por favor, tente novamente.";
+                TempData["Debug: IniciarOrcamento - GeneralError"] = $"GeneralException: {ex.Message}"; // DEBUG
+                return RedirectToAction(nameof(Index));
+            }
+        }
+        // ... (resto do código do controlador) ...
+
         [HttpGet]
         public async Task<IActionResult> OrçamentosEmCurso()
         {
