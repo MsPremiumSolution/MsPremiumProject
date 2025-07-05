@@ -84,23 +84,22 @@ namespace MSPremiumProject.Controllers
         [HttpGet]
         public async Task<IActionResult> IniciarOrcamento(ulong clienteId)
         {
-            TempData["Debug: IniciarOrcamento - Start"] = "Iniciando a acao IniciarOrcamento."; // DEBUG START
+            TempData["Debug: IniciarOrcamento - Start"] = "Iniciando a acao IniciarOrcamento.";
             var cliente = await _context.Clientes.FindAsync(clienteId);
             if (cliente == null)
             {
                 TempData["MensagemErro"] = $"Cliente ID {clienteId} não encontrado.";
-                TempData["Debug: IniciarOrcamento - Client NotFound"] = "Cliente não encontrado, redirecionando para Index."; // DEBUG
+                TempData["Debug: IniciarOrcamento - Client NotFound"] = "Cliente não encontrado, redirecionando para Index.";
                 return RedirectToAction(nameof(Index));
             }
-            TempData["Debug: IniciarOrcamento - Client Found"] = $"Cliente '{cliente.Nome} {cliente.Apelido}' encontrado."; // DEBUG
+            TempData["Debug: IniciarOrcamento - Client Found"] = $"Cliente '{cliente.Nome} {cliente.Apelido}' encontrado.";
 
             try
             {
-                // Verifica autenticação/autorização antes de prosseguir
                 if (!User.Identity.IsAuthenticated)
                 {
                     TempData["MensagemErro"] = "Utilizador não autenticado.";
-                    return RedirectToAction("Login", "Account"); // Redireciona para a página de login
+                    return RedirectToAction("Login", "Account");
                 }
 
                 var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -110,43 +109,64 @@ namespace MSPremiumProject.Controllers
                     return RedirectToAction("Login", "Account");
                 }
                 var utilizadorId = ulong.Parse(userIdClaim);
-                TempData["Debug: IniciarOrcamento - UserId"] = $"User ID {utilizadorId} obtido com sucesso."; // DEBUG
+                TempData["Debug: IniciarOrcamento - UserId"] = $"User ID {utilizadorId} obtido com sucesso.";
 
-                var novaProposta = new Proposta
+                // =========================================================================
+                // LÓGICA ATUALIZADA: Procurar e Continuar Orçamento Existente (se houver)
+                // =========================================================================
+                var propostaExistente = await _context.Proposta
+                    .Where(p => p.ClienteId == clienteId &&
+                                p.UtilizadorId == utilizadorId &&
+                                p.EstadoPropostaId == ESTADO_EM_CURSO &&
+                                p.QualidadeDoArId == null) // Procura uma proposta em curso, sem QA associado
+                    .OrderByDescending(p => p.DataProposta) // Pega a mais recente se houver múltiplas
+                    .FirstOrDefaultAsync();
+
+                Proposta propostaParaTrabalhar;
+
+                if (propostaExistente != null)
                 {
-                    ClienteId = clienteId,
-                    UtilizadorId = utilizadorId,
-                    EstadoPropostaId = ESTADO_EM_CURSO, // 1 = "Em Curso"
-                    DataProposta = DateTime.UtcNow
-                };
+                    // Encontrou uma proposta existente e incompleta para este cliente/utilizador
+                    propostaParaTrabalhar = propostaExistente;
+                    TempData["Debug: IniciarOrcamento - Existing Proposal Found"] = $"Continuando proposta existente ID: {propostaParaTrabalhar.PropostaId}";
+                }
+                else
+                {
+                    // Não encontrou, cria uma nova proposta
+                    propostaParaTrabalhar = new Proposta
+                    {
+                        ClienteId = clienteId,
+                        UtilizadorId = utilizadorId,
+                        EstadoPropostaId = ESTADO_EM_CURSO,
+                        DataProposta = DateTime.UtcNow
+                    };
+                    _context.Proposta.Add(propostaParaTrabalhar);
+                    await _context.SaveChangesAsync(); // Salva a nova proposta para obter o ID
+                    TempData["Debug: IniciarOrcamento - New Proposal Created"] = $"Nova proposta criada com ID: {propostaParaTrabalhar.PropostaId}";
+                }
 
-                _context.Proposta.Add(novaProposta);
-                TempData["Debug: IniciarOrcamento - Proposta Added"] = "Proposta adicionada ao contexto."; // DEBUG
-                await _context.SaveChangesAsync();
-                TempData["Debug: IniciarOrcamento - Proposta Saved"] = $"Proposta {novaProposta.PropostaId} salva na DB."; // DEBUG
+                HttpContext.Session.SetString("CurrentPropostaId", propostaParaTrabalhar.PropostaId.ToString());
+                TempData["Debug: IniciarOrcamento - Session Set"] = $"Proposta ID {propostaParaTrabalhar.PropostaId} salva na sessão.";
 
-                HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
-                TempData["Debug: IniciarOrcamento - Session Set"] = $"Proposta ID {novaProposta.PropostaId} salva na sessão."; // DEBUG
-
-                // Redireciona para a Tipologia Construtiva
+                // Sempre redireciona para a Tipologia Construtiva, independentemente de ser nova ou existente
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
-            catch (FormatException fEx) // Erro de parsing (se userIdClaim não for um ulong válido)
+            catch (FormatException fEx)
             {
-                TempData["MensagemErro"] = $"Erro de formato ao obter ID do utilizador: {fEx.Message}. Assegure-se que o ID é numérico.";
-                TempData["Debug: IniciarOrcamento - FormatError"] = $"FormatException: {fEx.Message}"; // DEBUG
-                return RedirectToAction("Login", "Account"); // Redireciona para login ou uma página de erro
+                TempData["MensagemErro"] = $"Erro de formato ao obter ID do utilizador: {fEx.Message}.";
+                TempData["Debug: IniciarOrcamento - FormatError"] = $"FormatException: {fEx.Message}";
+                return RedirectToAction("Login", "Account");
             }
-            catch (DbUpdateException dbEx) // Erros relacionados com a base de dados (FK, Unique, etc.)
+            catch (DbUpdateException dbEx)
             {
                 TempData["MensagemErro"] = $"Erro DB ao iniciar orçamento: Falha ao guardar dados na base de dados. Detalhes: {dbEx.Message}";
-                TempData["Debug: IniciarOrcamento - DbUpdateError"] = $"DbUpdateException: {dbEx.InnerException?.Message ?? dbEx.Message}"; // DEBUG
+                TempData["Debug: IniciarOrcamento - DbUpdateError"] = $"DbUpdateException: {dbEx.InnerException?.Message ?? dbEx.Message}";
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex) // Outros erros inesperados
+            catch (Exception ex)
             {
-                TempData["MensagemErro"] = $"Erro inesperado ao iniciar orçamento: {ex.Message}. Por favor, tente novamente.";
-                TempData["Debug: IniciarOrcamento - GeneralError"] = $"GeneralException: {ex.Message}"; // DEBUG
+                TempData["MensagemErro"] = $"Erro inesperado ao iniciar orçamento: {ex.Message}.";
+                TempData["Debug: IniciarOrcamento - GeneralError"] = $"GeneralException: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -174,6 +194,9 @@ namespace MSPremiumProject.Controllers
             ViewData["Title"] = "Novo Orçamento - Selecionar Cliente";
             ViewData["CurrentFilter"] = searchTerm;
             HttpContext.Session.Clear(); // Limpa a sessão ao iniciar um novo fluxo
+            // ^ Esta linha HttpContext.Session.Clear() é boa aqui no Index para
+            // garantir um novo começo, mas significa que 'CurrentPropostaId'
+            // não persistirá se o utilizador navegar para Index e depois voltar.
 
             IQueryable<Cliente> clientesQuery = _context.Clientes.Include(c => c.LocalidadeNavigation).AsQueryable();
 
@@ -187,13 +210,22 @@ namespace MSPremiumProject.Controllers
             return View(clientes);
         }
 
+
+        //================================================================================
+        // ETAPA 1: PÁGINA DE SELEÇÃO DE CLIENTE (para criar um NOVO orçamento)
+        //================================================================================
+        
+
         //================================================================================
         // ETAPA 2: INICIAR ORÇAMENTO (CRIAR PROPOSTA) OU CONTINUAR UM EXISTENTE
         //================================================================================
         [HttpGet]
         public async Task<IActionResult> ContinuarOrcamento(ulong id)
         {
-            var proposta = await _context.Proposta.FindAsync(id);
+            var proposta = await _context.Proposta
+                                     .Include(p => p.QualidadeDoAr)
+                                     .FirstOrDefaultAsync(p => p.PropostaId == id);
+
             if (proposta == null || proposta.EstadoPropostaId != ESTADO_EM_CURSO)
             {
                 TempData["MensagemErro"] = "Orçamento inválido ou já concluído.";
@@ -202,20 +234,22 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", proposta.PropostaId.ToString());
 
-            proposta = await _context.Proposta
-                                     .Include(p => p.QualidadeDoAr)
-                                     .FirstOrDefaultAsync(p => p.PropostaId == id);
-
-            if (proposta.QualidadeDoArId.HasValue)
-            {
-                return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
-            }
-
+            // Lógica para determinar onde continuar
             if (proposta.TipologiaConstrutivaId == null)
             {
+                // Se a tipologia ainda não foi escolhida, vai para lá
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
-            return RedirectToAction(nameof(SelectTreatment));
+
+            if (proposta.QualidadeDoArId == null)
+            {
+                // Se a tipologia foi escolhida, mas a estrutura de Qualidade do Ar não foi criada, vai para SelectTreatment
+                return RedirectToAction(nameof(SelectTreatment));
+            }
+
+            // Se a estrutura de Qualidade do Ar já existe, vai para a página de edição de dados (Coleção de Dados)
+            // Assumindo que QualidadeDoArId não é nulo se os dados foram criados
+            return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
         }
 
         //================================================================================
@@ -237,16 +271,36 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
+            // Se QualidadeDoArId já tiver valor, significa que o tratamento já foi selecionado e a estrutura criada.
+            // Neste caso, redireciona para a próxima etapa (SelectTreatment ou diretamente para EditQualidadeDoAr)
+            // Isto previne regressão no fluxo.
             if (proposta.QualidadeDoArId.HasValue)
             {
-                await SetQualidadeArSubmenuState(propostaId, "TipologiaConstrutiva");
+                // Aqui podemos decidir se queremos ir para SelectTreatment (para mudar o tipo?)
+                // ou ir direto para EditQualidadeDoAr (se o tipo QA já foi definido e iniciado).
+                // Para simplificar e manter o fluxo, se QA já existe, vamos para a edição.
+                return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
             }
+
+
+            // Se a proposta.QualidadeDoArId.HasValue for true aqui, significa que já criou a estrutura do QA.
+            // Precisamos garantir que o estado do submenu é corretamente definido mesmo se já tivermos avançado.
+            // await SetQualidadeArSubmenuState(propostaId, "TipologiaConstrutiva"); // Manter esta linha
 
             ViewData["ClienteNome"] = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
             ViewData["SelectedTipologiaId"] = proposta.TipologiaConstrutivaId;
 
-            var tipologiasDisponiveis = await _context.TipologiasConstrutivas.OrderBy(t => t.Nome).ToListAsync();
-            return View(tipologiasDisponiveis);
+            // Este Try-Catch é importante caso a tabela TipologiasConstrutivas esteja vazia/danificada.
+            try
+            {
+                var tipologiasDisponiveis = await _context.TipologiasConstrutivas.OrderBy(t => t.Nome).ToListAsync();
+                return View(tipologiasDisponiveis);
+            }
+            catch (Exception ex)
+            {
+                TempData["MensagemErro"] = $"Erro ao carregar Tipologias Construtivas: {ex.Message}. Verifique logs e seeding de TipologiasConstrutivas.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
         }
 
         [HttpPost]
