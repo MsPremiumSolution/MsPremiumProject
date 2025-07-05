@@ -1,41 +1,53 @@
-// Ficheiro: Program.cs (Com logging para depuração na Render)
+// Ficheiro: Program.cs
 
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore; // Adicionar este using (se não estiver já)
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging; // Necessário para LogLevel
+using Microsoft.Extensions.Logging;
 using MSPremiumProject.Data;
 using MSPremiumProject.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuração do DbContext
+// --- CONFIGURAÇÃO DO AppDbContext (Para os seus dados de negócio) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         connectionString,
-        new MySqlServerVersion(new Version(5, 7, 25))
+        ServerVersion.AutoDetect(connectionString) // Detecção automática da versão do MySQL
     )
-    // <<< ALTERAÇÃO PRINCIPAL AQUI >>>
-    // Isto vai fazer o Entity Framework escrever todas as queries SQL para a Consola.
-    // A Render.com captura a saída da Consola e mostra-a na aba "Logs" do teu serviço.
-    // É a forma mais eficaz de depurar o que está a acontecer na base de dados.
-    .LogTo(Console.WriteLine, LogLevel.Information)
+    .LogTo(Console.WriteLine, LogLevel.Information) // Logging de queries SQL para depuração
 );
+
+// --- CONFIGURAÇÃO DO DataProtectionKeysContext (Para as chaves de segurança) ---
+builder.Services.AddDbContext<DataProtectionKeysContext>(options =>
+    options.UseMySql(
+        connectionString, // Reutiliza a mesma string de conexão
+        ServerVersion.AutoDetect(connectionString)
+    )
+// Pode adicionar .LogTo aqui também se quiser ver as queries de Data Protection
+);
+
+// --- CONFIGURAÇÃO DO DATA PROTECTION ---
+// Persiste as chaves no DataProtectionKeysContext
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<DataProtectionKeysContext>(); // <<< USA O SEU DBContext DEDICADO AQUI
+
 
 // Resto dos teus serviços
 builder.Services.AddControllersWithViews();
 
 // --- CONFIGURAÇÃO DA SESSÃO ---
-builder.Services.AddDistributedMemoryCache();
+builder.Services.AddDistributedMemoryCache(); // ATENÇÃO: Sessões em memória não são persistentes entre restarts/instâncias
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
-// --- FIM DA CONFIGURAÇÃO DA SESSÃO ---
 
-// Configuração da Autenticação por Cookies
+// --- CONFIGURAÇÃO DA AUTENTICAÇÃO ---
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -48,7 +60,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 // Resto dos teus serviços
 builder.Services.AddTransient<IEmailSender, EmailSender>();
-builder.Services.AddLogging();
+builder.Services.AddLogging(); // Já adicionado pelo template
+
 
 // =========================================================================
 // Construção da Aplicação
@@ -66,7 +79,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// A ordem está correta
+// A ordem é CRÍTICA para middleware de segurança e sessões:
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();

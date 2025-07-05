@@ -44,6 +44,7 @@ namespace MSPremiumProject.Data
         public DbSet<OrcamentoAr> OrcamentoAr { get; set; }
         public DbSet<QualidadeDoAr> QualidadeDoAr { get; set; }
         public DbSet<Volume> Volumes { get; set; } // O DbSet de Volumes, agora ligado a QualidadeDoAr
+        
 
         #endregion
 
