@@ -38,6 +38,7 @@ namespace MSPremiumProject.Data
         public DbSet<Higrometria> Higrometria { get; set; }
         public DbSet<DadosConstrutivos> DadosConstrutivos { get; set; }
         public DbSet<Janela> Janelas { get; set; }
+        public DbSet<MSPremiumProject.Models.Tipojanela> Tipojanelas { get; set; }
         public DbSet<DadosGerais> DadosGerais { get; set; }
         public DbSet<Objetivos> Objetivos { get; set; }
         public DbSet<OrcamentoAr> OrcamentoAr { get; set; }

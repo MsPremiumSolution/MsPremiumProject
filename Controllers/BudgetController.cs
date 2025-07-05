@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc.Rendering; // Adicionar este using para SelectListItem
 
 namespace MSPremiumProject.Controllers
 {
@@ -36,14 +37,14 @@ namespace MSPremiumProject.Controllers
 
             var stepsCompleted = new Dictionary<string, bool>();
 
-            var proposta = await _context.Proposta // Certifica-te que está "Propostas" aqui
+            var proposta = await _context.Proposta
                                  .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.DadosGerais)
                                          .ThenInclude(dg => dg.DadosConstrutivo)
                                  .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.Objetivos)
                                  .Include(p => p.QualidadeDoAr)
-                                     .ThenInclude(qa => qa.Volumes) // Certifica-te que 'Volumes' é uma coleção no modelo QualidadeDoAr
+                                     .ThenInclude(qa => qa.Volumes)
                                  .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.DadosGerais)
                                          .ThenInclude(dg => dg.Higrometria)
@@ -54,14 +55,12 @@ namespace MSPremiumProject.Controllers
 
             if (proposta?.QualidadeDoAr != null)
             {
-                // Coleção de Dados: Considerado completo se DadosGerais e suas sub-partes existirem
-                // Verifica se o ID das FKs são diferentes de 0 (se não forem nullable) ou se têm valor (se forem nullable)
-                stepsCompleted["ColecaoDados"] = proposta.QualidadeDoAr.DadosGeraisId.HasValue && // Se DadosGeraisId é nullable
+                stepsCompleted["ColecaoDados"] = proposta.QualidadeDoAr.DadosGeraisId.HasValue &&
                                                  proposta.QualidadeDoAr.DadosGerais?.DadosConstrutivo?.Id != 0 &&
                                                  proposta.QualidadeDoAr.DadosGerais?.Higrometria?.Id != 0 &&
                                                  proposta.QualidadeDoAr.DadosGerais?.Sintomatologia?.Id != 0;
 
-                stepsCompleted["Objetivos"] = proposta.QualidadeDoAr.ObjetivosId.HasValue; // Se ObjetivosId é nullable
+                stepsCompleted["Objetivos"] = proposta.QualidadeDoAr.ObjetivosId.HasValue;
                 stepsCompleted["Volumes"] = proposta.QualidadeDoAr.Volumes != null && proposta.QualidadeDoAr.Volumes.Any();
 
                 stepsCompleted["DetalheOrcamento"] = stepsCompleted["ColecaoDados"] && stepsCompleted["Objetivos"] && stepsCompleted["Volumes"];
@@ -112,34 +111,6 @@ namespace MSPremiumProject.Controllers
         //================================================================================
         // ETAPA 2: INICIAR ORÇAMENTO (CRIAR PROPOSTA) OU CONTINUAR UM EXISTENTE
         //================================================================================
-        [HttpGet]
-        public async Task<IActionResult> IniciarOrcamento(ulong clienteId)
-        {
-            var cliente = await _context.Clientes.FindAsync(clienteId);
-            if (cliente == null)
-            {
-                TempData["MensagemErro"] = "Cliente não encontrado.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            var utilizadorId = ulong.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-
-            var novaProposta = new Proposta
-            {
-                ClienteId = clienteId,
-                UtilizadorId = utilizadorId,
-                EstadoPropostaId = ESTADO_EM_CURSO, // 1 = "Em Curso"
-                DataProposta = DateTime.UtcNow
-            };
-
-            _context.Proposta.Add(novaProposta);
-            await _context.SaveChangesAsync();
-
-            HttpContext.Session.SetString("CurrentPropostaId", novaProposta.PropostaId.ToString());
-
-            return RedirectToAction(nameof(TipologiaConstrutiva));
-        }
-
         [HttpGet]
         public async Task<IActionResult> ContinuarOrcamento(ulong id)
         {
@@ -347,16 +318,20 @@ namespace MSPremiumProject.Controllers
         public async Task<IActionResult> EditQualidadeDoAr(ulong id)
         {
             ViewData["Title"] = $"Editar Orçamento de Qualidade do Ar (ID: {id})";
-            await SetQualidadeArSubmenuState(id, "ColecaoDados");
 
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
                 TempData["MensagemErro"] = "Sessão expirada.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
+            await SetQualidadeArSubmenuState(propostaId, "ColecaoDados");
 
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
-            if (proposta == null) return NotFound();
+            if (proposta == null)
+            {
+                TempData["MensagemErro"] = "Proposta associada ao orçamento de Qualidade do Ar não encontrada.";
+                return NotFound();
+            }
 
             var tratamento = await _context.QualidadeDoAr
                 .Include(q => q.DadosGerais)
@@ -369,9 +344,25 @@ namespace MSPremiumProject.Controllers
                 .AsNoTracking()
                 .FirstOrDefaultAsync(q => q.Id == id);
 
-            if (tratamento?.DadosGerais?.DadosConstrutivo == null) return NotFound("A estrutura de dados para este orçamento não foi encontrada ou está incompleta.");
+            if (tratamento == null || tratamento.DadosGerais == null || tratamento.DadosGerais.DadosConstrutivo == null || tratamento.DadosGerais.Higrometria == null || tratamento.DadosGerais.Sintomatologia == null)
+            {
+                TempData["MensagemErro"] = "A estrutura de dados para este orçamento não foi encontrada ou está incompleta.";
+                return NotFound();
+            }
 
             var primeiraJanela = tratamento.DadosGerais.DadosConstrutivo.Janelas?.FirstOrDefault();
+
+            // ===============================================
+            // BUSCAR TIPOS DE JANELA DA BASE DE DADOS
+            // ===============================================
+            var tiposJanelaDisponiveis = await _context.Tipojanelas // Usar o DbSet correto (assumindo Tipojanelas)
+                .OrderBy(tj => tj.TipoJanela1)
+                .Select(tj => new SelectListItem
+                {
+                    Value = tj.TipoJanela1, // O valor que será guardado (nome do tipo de janela)
+                    Text = tj.TipoJanela1   // O texto que será exibido no dropdown
+                })
+                .ToListAsync();
 
             var viewModel = new QualidadeArViewModel
             {
@@ -396,7 +387,9 @@ namespace MSPremiumProject.Controllers
                 TipoAquecimento = tratamento.DadosGerais.DadosConstrutivo.TipoAquecimento,
 
                 JanelaId = primeiraJanela?.Id,
-                TipoJanelaPrincipal = primeiraJanela?.TipoJanela,
+                TipoJanelaPrincipal = primeiraJanela?.TipoJanela, // Atribui o valor guardado para pré-selecionar
+                TiposJanelaDisponiveis = tiposJanelaDisponiveis, // ATRIBUI A LISTA DE OPÇÕES AQUI
+
                 MaterialJanela = primeiraJanela?.Material,
                 JanelasDuplas = primeiraJanela?.PossuiJanelasDuplas,
                 TipoVidro = primeiraJanela?.TipoVidro,
@@ -409,8 +402,10 @@ namespace MSPremiumProject.Controllers
                 HumidadeRelativaInterior = tratamento.DadosGerais.Higrometria.HumidadeRelativaInterior,
                 TemperaturaInterior = tratamento.DadosGerais.Higrometria.TemperaturaInterior,
                 TemperaturaParedesInternas = tratamento.DadosGerais.Higrometria.TemperaturaParedesInternas,
+
                 PontoDeOrvalho = tratamento.DadosGerais.Higrometria.PontoDeOrvalho,
                 PontosFrios = tratamento.DadosGerais.Higrometria.PontosFrios,
+
                 NivelCO2 = tratamento.DadosGerais.Higrometria.NivelCO2,
                 NivelTCOV = tratamento.DadosGerais.Higrometria.NivelTCOV,
                 NivelHCHO = tratamento.DadosGerais.Higrometria.NivelHCHO,
@@ -436,8 +431,26 @@ namespace MSPremiumProject.Controllers
         {
             await SetQualidadeArSubmenuState(model.PropostaId, "ColecaoDados");
 
+            // Se o ModelState não for válido, é crucial recarregar a lista de Tipos de Janela
+            // antes de retornar a View, para que o dropdown seja preenchido novamente.
             if (!ModelState.IsValid)
             {
+                var propostaCliente = await _context.Proposta.Include(p => p.Cliente).AsNoTracking().FirstOrDefaultAsync(p => p.PropostaId == model.PropostaId);
+                if (propostaCliente != null)
+                {
+                    model.NomeCliente = $"{propostaCliente.Cliente.Nome} {propostaCliente.Cliente.Apelido}";
+                }
+
+                // Recarrega a lista para o dropdown
+                model.TiposJanelaDisponiveis = await _context.Tipojanelas
+                    .OrderBy(tj => tj.TipoJanela1)
+                    .Select(tj => new SelectListItem
+                    {
+                        Value = tj.TipoJanela1,
+                        Text = tj.TipoJanela1
+                    })
+                    .ToListAsync();
+
                 return View(model);
             }
 
@@ -451,7 +464,14 @@ namespace MSPremiumProject.Controllers
                     .ThenInclude(dg => dg.Sintomatologia)
                 .FirstOrDefaultAsync(q => q.Id == model.QualidadeDoArId);
 
-            if (tratamentoParaAtualizar == null) return NotFound();
+            if (tratamentoParaAtualizar == null || tratamentoParaAtualizar.DadosGerais == null ||
+                tratamentoParaAtualizar.DadosGerais.DadosConstrutivo == null ||
+                tratamentoParaAtualizar.DadosGerais.Higrometria == null ||
+                tratamentoParaAtualizar.DadosGerais.Sintomatologia == null)
+            {
+                TempData["MensagemErro"] = "Dados do orçamento incompletos ou não encontrados para atualização.";
+                return NotFound();
+            }
 
             var dc = tratamentoParaAtualizar.DadosGerais.DadosConstrutivo;
             dc.DataVisita = model.DataVisita;
@@ -465,8 +485,6 @@ namespace MSPremiumProject.Controllers
             dc.OrientacaoFachada = model.OrientacaoFachada;
             dc.CoberturaFachadaPrincipal = model.CoberturaFachadaPrincipal;
             dc.CoberturaFachadaPosterior = model.CoberturaFachadaPosterior;
-
-            // CORREÇÃO AQUI: Garante que 'TratamentoHidrofugacao' (bool?) se converte para 'bool'
             dc.TratamentoHidrofugacao = model.TratamentoHidrofugacao ?? false;
 
             dc.IsolamentoCamara = model.IsolamentoCamara;
@@ -476,54 +494,80 @@ namespace MSPremiumProject.Controllers
             // Lógica para Salvar/Atualizar a PRIMEIRA Janela
             Janela janelaParaAtualizar;
 
-            if (model.JanelaId.HasValue) // Se já existe um ID de Janela, tenta carregá-la
+            if (model.JanelaId.HasValue)
             {
                 janelaParaAtualizar = dc.Janelas.FirstOrDefault(j => j.Id == model.JanelaId.Value);
+                if (janelaParaAtualizar == null)
+                {
+                    if (dc.Janelas.Any())
+                    {
+                        janelaParaAtualizar = dc.Janelas.First();
+                    }
+                    else
+                    {
+                        janelaParaAtualizar = new Janela { DadosConstrutivosId = dc.Id };
+                        dc.Janelas.Add(janelaParaAtualizar);
+                    }
+                }
+            }
+            else
+            {
+                janelaParaAtualizar = dc.Janelas.FirstOrDefault();
+            }
+
+            bool anyWindowDataProvided = !string.IsNullOrEmpty(model.TipoJanelaPrincipal) ||
+                                         !string.IsNullOrEmpty(model.MaterialJanela) ||
+                                         !string.IsNullOrEmpty(model.TipoVidro) ||
+                                         model.NumeroUnidadesJanela.HasValue ||
+                                         model.JanelasDuplas.HasValue ||
+                                         model.RPT.HasValue ||
+                                         model.CaixasPersiana.HasValue;
+
+            if (anyWindowDataProvided)
+            {
                 if (janelaParaAtualizar == null)
                 {
                     janelaParaAtualizar = new Janela { DadosConstrutivosId = dc.Id };
                     dc.Janelas.Add(janelaParaAtualizar);
                 }
-            }
-            else
-            {
-                // Verifica se pelo menos um campo da janela foi preenchido para evitar criar janelas vazias
-                // Também inclui as booleanas da Janela na condição
-                if (!string.IsNullOrEmpty(model.TipoJanelaPrincipal) || model.NumeroUnidadesJanela.HasValue || model.JanelasDuplas.HasValue || model.RPT.HasValue || model.CaixasPersiana.HasValue)
-                {
-                    janelaParaAtualizar = new Janela { DadosConstrutivosId = dc.Id };
-                    dc.Janelas.Add(janelaParaAtualizar);
-                }
-                else
-                {
-                    janelaParaAtualizar = null;
-                }
-            }
-
-            if (janelaParaAtualizar != null)
-            {
-                janelaParaAtualizar.TipoJanela = model.TipoJanelaPrincipal;
+                janelaParaAtualizar.TipoJanela = model.TipoJanelaPrincipal; // O valor selecionado do dropdown
                 janelaParaAtualizar.Material = model.MaterialJanela;
                 janelaParaAtualizar.TipoVidro = model.TipoVidro;
                 janelaParaAtualizar.NumeroUnidades = model.NumeroUnidadesJanela;
-                // CORREÇÃO AQUI: Garante que 'bool?' se convertem para 'bool' se necessário
-                janelaParaAtualizar.PossuiJanelasDuplas = model.JanelasDuplas ?? false;
-                janelaParaAtualizar.PossuiRPT = model.RPT ?? false;
-                janelaParaAtualizar.PossuiCaixaPersiana = model.CaixasPersiana ?? false;
+                janelaParaAtualizar.PossuiJanelasDuplas = model.JanelasDuplas;
+                janelaParaAtualizar.PossuiRPT = model.RPT;
+                janelaParaAtualizar.PossuiCaixaPersiana = model.CaixasPersiana;
+            }
+            else if (janelaParaAtualizar != null)
+            {
+                janelaParaAtualizar.TipoJanela = null;
+                janelaParaAtualizar.Material = null;
+                janelaParaAtualizar.TipoVidro = null;
+                janelaParaAtualizar.NumeroUnidades = null;
+                janelaParaAtualizar.PossuiJanelasDuplas = null;
+                janelaParaAtualizar.PossuiRPT = null;
+                janelaParaAtualizar.PossuiCaixaPersiana = null;
             }
 
 
             // Atualizar Higrometria
             var hg = tratamentoParaAtualizar.DadosGerais.Higrometria;
-            hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior; hg.TemperaturaExterior = model.TemperaturaExterior; hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior; hg.TemperaturaInterior = model.TemperaturaInterior; hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas; hg.PontoDeOrvalho = model.PontoDeOrvalho;
-            hg.PontoDeOrvalho = model.PontoDeOrvalho;
-            
+            hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior;
+            hg.TemperaturaExterior = model.TemperaturaExterior;
+            hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior;
+            hg.TemperaturaInterior = model.TemperaturaInterior;
+            hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas;
 
-            hg.NivelCO2 = model.NivelCO2; hg.NivelTCOV = model.NivelTCOV; hg.NivelHCHO = model.NivelHCHO; hg.DataLoggerSensores = model.DataLoggerSensores;
+            hg.PontoDeOrvalho = model.PontoDeOrvalho;
+            hg.PontosFrios = model.PontosFrios;
+
+            hg.NivelCO2 = model.NivelCO2;
+            hg.NivelTCOV = model.NivelTCOV;
+            hg.NivelHCHO = model.NivelHCHO;
+            hg.DataLoggerSensores = model.DataLoggerSensores;
 
             // Atualizar Sintomatologia
             var st = tratamentoParaAtualizar.DadosGerais.Sintomatologia;
-            // CORREÇÃO AQUI para todas as booleanas de Sintomatologia
             st.Fungos = model.Fungos ?? false;
             st.Cheiros = model.Cheiros ?? false;
             st.MofoEmRoupasArmarios = model.MofoEmRoupasArmarios ?? false;
@@ -647,13 +691,46 @@ namespace MSPremiumProject.Controllers
 
             try
             {
+                if (proposta.QualidadeDoArId.HasValue)
+                {
+                    var qualidadeAr = await _context.QualidadeDoAr
+                        .Include(qa => qa.DadosGerais)
+                            .ThenInclude(dg => dg.DadosConstrutivo)
+                                .ThenInclude(dc => dc.Janelas)
+                        .Include(qa => qa.DadosGerais)
+                            .ThenInclude(dg => dg.Higrometria)
+                        .Include(qa => qa.DadosGerais)
+                            .ThenInclude(dg => dg.Sintomatologia)
+                        .Include(qa => qa.Objetivos)
+                        .Include(qa => qa.OrcamentoAr)
+                        .FirstOrDefaultAsync(qa => qa.Id == proposta.QualidadeDoArId.Value);
+
+                    if (qualidadeAr != null)
+                    {
+                        if (qualidadeAr.DadosGerais != null)
+                        {
+                            if (qualidadeAr.DadosGerais.DadosConstrutivo != null)
+                            {
+                                _context.Janelas.RemoveRange(qualidadeAr.DadosGerais.DadosConstrutivo.Janelas);
+                                _context.DadosConstrutivos.Remove(qualidadeAr.DadosGerais.DadosConstrutivo);
+                            }
+                            if (qualidadeAr.DadosGerais.Higrometria != null) _context.Higrometria.Remove(qualidadeAr.DadosGerais.Higrometria);
+                            if (qualidadeAr.DadosGerais.Sintomatologia != null) _context.Sintomatologia.Remove(qualidadeAr.DadosGerais.Sintomatologia);
+                            _context.DadosGerais.Remove(qualidadeAr.DadosGerais);
+                        }
+                        if (qualidadeAr.Objetivos != null) _context.Objetivos.Remove(qualidadeAr.Objetivos);
+                        if (qualidadeAr.OrcamentoAr != null) _context.OrcamentoAr.Remove(qualidadeAr.OrcamentoAr);
+                        _context.QualidadeDoAr.Remove(qualidadeAr);
+                    }
+                }
+
                 _context.Proposta.Remove(proposta);
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = $"A proposta Nº {id} foi apagada com sucesso.";
             }
             catch (DbUpdateException ex)
             {
-                TempData["MensagemErro"] = $"Ocorreu um erro ao apagar a proposta: {ex.Message}";
+                TempData["MensagemErro"] = $"Ocorreu um erro ao apagar a proposta: Por favor, verifique se todas as informações associadas (dados de qualidade do ar, etc.) foram removidas ou se há referências pendentes. Detalhes: {ex.Message}";
             }
 
             return RedirectToAction(nameof(OrçamentosEmCurso));

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic; // Adicionar este using para IEnumerable
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering; // Adicionar este using para SelectListItem
 
 namespace MSPremiumProject.ViewModels
 {
@@ -12,7 +14,7 @@ namespace MSPremiumProject.ViewModels
         // --- IDs e Dados de Contexto ---
         public ulong PropostaId { get; set; }
         public ulong QualidadeDoArId { get; set; }
-        public string NomeCliente { get; set; } = string.Empty; // Inicializado para evitar null reference
+        public string NomeCliente { get; set; } = string.Empty;
 
         // ===============================================
         // CAMPOS DA TABELA DadosConstrutivos
@@ -66,33 +68,35 @@ namespace MSPremiumProject.ViewModels
         // ===============================================
         // CAMPOS DA TABELA Janela (para a primeira janela)
         // ===============================================
-        public ulong? JanelaId { get; set; } // ID da entidade Janela que estamos a editar/criar
+        public ulong? JanelaId { get; set; }
 
         [Display(Name = "Tipo de janela")]
-        public string? TipoJanelaPrincipal { get; set; } // Mapeia para Janela.TipoJanela
+        public string? TipoJanelaPrincipal { get; set; } // Este campo vai guardar o valor selecionado
+
+        // PROPRIEDADE PARA PREENCHER O DROPDOWN:
+        public IEnumerable<SelectListItem>? TiposJanelaDisponiveis { get; set; } // Lista de opções para o dropdown
 
         [Display(Name = "Material")]
-        public string? MaterialJanela { get; set; } // Mapeia para Janela.Material
+        public string? MaterialJanela { get; set; }
 
         [Display(Name = "Janelas duplas")]
-        public bool? JanelasDuplas { get; set; } // Mapeia para Janela.PossuiJanelasDuplas
+        public bool? JanelasDuplas { get; set; }
 
         [Display(Name = "Tipo de vidro")]
-        public string? TipoVidro { get; set; } // Mapeia para Janela.TipoVidro
+        public string? TipoVidro { get; set; }
 
         [Display(Name = "R.P.T.")]
-        public bool? RPT { get; set; } // Mapeia para Janela.PossuiRPT
+        public bool? RPT { get; set; }
 
         [Display(Name = "Caixas de persiana")]
-        public bool? CaixasPersiana { get; set; } // Mapeia para Janela.PossuiCaixaPersiana
+        public bool? CaixasPersiana { get; set; }
 
         [Display(Name = "Nº unidades")]
-        public int? NumeroUnidadesJanela { get; set; } // Mapeia para Janela.NumeroUnidades
+        public int? NumeroUnidadesJanela { get; set; }
 
 
         // ===============================================
         // CAMPOS DA TABELA Higrometria
-        // Re-purposing existing model fields based on user request.
         // ===============================================
         [Display(Name = "Humidade Relativa Exterior (%)")]
         public decimal? HumidadeRelativaExterior { get; set; }
@@ -109,20 +113,11 @@ namespace MSPremiumProject.ViewModels
         [Display(Name = "Temp. Paredes Internas (ºC)")]
         public decimal? TemperaturaParedesInternas { get; set; }
 
-        // ESTE CAMPO NO MODELO HIGROMETRIA É 'TemperaturaPontoOrvalho' (decimal?)
-        // Mas na UI/ViewModel, representará a TEMPERATURA DOS PONTOS FRIOS
-        [Display(Name = "Temp. de Pontos Frios (ºC)")]
-        public decimal? TemperaturaDePontosFrios { get; set; }
-
-        // ESTE CAMPO NO MODELO HIGROMETRIA É 'PontoDeOrvalho' (decimal?)
-        // Mas na UI/ViewModel, representará a TEMPERATURA DO PONTO DE ORVALHO
         [Display(Name = "Temp. Ponto de Orvalho (ºC)")]
         public decimal? PontoDeOrvalho { get; set; }
 
-        // ESTE CAMPO NO MODELO HIGROMETRIA É 'PontosFrios' (decimal?)
-        // Mas na UI/ViewModel, representa a PRESENÇA de Pontos Frios (Sim/Não)
-        [Display(Name = "Pontos Frios (Presença)")]
-        public decimal? PontosFrios { get; set; } // O ViewModel ainda usa bool? para o dropdown "Sim/Não"
+        [Display(Name = "Temp. de Pontos Frios (ºC)")]
+        public decimal? PontosFrios { get; set; }
 
         [Display(Name = "Nível CO² (ppm)")]
         public decimal? NivelCO2 { get; set; }
