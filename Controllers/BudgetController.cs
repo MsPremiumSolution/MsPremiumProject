@@ -355,12 +355,12 @@ namespace MSPremiumProject.Controllers
             // ===============================================
             // BUSCAR TIPOS DE JANELA DA BASE DE DADOS
             // ===============================================
-            var tiposJanelaDisponiveis = await _context.Tipojanelas // Usar o DbSet correto (assumindo Tipojanelas)
+            var tiposJanelaDisponiveis = await _context.Tipojanelas
                 .OrderBy(tj => tj.TipoJanela1)
                 .Select(tj => new SelectListItem
                 {
-                    Value = tj.TipoJanela1, // O valor que será guardado (nome do tipo de janela)
-                    Text = tj.TipoJanela1   // O texto que será exibido no dropdown
+                    Value = tj.TipoJanela1,
+                    Text = tj.TipoJanela1
                 })
                 .ToListAsync();
 
@@ -387,8 +387,8 @@ namespace MSPremiumProject.Controllers
                 TipoAquecimento = tratamento.DadosGerais.DadosConstrutivo.TipoAquecimento,
 
                 JanelaId = primeiraJanela?.Id,
-                TipoJanelaPrincipal = primeiraJanela?.TipoJanela, // Atribui o valor guardado para pré-selecionar
-                TiposJanelaDisponiveis = tiposJanelaDisponiveis, // ATRIBUI A LISTA DE OPÇÕES AQUI
+                TipoJanelaPrincipal = primeiraJanela?.TipoJanela,
+                TiposJanelaDisponiveis = tiposJanelaDisponiveis,
 
                 MaterialJanela = primeiraJanela?.Material,
                 JanelasDuplas = primeiraJanela?.PossuiJanelasDuplas,
@@ -431,8 +431,6 @@ namespace MSPremiumProject.Controllers
         {
             await SetQualidadeArSubmenuState(model.PropostaId, "ColecaoDados");
 
-            // Se o ModelState não for válido, é crucial recarregar a lista de Tipos de Janela
-            // antes de retornar a View, para que o dropdown seja preenchido novamente.
             if (!ModelState.IsValid)
             {
                 var propostaCliente = await _context.Proposta.Include(p => p.Cliente).AsNoTracking().FirstOrDefaultAsync(p => p.PropostaId == model.PropostaId);
@@ -441,7 +439,7 @@ namespace MSPremiumProject.Controllers
                     model.NomeCliente = $"{propostaCliente.Cliente.Nome} {propostaCliente.Cliente.Apelido}";
                 }
 
-                // Recarrega a lista para o dropdown
+                // Recarrega a lista para o dropdown em caso de erro de validação
                 model.TiposJanelaDisponiveis = await _context.Tipojanelas
                     .OrderBy(tj => tj.TipoJanela1)
                     .Select(tj => new SelectListItem
@@ -457,7 +455,7 @@ namespace MSPremiumProject.Controllers
             var tratamentoParaAtualizar = await _context.QualidadeDoAr
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.DadosConstrutivo)
-                        .ThenInclude(dc => dc.Janelas)
+                        .ThenInclude(dc => dc.Janelas) // Garante que as janelas são carregadas
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.Higrometria)
                 .Include(q => q.DadosGerais)
@@ -491,30 +489,13 @@ namespace MSPremiumProject.Controllers
             dc.IsolamentoInterno = model.IsolamentoInterno;
             dc.TipoAquecimento = model.TipoAquecimento;
 
-            // Lógica para Salvar/Atualizar a PRIMEIRA Janela
-            Janela janelaParaAtualizar;
+            // ===============================================
+            // Lógica CORRIGIDA para Salvar/Atualizar/Remover Janela
+            // Assume que estamos gerindo APENAS UMA janela por DadosConstrutivos através deste formulário.
+            // ===============================================
+            Janela? janelaExistente = dc.Janelas.FirstOrDefault(); // Tenta obter a primeira janela já associada
 
-            if (model.JanelaId.HasValue)
-            {
-                janelaParaAtualizar = dc.Janelas.FirstOrDefault(j => j.Id == model.JanelaId.Value);
-                if (janelaParaAtualizar == null)
-                {
-                    if (dc.Janelas.Any())
-                    {
-                        janelaParaAtualizar = dc.Janelas.First();
-                    }
-                    else
-                    {
-                        janelaParaAtualizar = new Janela { DadosConstrutivosId = dc.Id };
-                        dc.Janelas.Add(janelaParaAtualizar);
-                    }
-                }
-            }
-            else
-            {
-                janelaParaAtualizar = dc.Janelas.FirstOrDefault();
-            }
-
+            // Verifica se o formulário forneceu dados para a janela (mesmo que seja só uma seleção de dropdown)
             bool anyWindowDataProvided = !string.IsNullOrEmpty(model.TipoJanelaPrincipal) ||
                                          !string.IsNullOrEmpty(model.MaterialJanela) ||
                                          !string.IsNullOrEmpty(model.TipoVidro) ||
@@ -525,32 +506,35 @@ namespace MSPremiumProject.Controllers
 
             if (anyWindowDataProvided)
             {
-                if (janelaParaAtualizar == null)
+                // Se há dados no formulário:
+                if (janelaExistente == null)
                 {
-                    janelaParaAtualizar = new Janela { DadosConstrutivosId = dc.Id };
-                    dc.Janelas.Add(janelaParaAtualizar);
+                    // Se não existe janela, cria uma nova
+                    janelaExistente = new Janela { DadosConstrutivosId = dc.Id };
+                    _context.Janelas.Add(janelaExistente); // Adiciona ao contexto para ser inserida
                 }
-                janelaParaAtualizar.TipoJanela = model.TipoJanelaPrincipal; // O valor selecionado do dropdown
-                janelaParaAtualizar.Material = model.MaterialJanela;
-                janelaParaAtualizar.TipoVidro = model.TipoVidro;
-                janelaParaAtualizar.NumeroUnidades = model.NumeroUnidadesJanela;
-                janelaParaAtualizar.PossuiJanelasDuplas = model.JanelasDuplas;
-                janelaParaAtualizar.PossuiRPT = model.RPT;
-                janelaParaAtualizar.PossuiCaixaPersiana = model.CaixasPersiana;
+                // Atualiza as propriedades da janela (seja ela nova ou existente)
+                janelaExistente.TipoJanela = model.TipoJanelaPrincipal;
+                janelaExistente.Material = model.MaterialJanela;
+                janelaExistente.TipoVidro = model.TipoVidro;
+                janelaExistente.NumeroUnidades = model.NumeroUnidadesJanela;
+                janelaExistente.PossuiJanelasDuplas = model.JanelasDuplas; // bool? para bool?
+                janelaExistente.PossuiRPT = model.RPT; // bool? para bool?
+                janelaExistente.PossuiCaixaPersiana = model.CaixasPersiana; // bool? para bool?
             }
-            else if (janelaParaAtualizar != null)
+            else // O formulário não forneceu dados para a janela (campos em branco ou "Selecione")
             {
-                janelaParaAtualizar.TipoJanela = null;
-                janelaParaAtualizar.Material = null;
-                janelaParaAtualizar.TipoVidro = null;
-                janelaParaAtualizar.NumeroUnidades = null;
-                janelaParaAtualizar.PossuiJanelasDuplas = null;
-                janelaParaAtualizar.PossuiRPT = null;
-                janelaParaAtualizar.PossuiCaixaPersiana = null;
+                if (janelaExistente != null)
+                {
+                    // Se existia uma janela e agora não há dados, removemos a janela existente
+                    _context.Janelas.Remove(janelaExistente); // Marca a janela para ser eliminada
+                    // Opcional: remover da coleção local para manter a consistência do objeto rastreado
+                    // dc.Janelas.Remove(janelaExistente); 
+                }
+                // Se não há dados e não havia janela, não fazemos nada.
             }
 
-
-            // Atualizar Higrometria
+            // Atualizar Higrometria (SEM ALTERAÇÕES AQUI)
             var hg = tratamentoParaAtualizar.DadosGerais.Higrometria;
             hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior;
             hg.TemperaturaExterior = model.TemperaturaExterior;
@@ -566,7 +550,7 @@ namespace MSPremiumProject.Controllers
             hg.NivelHCHO = model.NivelHCHO;
             hg.DataLoggerSensores = model.DataLoggerSensores;
 
-            // Atualizar Sintomatologia
+            // Atualizar Sintomatologia (SEM ALTERAÇÕES AQUI)
             var st = tratamentoParaAtualizar.DadosGerais.Sintomatologia;
             st.Fungos = model.Fungos ?? false;
             st.Cheiros = model.Cheiros ?? false;
@@ -578,7 +562,7 @@ namespace MSPremiumProject.Controllers
             st.GasRadao = model.GasRadao ?? false;
             st.EsporosEmSuperficies = model.EsporosEmSuperficies ?? false;
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(); // Este SaveChangesAsync agora persistirá as operações de Insert/Update/Delete para Janela
             TempData["MensagemSucesso"] = "Dados de Qualidade do Ar guardados com sucesso!";
             return RedirectToAction("EditQualidadeDoAr", new { id = model.QualidadeDoArId });
         }
@@ -691,12 +675,16 @@ namespace MSPremiumProject.Controllers
 
             try
             {
+                // Lógica de eliminação em cascata para QualidadeDoAr e suas dependências.
+                // Esta lógica só é estritamente necessária se o seu banco de dados NÃO tiver
+                // ON DELETE CASCADE configurado para as chaves estrangeiras.
+                // Se o seu DB tiver, remover a Proposta pode já ser suficiente.
                 if (proposta.QualidadeDoArId.HasValue)
                 {
                     var qualidadeAr = await _context.QualidadeDoAr
                         .Include(qa => qa.DadosGerais)
                             .ThenInclude(dg => dg.DadosConstrutivo)
-                                .ThenInclude(dc => dc.Janelas)
+                                .ThenInclude(dc => dc.Janelas) // Garante que as janelas são carregadas para serem removidas
                         .Include(qa => qa.DadosGerais)
                             .ThenInclude(dg => dg.Higrometria)
                         .Include(qa => qa.DadosGerais)
@@ -711,6 +699,7 @@ namespace MSPremiumProject.Controllers
                         {
                             if (qualidadeAr.DadosGerais.DadosConstrutivo != null)
                             {
+                                // Remove todas as janelas associadas a este DadosConstrutivos
                                 _context.Janelas.RemoveRange(qualidadeAr.DadosGerais.DadosConstrutivo.Janelas);
                                 _context.DadosConstrutivos.Remove(qualidadeAr.DadosGerais.DadosConstrutivo);
                             }
@@ -731,6 +720,7 @@ namespace MSPremiumProject.Controllers
             catch (DbUpdateException ex)
             {
                 TempData["MensagemErro"] = $"Ocorreu um erro ao apagar a proposta: Por favor, verifique se todas as informações associadas (dados de qualidade do ar, etc.) foram removidas ou se há referências pendentes. Detalhes: {ex.Message}";
+                // Considere logar ex.InnerException para mais detalhes em depuração
             }
 
             return RedirectToAction(nameof(OrçamentosEmCurso));
