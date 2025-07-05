@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.Rendering; // Adicionar este using para SelectListItem
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace MSPremiumProject.Controllers
 {
@@ -73,10 +73,43 @@ namespace MSPremiumProject.Controllers
         //================================================================================
         // PÁGINA PRINCIPAL: LISTAGEM DE ORÇAMENTOS POR CONCLUIR
         //================================================================================
+        [HttpGet]
+        public async Task<IActionResult> OrçamentosEmCurso()
+        {
+            ViewData["Title"] = "Orçamentos por Concluir";
+            var propostasEmCurso = await _context.Proposta
+                                         .Where(p => p.EstadoPropostaId == ESTADO_EM_CURSO)
+                                         .Include(p => p.Cliente)
+                                         .Include(p => p.Estado)
+                                         .OrderByDescending(p => p.DataProposta)
+                                         .ToListAsync();
+            return View(propostasEmCurso);
+        }
 
-        // Ficheiro: BudgetController.cs (Método IniciarOrcamento)
+        //================================================================================
+        // ETAPA 1: PÁGINA DE SELEÇÃO DE CLIENTE (para criar um NOVO orçamento)
+        //================================================================================
+        [HttpGet]
+        public async Task<IActionResult> Index(string searchTerm)
+        {
+            ViewData["Title"] = "Novo Orçamento - Selecionar Cliente";
+            ViewData["CurrentFilter"] = searchTerm;
+            HttpContext.Session.Clear(); // Limpa a sessão ao iniciar um novo fluxo
+            // ATENÇÃO: HttpContext.Session.Clear() aqui irá apagar 'CurrentPropostaId'
+            // se o utilizador navegar para Index e depois voltar para um orçamento que estava a editar.
+            // Considere manter o 'CurrentPropostaId' na sessão, se for para persistir entre navegações.
 
-        // ... (código existente do controlador) ...
+            IQueryable<Cliente> clientesQuery = _context.Clientes.Include(c => c.LocalidadeNavigation).AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                string searchTermLower = searchTerm.ToLower();
+                clientesQuery = clientesQuery.Where(c => c.Nome.ToLower().Contains(searchTermLower) || (c.Apelido != null && c.Apelido.ToLower().Contains(searchTermLower)));
+            }
+
+            var clientes = await clientesQuery.OrderBy(c => c.Nome).ThenBy(c => c.Apelido).ToListAsync();
+            return View(clientes);
+        }
 
         //================================================================================
         // ETAPA 2: INICIAR ORÇAMENTO (CRIAR PROPOSTA) OU CONTINUAR UM EXISTENTE
@@ -112,27 +145,38 @@ namespace MSPremiumProject.Controllers
                 TempData["Debug: IniciarOrcamento - UserId"] = $"User ID {utilizadorId} obtido com sucesso.";
 
                 // =========================================================================
-                // LÓGICA ATUALIZADA: Procurar e Continuar Orçamento Existente (se houver)
+                // LÓGICA ATUALIZADA: Limpeza de Propostas Incompletas Órfãs e Continuação
                 // =========================================================================
-                var propostaExistente = await _context.Proposta
+
+                // 1. Encontrar todas as propostas "Em Curso" sem QualidadeDoArId para este Cliente/Utilizador
+                var propostasIncompletas = await _context.Proposta
                     .Where(p => p.ClienteId == clienteId &&
                                 p.UtilizadorId == utilizadorId &&
                                 p.EstadoPropostaId == ESTADO_EM_CURSO &&
-                                p.QualidadeDoArId == null) // Procura uma proposta em curso, sem QA associado
-                    .OrderByDescending(p => p.DataProposta) // Pega a mais recente se houver múltiplas
-                    .FirstOrDefaultAsync();
+                                p.QualidadeDoArId == null) // Propostas em curso, mas sem a estrutura QA
+                    .OrderByDescending(p => p.DataProposta) // Ordena para pegar a mais recente primeiro
+                    .ToListAsync();
 
                 Proposta propostaParaTrabalhar;
 
-                if (propostaExistente != null)
+                if (propostasIncompletas.Any())
                 {
-                    // Encontrou uma proposta existente e incompleta para este cliente/utilizador
-                    propostaParaTrabalhar = propostaExistente;
-                    TempData["Debug: IniciarOrcamento - Existing Proposal Found"] = $"Continuando proposta existente ID: {propostaParaTrabalhar.PropostaId}";
+                    // Existe pelo menos uma proposta incompleta.
+                    propostaParaTrabalhar = propostasIncompletas.First(); // Escolhe a mais recente
+
+                    // Remove as outras propostas incompletas "órfãs" (todas, exceto a que vamos trabalhar)
+                    var propostasParaRemover = propostasIncompletas.Skip(1); // Todas menos a primeira/mais recente
+                    if (propostasParaRemover.Any())
+                    {
+                        _context.Proposta.RemoveRange(propostasParaRemover);
+                        await _context.SaveChangesAsync(); // Remove as propostas órfãs do DB
+                        TempData["Debug: IniciarOrcamento - Cleaned Orphans"] = $"{propostasParaRemover.Count()} propostas órfãs foram limpas.";
+                    }
+                    TempData["Debug: IniciarOrcamento - Found Existing Proposal"] = $"Continuando proposta existente ID: {propostaParaTrabalhar.PropostaId}";
                 }
                 else
                 {
-                    // Não encontrou, cria uma nova proposta
+                    // Não encontrou nenhuma proposta incompleta, cria uma nova
                     propostaParaTrabalhar = new Proposta
                     {
                         ClienteId = clienteId,
@@ -148,7 +192,7 @@ namespace MSPremiumProject.Controllers
                 HttpContext.Session.SetString("CurrentPropostaId", propostaParaTrabalhar.PropostaId.ToString());
                 TempData["Debug: IniciarOrcamento - Session Set"] = $"Proposta ID {propostaParaTrabalhar.PropostaId} salva na sessão.";
 
-                // Sempre redireciona para a Tipologia Construtiva, independentemente de ser nova ou existente
+                // Sempre redireciona para a Tipologia Construtiva
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
             catch (FormatException fEx)
@@ -170,54 +214,9 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(Index));
             }
         }
-        // ... (resto do código do controlador) ...
-
-        [HttpGet]
-        public async Task<IActionResult> OrçamentosEmCurso()
-        {
-            ViewData["Title"] = "Orçamentos por Concluir";
-            var propostasEmCurso = await _context.Proposta
-                                         .Where(p => p.EstadoPropostaId == ESTADO_EM_CURSO)
-                                         .Include(p => p.Cliente)
-                                         .Include(p => p.Estado)
-                                         .OrderByDescending(p => p.DataProposta)
-                                         .ToListAsync();
-            return View(propostasEmCurso);
-        }
 
         //================================================================================
-        // ETAPA 1: PÁGINA DE SELEÇÃO DE CLIENTE (para criar um NOVO orçamento)
-        //================================================================================
-        [HttpGet]
-        public async Task<IActionResult> Index(string searchTerm)
-        {
-            ViewData["Title"] = "Novo Orçamento - Selecionar Cliente";
-            ViewData["CurrentFilter"] = searchTerm;
-            HttpContext.Session.Clear(); // Limpa a sessão ao iniciar um novo fluxo
-            // ^ Esta linha HttpContext.Session.Clear() é boa aqui no Index para
-            // garantir um novo começo, mas significa que 'CurrentPropostaId'
-            // não persistirá se o utilizador navegar para Index e depois voltar.
-
-            IQueryable<Cliente> clientesQuery = _context.Clientes.Include(c => c.LocalidadeNavigation).AsQueryable();
-
-            if (!string.IsNullOrEmpty(searchTerm))
-            {
-                string searchTermLower = searchTerm.ToLower();
-                clientesQuery = clientesQuery.Where(c => c.Nome.ToLower().Contains(searchTermLower) || (c.Apelido != null && c.Apelido.ToLower().Contains(searchTermLower)));
-            }
-
-            var clientes = await clientesQuery.OrderBy(c => c.Nome).ThenBy(c => c.Apelido).ToListAsync();
-            return View(clientes);
-        }
-
-
-        //================================================================================
-        // ETAPA 1: PÁGINA DE SELEÇÃO DE CLIENTE (para criar um NOVO orçamento)
-        //================================================================================
-        
-
-        //================================================================================
-        // ETAPA 2: INICIAR ORÇAMENTO (CRIAR PROPOSTA) OU CONTINUAR UM EXISTENTE
+        // ETAPA 2.5: CONTINUAR ORÇAMENTO (AJUSTADO PARA REDIRECIONAR PARA O PRIMEIRO PASSO INCOMPLETO)
         //================================================================================
         [HttpGet]
         public async Task<IActionResult> ContinuarOrcamento(ulong id)
@@ -248,7 +247,6 @@ namespace MSPremiumProject.Controllers
             }
 
             // Se a estrutura de Qualidade do Ar já existe, vai para a página de edição de dados (Coleção de Dados)
-            // Assumindo que QualidadeDoArId não é nulo se os dados foram criados
             return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
         }
 
@@ -272,25 +270,15 @@ namespace MSPremiumProject.Controllers
             }
 
             // Se QualidadeDoArId já tiver valor, significa que o tratamento já foi selecionado e a estrutura criada.
-            // Neste caso, redireciona para a próxima etapa (SelectTreatment ou diretamente para EditQualidadeDoAr)
-            // Isto previne regressão no fluxo.
+            // Redireciona para a edição de dados.
             if (proposta.QualidadeDoArId.HasValue)
             {
-                // Aqui podemos decidir se queremos ir para SelectTreatment (para mudar o tipo?)
-                // ou ir direto para EditQualidadeDoAr (se o tipo QA já foi definido e iniciado).
-                // Para simplificar e manter o fluxo, se QA já existe, vamos para a edição.
                 return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
             }
-
-
-            // Se a proposta.QualidadeDoArId.HasValue for true aqui, significa que já criou a estrutura do QA.
-            // Precisamos garantir que o estado do submenu é corretamente definido mesmo se já tivermos avançado.
-            // await SetQualidadeArSubmenuState(propostaId, "TipologiaConstrutiva"); // Manter esta linha
 
             ViewData["ClienteNome"] = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
             ViewData["SelectedTipologiaId"] = proposta.TipologiaConstrutivaId;
 
-            // Este Try-Catch é importante caso a tabela TipologiasConstrutivas esteja vazia/danificada.
             try
             {
                 var tipologiasDisponiveis = await _context.TipologiasConstrutivas.OrderBy(t => t.Nome).ToListAsync();
@@ -302,6 +290,7 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
         }
+        // ... (resto do controlador) ...
 
         [HttpPost]
         [ValidateAntiForgeryToken]
