@@ -41,6 +41,7 @@ namespace MSPremiumProject.Data
         public DbSet<MSPremiumProject.Models.Tipojanela> Tipojanelas { get; set; }
         public DbSet<DadosGerais> DadosGerais { get; set; }
         public DbSet<Objetivos> Objetivos { get; set; }
+        public DbSet<EstadoProposta> EstadoPropostas { get; set; }  
         public DbSet<OrcamentoAr> OrcamentoAr { get; set; }
         public DbSet<QualidadeDoAr> QualidadeDoAr { get; set; }
         public DbSet<Volume> Volumes { get; set; } // O DbSet de Volumes, agora ligado a QualidadeDoAr

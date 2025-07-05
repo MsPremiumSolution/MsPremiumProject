@@ -2,7 +2,7 @@
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore; // Adicionar este using (se não estiver já)
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MSPremiumProject.Data;
@@ -26,13 +26,13 @@ builder.Services.AddDbContext<DataProtectionKeysContext>(options =>
         connectionString, // Reutiliza a mesma string de conexão
         ServerVersion.AutoDetect(connectionString)
     )
-// Pode adicionar .LogTo aqui também se quiser ver as queries de Data Protection
+// Pode adicionar .LogTo(Console.WriteLine, LogLevel.Information) aqui também para ver as queries de Data Protection
 );
 
 // --- CONFIGURAÇÃO DO DATA PROTECTION ---
 // Persiste as chaves no DataProtectionKeysContext
 builder.Services.AddDataProtection()
-    .PersistKeysToDbContext<DataProtectionKeysContext>(); // <<< USA O SEU DBContext DEDICADO AQUI
+    .PersistKeysToDbContext<DataProtectionKeysContext>(); // Usa o DbContext dedicado
 
 
 // Resto dos teus serviços
@@ -60,13 +60,43 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 // Resto dos teus serviços
 builder.Services.AddTransient<IEmailSender, EmailSender>();
-builder.Services.AddLogging(); // Já adicionado pelo template
+builder.Services.AddLogging();
 
 
 // =========================================================================
 // Construção da Aplicação
 var app = builder.Build();
 // =========================================================================
+
+// --- APLICAR MIGRATIONS E SEED DATA NO ARRANQUE ---
+// ESTE BLOCO É CRUCIAL E DEVE SER EXECUTADO ANTES DE app.Run();
+using (var scope = app.Services.CreateScope())
+{
+    var serviceProvider = scope.ServiceProvider;
+    try
+    {
+        // Aplica migrações para AppDbContext (seus dados de negócio)
+        var appDbContext = serviceProvider.GetRequiredService<AppDbContext>();
+        appDbContext.Database.Migrate();
+        // Opcional: Seeding inicial de dados (se você tem o SeedData.cs)
+        await SeedData.Initialize(appDbContext);
+
+        // Aplica migrações para DataProtectionKeysContext (chaves de segurança)
+        var dpContext = serviceProvider.GetRequiredService<DataProtectionKeysContext>();
+        dpContext.Database.Migrate();
+
+        app.Logger.LogInformation("Database migrations and seeding applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "An error occurred during database migration/seeding. Application startup might fail.");
+        // Em um ambiente de produção, é comum re-throw a exceção aqui
+        // ou parar a aplicação para que o ambiente (Render.com) perceba a falha.
+        // throw; // Se quiser que o startup falhe se a migração/seed falhar
+    }
+}
+// --- FIM DA APLICAÇÃO DE MIGRATIONS E SEED DATA NO ARRANQUE ---
+
 
 // Pipeline de Pedidos HTTP
 if (!app.Environment.IsDevelopment())
