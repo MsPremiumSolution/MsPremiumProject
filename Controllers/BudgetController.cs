@@ -409,7 +409,6 @@ namespace MSPremiumProject.Controllers
                 HumidadeRelativaInterior = tratamento.DadosGerais.Higrometria.HumidadeRelativaInterior,
                 TemperaturaInterior = tratamento.DadosGerais.Higrometria.TemperaturaInterior,
                 TemperaturaParedesInternas = tratamento.DadosGerais.Higrometria.TemperaturaParedesInternas,
-                TemperaturaPontoOrvalho = tratamento.DadosGerais.Higrometria.TemperaturaPontoOrvalho,
                 PontoDeOrvalho = tratamento.DadosGerais.Higrometria.PontoDeOrvalho,
                 PontosFrios = tratamento.DadosGerais.Higrometria.PontosFrios,
                 NivelCO2 = tratamento.DadosGerais.Higrometria.NivelCO2,
@@ -516,10 +515,9 @@ namespace MSPremiumProject.Controllers
 
             // Atualizar Higrometria
             var hg = tratamentoParaAtualizar.DadosGerais.Higrometria;
-            hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior; hg.TemperaturaExterior = model.TemperaturaExterior; hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior; hg.TemperaturaInterior = model.TemperaturaInterior; hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas; hg.TemperaturaPontoOrvalho = model.TemperaturaPontoOrvalho;
+            hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior; hg.TemperaturaExterior = model.TemperaturaExterior; hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior; hg.TemperaturaInterior = model.TemperaturaInterior; hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas; hg.PontoDeOrvalho = model.PontoDeOrvalho;
             hg.PontoDeOrvalho = model.PontoDeOrvalho;
-            // CORREÇÃO AQUI: Garante que 'PontosFrios' (bool?) se converte para 'bool'
-            //hg.PontosFrios = model.PontosFrios ?? false;
+            
 
             hg.NivelCO2 = model.NivelCO2; hg.NivelTCOV = model.NivelTCOV; hg.NivelHCHO = model.NivelHCHO; hg.DataLoggerSensores = model.DataLoggerSensores;
 

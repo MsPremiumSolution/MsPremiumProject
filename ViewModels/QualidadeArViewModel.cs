@@ -52,7 +52,7 @@ namespace MSPremiumProject.ViewModels
         public string? CoberturaFachadaPosterior { get; set; }
 
         [Display(Name = "Tratamento de hidrofugação")]
-        public bool? TratamentoHidrofugacao { get; set; } // Ajustado para nullable bool?
+        public bool? TratamentoHidrofugacao { get; set; }
 
         [Display(Name = "Isolamento da câmara")]
         public string? IsolamentoCamara { get; set; }
@@ -65,7 +65,6 @@ namespace MSPremiumProject.ViewModels
 
         // ===============================================
         // CAMPOS DA TABELA Janela (para a primeira janela)
-        // >>> ADICIONADOS AQUI <<<
         // ===============================================
         public ulong? JanelaId { get; set; } // ID da entidade Janela que estamos a editar/criar
 
@@ -93,6 +92,7 @@ namespace MSPremiumProject.ViewModels
 
         // ===============================================
         // CAMPOS DA TABELA Higrometria
+        // Re-purposing existing model fields based on user request.
         // ===============================================
         [Display(Name = "Humidade Relativa Exterior (%)")]
         public decimal? HumidadeRelativaExterior { get; set; }
@@ -109,57 +109,61 @@ namespace MSPremiumProject.ViewModels
         [Display(Name = "Temp. Paredes Internas (ºC)")]
         public decimal? TemperaturaParedesInternas { get; set; }
 
-        [Display(Name = "Temp. Ponto de Orvalho (ºC)")]
-        public decimal? TemperaturaPontoOrvalho { get; set; }
+        // ESTE CAMPO NO MODELO HIGROMETRIA É 'TemperaturaPontoOrvalho' (decimal?)
+        // Mas na UI/ViewModel, representará a TEMPERATURA DOS PONTOS FRIOS
+        [Display(Name = "Temp. de Pontos Frios (ºC)")]
+        public decimal? TemperaturaDePontosFrios { get; set; }
 
-        [Display(Name = "Ponto de Orvalho")]
-        // Se PontoDeOrvalho no modelo Higrometria é string, mantém string.
-        // Se é decimal, ajusta aqui. Pelas imagens, parece string (Baixo/Médio/Alto)
+        // ESTE CAMPO NO MODELO HIGROMETRIA É 'PontoDeOrvalho' (decimal?)
+        // Mas na UI/ViewModel, representará a TEMPERATURA DO PONTO DE ORVALHO
+        [Display(Name = "Temp. Ponto de Orvalho (ºC)")]
         public decimal? PontoDeOrvalho { get; set; }
 
-        [Display(Name = "Pontos Frios")]
-        public decimal? PontosFrios { get; set; }
+        // ESTE CAMPO NO MODELO HIGROMETRIA É 'PontosFrios' (decimal?)
+        // Mas na UI/ViewModel, representa a PRESENÇA de Pontos Frios (Sim/Não)
+        [Display(Name = "Pontos Frios (Presença)")]
+        public decimal? PontosFrios { get; set; } // O ViewModel ainda usa bool? para o dropdown "Sim/Não"
 
         [Display(Name = "Nível CO² (ppm)")]
-        public decimal? NivelCO2 { get; set; } // Ajustado para int?
+        public decimal? NivelCO2 { get; set; }
 
         [Display(Name = "Nível TCOV (mg/m³)")]
-        public decimal? NivelTCOV { get; set; } // Ajustado para int?
+        public decimal? NivelTCOV { get; set; }
 
         [Display(Name = "Nível HCHO (mg/m³)")]
         public decimal? NivelHCHO { get; set; }
 
         [Display(Name = "Data Logger Sensores")]
-        public decimal? DataLoggerSensores { get; set; } // Ajustado para DateTime?
+        public decimal? DataLoggerSensores { get; set; }
 
         // ===============================================
         // CAMPOS DA TABELA Sintomatologia
         // ===============================================
         [Display(Name = "Presença de fungos")]
-        public bool? Fungos { get; set; } // Ajustado para nullable bool?
+        public bool? Fungos { get; set; }
 
         [Display(Name = "Presença de cheiros (mofo)")]
-        public bool? Cheiros { get; set; } // Ajustado para nullable bool?
+        public bool? Cheiros { get; set; }
 
         [Display(Name = "Mofo em roupas/armários")]
-        public bool? MofoEmRoupasArmarios { get; set; } // Ajustado para nullable bool?
+        public bool? MofoEmRoupasArmarios { get; set; }
 
         [Display(Name = "Condensação nas janelas")]
-        public bool? CondensacaoNasJanelas { get; set; } // Ajustado para nullable bool?
+        public bool? CondensacaoNasJanelas { get; set; }
 
         [Display(Name = "Consumo excessivo de aquecimento")]
-        public bool? ConsumoExcessivoAquecimento { get; set; } // Ajustado para nullable bool?
+        public bool? ConsumoExcessivoAquecimento { get; set; }
 
         [Display(Name = "Presença de alergias nos habitantes")]
-        public bool? Alergias { get; set; } // Ajustado para nullable bool?
+        public bool? Alergias { get; set; }
 
         [Display(Name = "Problemas respiratórios nos habitantes")]
-        public bool? ProblemasRespiratorios { get; set; } // Ajustado para nullable bool?
+        public bool? ProblemasRespiratorios { get; set; }
 
         [Display(Name = "Suspeita de Gás Radão")]
-        public bool? GasRadao { get; set; } // Ajustado para nullable bool?
+        public bool? GasRadao { get; set; }
 
         [Display(Name = "Esporos em superfícies")]
-        public bool? EsporosEmSuperficies { get; set; } // Ajustado para nullable bool?
+        public bool? EsporosEmSuperficies { get; set; }
     }
 }

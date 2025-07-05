@@ -13,7 +13,6 @@ public partial class Higrometria
     public decimal? HumidadeRelativaInterior { get; set; }
     public decimal? TemperaturaInterior { get; set; }
     public decimal? TemperaturaParedesInternas { get; set; }
-    public decimal? TemperaturaPontoOrvalho { get; set; }
     public decimal? PontoDeOrvalho { get; set; }
     [Column("pontos_frios")]
     public decimal? PontosFrios { get; set; }
