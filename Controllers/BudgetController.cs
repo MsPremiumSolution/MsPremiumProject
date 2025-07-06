@@ -1085,17 +1085,17 @@ namespace MSPremiumProject.Controllers
             }
 
             // =============================================================
-            // LÓGICA DE PREÇOS UNITÁRIOS (pode vir de uma tabela de preços ou ser hard-coded)
+            // LÓGICA DE PREÇOS UNITÁRIOS
             // =============================================================
             var precos = new Dictionary<string, decimal>
             {
                 { "PROJ_CONTROLETECNICO", 200.00m },
                 { "PROJ_EXECUCAOPROJETO", 300.00m },
-                { "FAB_UNIDADECENTRAL", 13.31m }, // Preço por m³
-                { "FAB_CONFIG", 23.81m }, // Preço por compartimento
+                { "FAB_UNIDADECENTRAL", 13.31m },
+                { "FAB_CONFIG", 23.81m },
                 { "IMPL_MAODEOBRA", 462.80m },
                 { "PERS_ADAPTACAO", 1000.00m },
-                { "PERS_ACESSORIOS", 0.00m }, // Pode ser editável no futuro
+                { "PERS_ACESSORIOS", 0.00m },
                 { "MANUT_FILTRO_G4", 16.90m },
                 { "MANUT_FILTRO_F7", 30.00m },
                 { "MANUT_VIGILANCIA", 0.00m }
@@ -1107,22 +1107,25 @@ namespace MSPremiumProject.Controllers
             orcamentoArParaAtualizar.NumeroPisos = model.NumeroPisos;
             orcamentoArParaAtualizar.FiltroManutencao = model.FiltroManutencao;
 
-            // Limpa as linhas antigas para recriá-las. É a abordagem mais simples.
+            // Limpa as linhas antigas para recriá-las.
             orcamentoArParaAtualizar.LinhasOrcamento.Clear();
 
-            // Função auxiliar para adicionar uma linha
+            decimal valorTotalCalculado = 0;
+
             Action<string, string, decimal, decimal> AddLinha = (codigo, desc, qtd, precoUnit) =>
             {
-                if (qtd > 0) // Só adiciona a linha se a quantidade for maior que zero
+                if (qtd > 0)
                 {
+                    var totalLinha = qtd * precoUnit;
                     orcamentoArParaAtualizar.LinhasOrcamento.Add(new OrcamentoArLinha
                     {
                         CodigoItem = codigo,
                         Descricao = desc,
                         Quantidade = qtd,
                         PrecoUnitario = precoUnit,
-                        TotalLinha = qtd * precoUnit
+                        TotalLinha = totalLinha
                     });
+                    valorTotalCalculado += totalLinha; // Acumula o total
                 }
             };
 
@@ -1141,6 +1144,9 @@ namespace MSPremiumProject.Controllers
             if (model.FiltroManutencao == "G4") AddLinha("MANUT_FILTRO_G4", "Filtro substituível G4", 1, precos["MANUT_FILTRO_G4"]);
             if (model.FiltroManutencao == "F7") AddLinha("MANUT_FILTRO_F7", "Filtro substituível F7", 1, precos["MANUT_FILTRO_F7"]);
             if (model.HasVigilancia24h) AddLinha("MANUT_VIGILANCIA", "Vigilância 24h/dia (EtairBox)", 1, precos["MANUT_VIGILANCIA"]);
+
+            // ATRIBUIR O VALOR TOTAL CALCULADO
+            orcamentoArParaAtualizar.ValorTotalDetalhe = valorTotalCalculado;
 
             await _context.SaveChangesAsync();
 

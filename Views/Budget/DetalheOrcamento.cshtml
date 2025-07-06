@@ -153,6 +153,13 @@
             </div>
         </div>
 
+        <!-- CAMPO DO TOTAL GERAL -->
+        <div class="card mt-4">
+            <div class="card-body text-end">
+                <h4 class="mb-0">Total Orçamento: <span id="pvp-total-geral" class="text-primary fw-bold">0,00 €</span></h4>
+            </div>
+        </div>
+
         <div class="d-flex justify-content-between mt-4">
             <a asp-action="Volumes" asp-route-id="@Model.QualidadeDoArId" class="btn btn-outline-secondary">Voltar</a>
             <button type="submit" class="btn btn-primary px-4">Salvar e continuar</button>
@@ -184,27 +191,30 @@
 
         function validarVolume() {
             const volumeInseridoEl = document.getElementById('M3VolumeHabitavel');
+            const avisoEl = volumeInseridoEl.closest('.input-group').nextElementSibling;
             const volumeCalculado = parseFloat(document.getElementById('volume-calculado-display').textContent.replace(',', '.'));
             const volumeInserido = parseFloat(volumeInseridoEl.value.replace(',', '.')) || 0;
 
             if (Math.abs(volumeInserido - volumeCalculado) > 0.01) { // Usar uma tolerância
                 volumeInseridoEl.classList.add('is-invalid');
-                volumeInseridoEl.parentElement.nextElementSibling.style.display = 'block'; // Mostra a mensagem de aviso
+                if(avisoEl) avisoEl.style.display = 'block';
             } else {
                 volumeInseridoEl.classList.remove('is-invalid');
-                volumeInseridoEl.parentElement.nextElementSibling.style.display = 'none'; // Esconde a mensagem de aviso
+                if(avisoEl) avisoEl.style.display = 'none';
             }
             calcularTotais();
         }
 
         function calcularTotais() {
             const form = document.getElementById('orcamento-form');
+            let totalGeral = 0;
 
             // Projeto
             let pvpProjeto = 0;
             if (form.querySelector('#HasControleTecnico').checked) pvpProjeto += PRECOS.controleTecnico;
             if (form.querySelector('#HasExecucaoProjeto').checked) pvpProjeto += PRECOS.execucaoProjeto;
             document.getElementById('pvp-projeto').textContent = formatarMoeda(pvpProjeto);
+            totalGeral += pvpProjeto;
 
             // Fabricação
             const m3 = parseFloat(form.querySelector('#M3VolumeHabitavel').value.replace(',', '.')) || 0;
@@ -215,17 +225,20 @@
             document.getElementById('pvp-fabricacao-unidade').textContent = formatarMoeda(pvpFabricacaoUnidade);
             document.getElementById('pvp-fabricacao-config').textContent = formatarMoeda(pvpFabricacaoConfig);
             document.getElementById('pvp-fabricacao-total').textContent = formatarMoeda(pvpFabricacaoTotal);
+            totalGeral += pvpFabricacaoTotal;
 
             // Implementação
             let pvpImplementacao = 0;
             if (form.querySelector('#HasInstalacaoMaoDeObra').checked) pvpImplementacao += PRECOS.instalacao;
             document.getElementById('pvp-implementacao').textContent = formatarMoeda(pvpImplementacao);
+            totalGeral += pvpImplementacao;
 
             // Personalização
             let pvpPersonalizacao = 0;
             if (form.querySelector('#HasAdaptacaoSistema').checked) pvpPersonalizacao += PRECOS.adaptacao;
             if (form.querySelector('#HasAcessoriosExtras').checked) pvpPersonalizacao += PRECOS.acessorios;
             document.getElementById('pvp-personalizacao').textContent = formatarMoeda(pvpPersonalizacao);
+            totalGeral += pvpPersonalizacao;
 
             // Manutenção
             let pvpManutencao = 0;
@@ -233,6 +246,10 @@
             if (form.querySelector('#filtroF7').checked) pvpManutencao += PRECOS.filtroF7;
             if (form.querySelector('#HasVigilancia24h').checked) pvpManutencao += PRECOS.vigilancia;
             document.getElementById('pvp-manutencao').textContent = formatarMoeda(pvpManutencao);
+            totalGeral += pvpManutencao;
+
+            // ATUALIZAR O TOTAL GERAL
+            document.getElementById('pvp-total-geral').textContent = formatarMoeda(totalGeral) + ' €';
         }
 
         // Calcular totais ao carregar a página
