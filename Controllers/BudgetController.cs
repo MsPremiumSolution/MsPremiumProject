@@ -840,15 +840,22 @@ namespace MSPremiumProject.Controllers
 
             if (!ModelState.IsValid)
             {
+                // Se o modelo não for válido, recalcular totais para exibição correta na view
+                // (O JavaScript já faz isso no lado do cliente, mas é bom ter aqui como fallback)
                 return View(model);
+            }
+
+            // Precisamos da entidade QualidadeDoAr para salvar os totais.
+            var qualidadeDoAr = await _context.QualidadeDoAr.FindAsync(model.QualidadeDoArId);
+            if (qualidadeDoAr == null)
+            {
+                TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado para atualização.";
+                return NotFound();
             }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Estratégia de Atualização: Remover os antigos e adicionar os novos
-                // Esta é a forma mais simples de gerir formulários dinâmicos complexos.
-
                 // 1. Remover todos os volumes e medidas existentes para este orçamento
                 var existingVolumes = await _context.Volumes
                     .Include(v => v.Medidas)
@@ -862,12 +869,14 @@ namespace MSPremiumProject.Controllers
                 _context.Volumes.RemoveRange(existingVolumes);
                 await _context.SaveChangesAsync(); // Aplica as remoções
 
-                // 2. Adicionar os novos volumes e medidas que vieram do formulário
+                // 2. Calcular totais e adicionar os novos volumes e medidas
+                decimal volumeTotalCalculado = 0;
+                decimal superficieTotalCalculada = 0;
+
                 if (model.Volumes != null)
                 {
                     foreach (var volumeVm in model.Volumes)
                     {
-                        // Ignorar blocos de altura sem valor
                         if (volumeVm.Altura <= 0) continue;
 
                         var newVolume = new Volume
@@ -877,13 +886,14 @@ namespace MSPremiumProject.Controllers
                         };
 
                         _context.Volumes.Add(newVolume);
-                        await _context.SaveChangesAsync(); // Salva para obter o ID do newVolume
+                        // É importante salvar aqui para que o newVolume.Id seja gerado para as medidas
+                        await _context.SaveChangesAsync();
 
+                        decimal superficieDoVolume = 0;
                         if (volumeVm.Medidas != null)
                         {
                             foreach (var medidaVm in volumeVm.Medidas)
                             {
-                                // Ignorar medidas incompletas
                                 if (medidaVm.Largura > 0 && medidaVm.Comprimento > 0)
                                 {
                                     var newMedida = new Medida
@@ -893,13 +903,25 @@ namespace MSPremiumProject.Controllers
                                         Comprimento = medidaVm.Comprimento
                                     };
                                     _context.Medida.Add(newMedida);
+                                    superficieDoVolume += medidaVm.Largura * medidaVm.Comprimento;
                                 }
                             }
                         }
+
+                        // Acumular os totais
+                        superficieTotalCalculada += superficieDoVolume;
+                        volumeTotalCalculado += superficieDoVolume * newVolume.Altura;
                     }
                 }
 
-                await _context.SaveChangesAsync(); // Salva todas as novas medidas
+                // 3. Atribuir os totais calculados à entidade QualidadeDoAr
+                qualidadeDoAr.SuperficieTotal = superficieTotalCalculada;
+                qualidadeDoAr.VolumeTotal = volumeTotalCalculado;
+
+                // Marca a entidade como modificada. O EF Core fará o UPDATE.
+                _context.QualidadeDoAr.Update(qualidadeDoAr);
+
+                await _context.SaveChangesAsync(); // Salva as novas medidas e os totais na QualidadeDoAr
                 await transaction.CommitAsync();
 
                 TempData["MensagemSucesso"] = "Volumes guardados com sucesso!";

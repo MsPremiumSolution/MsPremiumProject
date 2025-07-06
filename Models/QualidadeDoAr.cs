@@ -19,6 +19,12 @@ public partial class QualidadeDoAr
     public ulong? ObjetivosId { get; set; }
     public ulong? OrcamentoArId { get; set; }
 
+    [Column(TypeName = "decimal(18, 2)")]
+    public decimal VolumeTotal { get; set; }
+
+    [Column(TypeName = "decimal(18, 2)")]
+    public decimal SuperficieTotal { get; set; }
+
     [ForeignKey("DadosGeraisId")]
     public virtual DadosGerais? DadosGerais { get; set; } = null!;
     [ForeignKey("ObjetivosId")]
