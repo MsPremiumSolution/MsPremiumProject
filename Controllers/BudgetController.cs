@@ -1039,7 +1039,7 @@ namespace MSPremiumProject.Controllers
                 PropostaId = propostaId,
                 QualidadeDoArId = id,
                 OrcamentoArId = orcamentoAr.Id,
-                NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}",
+                //NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}",
 
                 // Carregar dados salvos
                 M3VolumeHabitavel = orcamentoAr.M3VolumeHabitavel,

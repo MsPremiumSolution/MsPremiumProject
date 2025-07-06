@@ -6,7 +6,7 @@ namespace MSPremiumProject.ViewModels
         public ulong PropostaId { get; set; }
         public ulong QualidadeDoArId { get; set; }
         public ulong OrcamentoArId { get; set; }
-        public string NomeCliente { get; set; }
+        //public string NomeCliente { get; set; }
 
         // Seção Projeto
         public bool HasControleTecnico { get; set; }
