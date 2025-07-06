@@ -561,7 +561,6 @@ namespace MSPremiumProject.Controllers
                     model.NomeCliente = $"{propostaCliente.Cliente.Nome} {propostaCliente.Cliente.Apelido}";
                 }
 
-                // Recarrega a lista para o dropdown em caso de erro de validação
                 model.TiposJanelaDisponiveis = await _context.Tipojanelas
                     .OrderBy(tj => tj.TipoJanela1)
                     .Select(tj => new SelectListItem
@@ -577,7 +576,7 @@ namespace MSPremiumProject.Controllers
             var tratamentoParaAtualizar = await _context.QualidadeDoAr
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.DadosConstrutivo)
-                        .ThenInclude(dc => dc.Janelas) // Garante que as janelas são carregadas
+                        .ThenInclude(dc => dc.Janelas)
                 .Include(q => q.DadosGerais)
                     .ThenInclude(dg => dg.Higrometria)
                 .Include(q => q.DadosGerais)
@@ -611,13 +610,8 @@ namespace MSPremiumProject.Controllers
             dc.IsolamentoInterno = model.IsolamentoInterno;
             dc.TipoAquecimento = model.TipoAquecimento;
 
-            // ===============================================
-            // Lógica CORRIGIDA para Salvar/Atualizar/Remover Janela
-            // Assume que estamos gerindo APENAS UMA janela por DadosConstrutivos através deste formulário.
-            // ===============================================
-            Janela? janelaExistente = dc.Janelas.FirstOrDefault(); // Tenta obter a primeira janela já associada
+            Janela? janelaExistente = dc.Janelas.FirstOrDefault();
 
-            // Verifica se o formulário forneceu dados para a janela (mesmo que seja só uma seleção de dropdown)
             bool anyWindowDataProvided = !string.IsNullOrEmpty(model.TipoJanelaPrincipal) ||
                                          !string.IsNullOrEmpty(model.MaterialJanela) ||
                                          !string.IsNullOrEmpty(model.TipoVidro) ||
@@ -628,41 +622,33 @@ namespace MSPremiumProject.Controllers
 
             if (anyWindowDataProvided)
             {
-                // Se há dados no formulário:
                 if (janelaExistente == null)
                 {
-                    // Se não existe janela, cria uma nova
                     janelaExistente = new Janela { DadosConstrutivosId = dc.Id };
-                    _context.Janelas.Add(janelaExistente); // Adiciona ao contexto para ser inserida
+                    _context.Janelas.Add(janelaExistente);
                 }
-                // Atualiza as propriedades da janela (seja ela nova ou existente)
                 janelaExistente.TipoJanela = model.TipoJanelaPrincipal;
                 janelaExistente.Material = model.MaterialJanela;
                 janelaExistente.TipoVidro = model.TipoVidro;
                 janelaExistente.NumeroUnidades = model.NumeroUnidadesJanela;
-                janelaExistente.PossuiJanelasDuplas = model.JanelasDuplas; // bool? para bool?
-                janelaExistente.PossuiRPT = model.RPT; // bool? para bool?
-                janelaExistente.PossuiCaixaPersiana = model.CaixasPersiana; // bool? para bool?
+                janelaExistente.PossuiJanelasDuplas = model.JanelasDuplas;
+                janelaExistente.PossuiRPT = model.RPT;
+                janelaExistente.PossuiCaixaPersiana = model.CaixasPersiana;
             }
-            else // O formulário não forneceu dados para a janela (campos em branco ou "Selecione")
+            else
             {
                 if (janelaExistente != null)
                 {
-                    // Se existia uma janela e agora não há dados, removemos a janela existente
-                    _context.Janelas.Remove(janelaExistente); // Marca a janela para ser eliminada
-                    // Opcional: remover da coleção local para manter a consistência do objeto rastreado
-                    // dc.Janelas.Remove(janelaExistente); 
+                    _context.Janelas.Remove(janelaExistente);
                 }
-                // Se não há dados e não havia janela, não fazemos nada.
             }
 
-            // Atualizar Higrometria (SEM ALTERAÇÕES AQUI)
             var hg = tratamentoParaAtualizar.DadosGerais.Higrometria;
             hg.HumidadeRelativaExterior = model.HumidadeRelativaExterior;
             hg.TemperaturaExterior = model.TemperaturaExterior;
-            hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior;
             hg.TemperaturaInterior = model.TemperaturaInterior;
             hg.TemperaturaParedesInternas = model.TemperaturaParedesInternas;
+            hg.HumidadeRelativaInterior = model.HumidadeRelativaInterior; // Adicionei esta linha que estava faltando no seu código
 
             hg.PontoDeOrvalho = model.PontoDeOrvalho;
             hg.PontosFrios = model.PontosFrios;
@@ -672,7 +658,6 @@ namespace MSPremiumProject.Controllers
             hg.NivelHCHO = model.NivelHCHO;
             hg.DataLoggerSensores = model.DataLoggerSensores;
 
-            // Atualizar Sintomatologia (SEM ALTERAÇÕES AQUI)
             var st = tratamentoParaAtualizar.DadosGerais.Sintomatologia;
             st.Fungos = model.Fungos ?? false;
             st.Cheiros = model.Cheiros ?? false;
@@ -684,10 +669,12 @@ namespace MSPremiumProject.Controllers
             st.GasRadao = model.GasRadao ?? false;
             st.EsporosEmSuperficies = model.EsporosEmSuperficies ?? false;
 
-            await _context.SaveChangesAsync(); // Este SaveChangesAsync agora persistirá as operações de Insert/Update/Delete para Janela
+            await _context.SaveChangesAsync();
             TempData["MensagemSucesso"] = "Dados de Qualidade do Ar guardados com sucesso!";
-            return RedirectToAction("EditQualidadeDoAr", new { id = model.QualidadeDoArId });
+            // MUDANÇA AQUI: Redirecionar para a ação Objetivos
+            return RedirectToAction("Objetivos", new { id = model.QualidadeDoArId });
         }
+
 
 
         //================================================================================
