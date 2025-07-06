@@ -1155,98 +1155,110 @@ namespace MSPremiumProject.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ResumoOrcamento(ulong id) // Aceita 'id' do QualidadeDoArId
+        public async Task<IActionResult> ResumoOrcamento(ulong id) // id é o QualidadeDoArId
         {
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
                 TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
+            await SetQualidadeArSubmenuState(propostaId, "ResumoOrcamento");
+
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null || !proposta.QualidadeDoArId.HasValue)
             {
                 TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
                 return RedirectToAction(nameof(SelectTreatment));
             }
-            await SetQualidadeArSubmenuState(propostaId, "ResumoOrcamento");
 
-            var viewModel = new QualidadeArViewModel // Pode ser um ViewModel mais genérico ou específico para ResumoOrcamento
+            var orcamentoAr = await _context.OrcamentoAr
+                .Include(oa => oa.LinhasOrcamento)
+                .FirstOrDefaultAsync(oa => oa.QualidadeDoAr.Id == id);
+
+            if (orcamentoAr == null)
+            {
+                TempData["MensagemErro"] = "Detalhes do orçamento não encontrados.";
+                return RedirectToAction("DetalheOrcamento", new { id });
+            }
+
+            // Agrupar e somar as linhas por categoria
+            var categorias = orcamentoAr.LinhasOrcamento
+                .GroupBy(l => l.CodigoItem.Split('_')[0]) // Agrupa por "PROJ", "FAB", "IMPL", etc.
+                .Select(g => new ResumoCategoria
+                {
+                    Nome = MapearCodigoParaNomeCategoria(g.Key),
+                    Montante = g.Sum(l => l.TotalLinha)
+                })
+                .ToList();
+
+            decimal totalTributavel = categorias.Sum(c => c.Montante);
+            decimal taxaIva = 6.0m; // Valor padrão, pode ser editável
+            decimal valorIva = totalTributavel * (taxaIva / 100);
+            decimal totalFinalComIva = totalTributavel + valorIva;
+
+            // Lógica para a caixa azul (exemplo)
+            string unidadesNecessarias = "1 unidade CTA 4"; // Substitua por sua lógica real
+
+            var viewModel = new ResumoOrcamentoViewModel
             {
                 PropostaId = propostaId,
                 QualidadeDoArId = id,
-                NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}"
+                OrcamentoArId = orcamentoAr.Id,
+                NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}",
+                Categorias = categorias,
+                TotalTributavel = totalTributavel,
+                TaxaIva = taxaIva,
+                ValorIva = valorIva,
+                TotalFinalComIva = totalFinalComIva,
+                UnidadesNecessarias = unidadesNecessarias
             };
 
-            ViewData["Title"] = "Resumo do Orçamento";
             return View(viewModel);
         }
 
-        //================================================================================
-        // AÇÃO PARA APAGAR PROPOSTAS EM CURSO
-        //================================================================================
+        private string MapearCodigoParaNomeCategoria(string codigo)
+        {
+            return codigo switch
+            {
+                "PROJ" => "Projeto",
+                "FAB" => "Fabricação",
+                "IMPL" => "Instalação",
+                "PERS" => "Personalização",
+                "MANUT" => "Filtros", // Ou "Manutenção" se preferir
+                _ => "Outros"
+            };
+        }
+
+        // Resumo do Orçamento (POST) - para finalizar e guardar o orçamento
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteProposta(ulong id)
+        public async Task<IActionResult> ResumoOrcamento(ResumoOrcamentoViewModel model)
         {
-            var proposta = await _context.Proposta.FindAsync(id);
+            await SetQualidadeArSubmenuState(model.PropostaId, "ResumoOrcamento");
 
-            if (proposta == null)
+            var orcamentoAr = await _context.OrcamentoAr.FindAsync(model.OrcamentoArId);
+            if (orcamentoAr == null)
             {
-                TempData["MensagemErro"] = "A proposta que tentou apagar não foi encontrada.";
-                return RedirectToAction(nameof(OrçamentosEmCurso));
+                TempData["MensagemErro"] = "Orçamento não encontrado para finalizar.";
+                return NotFound();
             }
 
-            if (proposta.EstadoPropostaId != ESTADO_EM_CURSO)
+            // Atualizar os valores finais no banco de dados
+            orcamentoAr.TaxaIva = model.TaxaIva;
+            orcamentoAr.ValorIva = model.ValorIva;
+            orcamentoAr.TotalFinalComIva = model.TotalFinalComIva;
+
+            // Opcional: Marcar a proposta como concluída
+            var proposta = await _context.Proposta.FindAsync(model.PropostaId);
+            if (proposta != null)
             {
-                TempData["MensagemErro"] = "Apenas propostas 'Em Curso' podem ser apagadas.";
-                return RedirectToAction(nameof(OrçamentosEmCurso));
+                proposta.EstadoPropostaId = ESTADO_CONCLUIDO; // ID 2 = Concluído
             }
 
-            try
-            {
-                if (proposta.QualidadeDoArId.HasValue)
-                {
-                    var qualidadeAr = await _context.QualidadeDoAr
-                        .Include(qa => qa.DadosGerais)
-                            .ThenInclude(dg => dg.DadosConstrutivo)
-                                .ThenInclude(dc => dc.Janelas)
-                        .Include(qa => qa.DadosGerais)
-                            .ThenInclude(dg => dg.Higrometria)
-                        .Include(qa => qa.DadosGerais)
-                            .ThenInclude(dg => dg.Sintomatologia)
-                        .Include(qa => qa.Objetivos)
-                        .Include(qa => qa.OrcamentoAr)
-                        .FirstOrDefaultAsync(qa => qa.Id == proposta.QualidadeDoArId.Value);
+            await _context.SaveChangesAsync();
 
-                    if (qualidadeAr != null)
-                    {
-                        if (qualidadeAr.DadosGerais != null)
-                        {
-                            if (qualidadeAr.DadosGerais.DadosConstrutivo != null)
-                            {
-                                _context.Janelas.RemoveRange(qualidadeAr.DadosGerais.DadosConstrutivo.Janelas);
-                                _context.DadosConstrutivos.Remove(qualidadeAr.DadosGerais.DadosConstrutivo);
-                            }
-                            if (qualidadeAr.DadosGerais.Higrometria != null) _context.Higrometria.Remove(qualidadeAr.DadosGerais.Higrometria);
-                            if (qualidadeAr.DadosGerais.Sintomatologia != null) _context.Sintomatologia.Remove(qualidadeAr.DadosGerais.Sintomatologia);
-                            _context.DadosGerais.Remove(qualidadeAr.DadosGerais);
-                        }
-                        if (qualidadeAr.Objetivos != null) _context.Objetivos.Remove(qualidadeAr.Objetivos);
-                        if (qualidadeAr.OrcamentoAr != null) _context.OrcamentoAr.Remove(qualidadeAr.OrcamentoAr);
-                        _context.QualidadeDoAr.Remove(qualidadeAr);
-                    }
-                }
-
-                _context.Proposta.Remove(proposta);
-                await _context.SaveChangesAsync();
-                TempData["MensagemSucesso"] = $"A proposta Nº {id} foi apagada com sucesso.";
-            }
-            catch (DbUpdateException ex)
-            {
-                TempData["MensagemErro"] = $"Ocorreu um erro ao apagar a proposta: Por favor, verifique se todas as informações associadas (dados de qualidade do ar, etc.) foram removidas ou se há referências pendentes. Detalhes: {ex.Message}";
-            }
-
-            return RedirectToAction(nameof(OrçamentosEmCurso));
+            TempData["MensagemSucesso"] = "Orçamento finalizado e guardado com sucesso!";
+            return RedirectToAction("OrçamentosEmCurso"); // Ou para uma página de detalhes do orçamento concluído
         }
     }
 }

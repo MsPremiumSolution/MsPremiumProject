@@ -1,0 +1,136 @@
+﻿@model MSPremiumProject.ViewModels.ResumoOrcamentoViewModel
+
+@{
+    ViewData["Title"] = "Resumo do Orçamento";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .resumo-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .resumo-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .resumo-table .conceito {
+            text-align: left;
+        }
+
+        .resumo-table .montante {
+            text-align: right;
+        }
+
+        .resumo-table .total-row td {
+            border-top: 2px solid #343a40;
+            font-weight: bold;
+            padding-top: 1rem;
+        }
+</style>
+
+<div class="container-fluid mt-4">
+    <form asp-action="ResumoOrcamento" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="PropostaId" />
+        <input type="hidden" asp-for="QualidadeDoArId" />
+        <input type="hidden" asp-for="OrcamentoArId" />
+        <input type="hidden" asp-for="TotalTributavel" />
+        <input type="hidden" asp-for="ValorIva" />
+        <input type="hidden" asp-for="TotalFinalComIva" />
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Resumo do orçamento</h1>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <table class="resumo-table">
+                    <thead>
+                        <tr>
+                            <th class="conceito">Conceito</th>
+                            <th class="montante">Montante</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var categoria in Model.Categorias)
+                        {
+                            <tr>
+                                <td class="conceito">@categoria.Nome</td>
+                                <td class="montante">@categoria.Montante.ToString("N2") €</td>
+                            </tr>
+                        }
+                        <tr class="total-row">
+                            <td class="conceito">Tributável</td>
+                            <td class="montante">@Model.TotalTributavel.ToString("N2") €</td>
+                        </tr>
+                        <tr>
+                            <td class="conceito">
+                                IVA (@Model.TaxaIva.ToString("F0")%)
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#ivaModal" title="Editar IVA"><i class="bi bi-pencil-fill"></i></a>
+                            </td>
+                            <td class="montante">@Model.ValorIva.ToString("N2") €</td>
+                        </tr>
+                        <tr class="total-row text-primary">
+                            <td class="conceito fs-5">Total</td>
+                            <td class="montante fs-5">@Model.TotalFinalComIva.ToString("N2") €</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-info mt-4" role="alert">
+                    <p class="mb-1 fw-bold">Para cumprir os objetivos é necessário instalar:</p>
+                    <ul>
+                        <li>@Model.UnidadesNecessarias</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+            <a asp-action="DetalheOrcamento" asp-route-id="@Model.QualidadeDoArId" class="btn btn-outline-secondary">Voltar</a>
+            <button type="submit" class="btn btn-success px-4"><i class="bi bi-check-lg"></i> Finalizar Orçamento</button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal para Editar IVA -->
+<div class="modal fade" id="ivaModal" tabindex="-1" aria-labelledby="ivaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ivaModalLabel">Editar Taxa de IVA</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="iva-form">
+                    <div class="mb-3">
+                        <label for="taxa-iva-input" class="form-label">Nova Taxa de IVA (%)</label>
+                        <input type="number" step="0.1" class="form-control" id="taxa-iva-input" value="@Model.TaxaIva">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="atualizarIva()">Aplicar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function atualizarIva() {
+            // Esta função irá recarregar a página com a nova taxa de IVA como parâmetro de query
+            const novaTaxa = document.getElementById('taxa-iva-input').value;
+            // Para atualizar dinamicamente sem recarregar, precisaríamos de uma chamada AJAX.
+            // Para simplicidade, vamos recarregar a página.
+            // O ideal seria fazer um post para uma ação que recalcula e devolve JSON,
+            // mas um GET para a mesma página com um novo parâmetro também funciona para este caso.
+            const url = new URL(window.location.href);
+            url.searchParams.set('taxaIva', novaTaxa);
+            window.location.href = url.toString();
+        }
+    </script>
+}

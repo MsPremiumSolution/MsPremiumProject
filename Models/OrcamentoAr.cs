@@ -18,13 +18,21 @@ public partial class OrcamentoAr
     public int NumeroPisos { get; set; }
     public string FiltroManutencao { get; set; }
 
-    // ADICIONE ESTA NOVA PROPRIEDADE
+    // Totais calculados
     [Column(TypeName = "decimal(18, 2)")]
-    public decimal ValorTotalDetalhe { get; set; }
+    public decimal ValorTotalDetalhe { get; set; } // Subtotal da página anterior
+
+    // NOVAS PROPRIEDADES PARA O RESUMO
+    [Column(TypeName = "decimal(18, 2)")]
+    public decimal TaxaIva { get; set; } // Ex: 6.00 para 6%
+
+    [Column(TypeName = "decimal(18, 2)")]
+    public decimal ValorIva { get; set; }
+
+    [Column(TypeName = "decimal(18, 2)")]
+    public decimal TotalFinalComIva { get; set; }
 
 
     public virtual QualidadeDoAr? QualidadeDoAr { get; set; }
-
-    // Coleção de todas as linhas de itens deste orçamento
     public virtual ICollection<OrcamentoArLinha> LinhasOrcamento { get; set; } = new List<OrcamentoArLinha>();
 }
