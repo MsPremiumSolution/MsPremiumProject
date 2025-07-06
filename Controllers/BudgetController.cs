@@ -232,13 +232,15 @@ namespace MSPremiumProject.Controllers
         [HttpGet]
         public async Task<IActionResult> ContinuarOrcamento(ulong id) // id aqui é o PropostaId
         {
+            // Carrega a proposta e todas as sub-entidades necessárias para a verificação de progresso
             var proposta = await _context.Proposta
                                      .Include(p => p.QualidadeDoAr)
                                          .ThenInclude(qa => qa.DadosGerais)
+                                             .ThenInclude(dg => dg.DadosConstrutivo) // Para verificar a coleção de dados
                                      .Include(p => p.QualidadeDoAr)
-                                         .ThenInclude(qa => qa.Objetivos)
+                                         .ThenInclude(qa => qa.Objetivos) // Para verificar os objetivos
                                      .Include(p => p.QualidadeDoAr)
-                                         .ThenInclude(qa => qa.Volumes)
+                                         .ThenInclude(qa => qa.Volumes) // Para verificar os volumes
                                      .FirstOrDefaultAsync(p => p.PropostaId == id);
 
             if (proposta == null || proposta.EstadoPropostaId != ESTADO_EM_CURSO)
@@ -249,21 +251,21 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", proposta.PropostaId.ToString());
 
-            // Lógica para determinar onde continuar
+            // --- LÓGICA DE REDIRECIONAMENTO INTELIGENTE ---
+
+            // Passo 0: Verificar se a Tipologia Construtiva foi escolhida
             if (proposta.TipologiaConstrutivaId == null)
             {
-                // Passo 0: Se a tipologia ainda não foi escolhida, vai para lá
                 return RedirectToAction(nameof(TipologiaConstrutiva));
             }
 
+            // Passo 1: Verificar se a estrutura de Qualidade do Ar foi criada
             if (proposta.QualidadeDoArId == null)
             {
-                // Passo 1: Se a tipologia foi escolhida, mas a estrutura de Qualidade do Ar não foi criada, vai para SelectTreatment
                 return RedirectToAction(nameof(SelectTreatment));
             }
 
             // A partir daqui, a estrutura de Qualidade do Ar existe.
-            // Vamos verificar o estado de conclusão de cada passo.
             var qaId = proposta.QualidadeDoArId.Value;
             var qualidadeDoAr = proposta.QualidadeDoAr;
 
@@ -279,6 +281,7 @@ namespace MSPremiumProject.Controllers
             }
 
             // Passo 3: Verificar "Objetivos"
+            // (Considerado completo se pelo menos um tratamento for selecionado)
             bool objetivosCompletos = false;
             if (qualidadeDoAr.Objetivos != null)
             {
@@ -299,6 +302,7 @@ namespace MSPremiumProject.Controllers
             }
 
             // Passo 4: Verificar "Volumes"
+            // (Considerado completo se pelo menos um volume foi adicionado)
             bool volumesCompletos = qualidadeDoAr.Volumes != null && qualidadeDoAr.Volumes.Any();
             if (!volumesCompletos)
             {
@@ -306,20 +310,16 @@ namespace MSPremiumProject.Controllers
             }
 
             // Passo 5: Verificar "Detalhe do Orçamento" (adicione a sua lógica de conclusão aqui)
-            bool detalheOrcamentoCompleto = false; // Substitua por sua lógica real. Ex: verificar se um campo específico está preenchido.
+            // Exemplo: bool detalheOrcamentoCompleto = (qualidadeDoAr.OrcamentoAr?.AlgumCampoImportante > 0);
+            bool detalheOrcamentoCompleto = false; // Substitua pela sua lógica real.
             if (!detalheOrcamentoCompleto)
             {
                 return RedirectToAction("DetalheOrcamento", new { id = qaId });
             }
 
-            // Passo 6: Verificar "Resumo do Orçamento"
-            // Se chegou até aqui, provavelmente o resumo é o próximo passo, ou o último incompleto.
+            // Se todos os passos acima estiverem completos, redireciona para o resumo como o próximo passo.
+            // Se o resumo for o último passo, o utilizador pode querer editá-lo.
             return RedirectToAction("ResumoOrcamento", new { id = qaId });
-
-
-            // Se todos os passos estiverem completos (adicionar essa lógica se necessário),
-            // você pode redirecionar para o resumo final ou para a página de Coleção de Dados como fallback.
-            // return RedirectToAction("ResumoOrcamento", new { id = qaId });
         }
 
         //================================================================================
