@@ -1,0 +1,241 @@
+﻿@model MSPremiumProject.ViewModels.DetalheOrcamentoViewModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Detalhe do Orçamento";
+}
+
+<div class="container-fluid mt-4">
+    <form asp-action="DetalheOrcamento" method="post" id="orcamento-form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="PropostaId" />
+        <input type="hidden" asp-for="QualidadeDoArId" />
+        <input type="hidden" asp-for="OrcamentoArId" />
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Detalhe do orçamento</h1>
+        </div>
+
+        @if (TempData["MensagemSucesso"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["MensagemSucesso"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+        <!-- Seção Projeto -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-check-circle-fill text-primary me-2"></i>Projeto</h5>
+                <span class="fw-bold">PVP: <span id="pvp-projeto">0,00</span> €</span>
+            </div>
+            <div class="card-body">
+                <div class="form-check d-flex justify-content-between align-items-center">
+                    <div>
+                        <input class="form-check-input" type="checkbox" asp-for="HasControleTecnico" onchange="calcularTotais()">
+                        <label class="form-check-label" asp-for="HasControleTecnico">Controle técnico</label>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <hr />
+                <div class="form-check d-flex justify-content-between align-items-center">
+                    <div>
+                        <input class="form-check-input" type="checkbox" asp-for="HasExecucaoProjeto" onchange="calcularTotais()">
+                        <label class="form-check-label" asp-for="HasExecucaoProjeto">Execução de projeto</label>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção Fabricação -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-check-circle-fill text-primary me-2"></i>Fabricação</h5>
+                <span class="fw-bold">PVP: <span id="pvp-fabricacao-total">0,00</span> €</span>
+            </div>
+            <div class="card-body">
+                <h6>Unidade central</h6>
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <label class="form-label" asp-for="M3VolumeHabitavel">m³ de volume habitável</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" class="form-control" asp-for="M3VolumeHabitavel" oninput="validarVolume()">
+                        </div>
+                        <small class="form-text text-muted">O valor inserido não corresponde ao calculado durante a coleta de dados (<span id="volume-calculado-display">@Model.M3VolumeHabitavelCalculado.ToString("F2")</span> m³)</small>
+                    </div>
+                    <div class="col-md-8 text-end">
+                        <h6 class="mb-0">PVP: <span id="pvp-fabricacao-unidade">0,00</span> €</h6>
+                    </div>
+                </div>
+                <hr />
+                <h6>Configurações de fabricação</h6>
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NumeroCompartimentos">Número de compartimentos</label>
+                        <input type="number" class="form-control" asp-for="NumeroCompartimentos" oninput="calcularTotais()">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" asp-for="NumeroPisos">Nº de pisos</label>
+                        <input type="number" class="form-control" asp-for="NumeroPisos" oninput="calcularTotais()">
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <h6 class="mb-0">PVP: <span id="pvp-fabricacao-config">0,00</span> €</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção Implementação -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-check-circle-fill text-primary me-2"></i>Implementação de trabalho</h5>
+                <span class="fw-bold">PVP: <span id="pvp-implementacao">0,00</span> €</span>
+            </div>
+            <div class="card-body">
+                <div class="form-check d-flex justify-content-between align-items-center">
+                    <div>
+                        <input class="form-check-input" type="checkbox" asp-for="HasInstalacaoMaoDeObra" onchange="calcularTotais()">
+                        <label class="form-check-label" asp-for="HasInstalacaoMaoDeObra">Instalação e mão de obra</label>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção Personalização -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-check-circle-fill text-primary me-2"></i>Personalização</h5>
+                <span class="fw-bold">PVP: <span id="pvp-personalizacao">0,00</span> €</span>
+            </div>
+            <div class="card-body">
+                <div class="form-check d-flex justify-content-between align-items-center">
+                    <div>
+                        <input class="form-check-input" type="checkbox" asp-for="HasAdaptacaoSistema" onchange="calcularTotais()">
+                        <label class="form-check-label" asp-for="HasAdaptacaoSistema">Adaptação do sistema à medida de acordo com o projeto e acessórios correspondentes</label>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <hr />
+                <div class="form-check d-flex justify-content-between align-items-center">
+                    <div>
+                        <input class="form-check-input" type="checkbox" asp-for="HasAcessoriosExtras" onchange="calcularTotais()">
+                        <label class="form-check-label" asp-for="HasAcessoriosExtras">Acessórios extras necessários para os acabamentos desejados</label>
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção Manutenção -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-check-circle-fill text-primary me-2"></i>Manutenção</h5>
+                <span class="fw-bold">PVP: <span id="pvp-manutencao">0,00</span> €</span>
+            </div>
+            <div class="card-body">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" asp-for="FiltroManutencao" value="G4" id="filtroG4" onchange="calcularTotais()">
+                    <label class="form-check-label" for="filtroG4">Filtro substituível G4 Murprotec Standard</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" asp-for="FiltroManutencao" value="F7" id="filtroF7" onchange="calcularTotais()">
+                    <label class="form-check-label" for="filtroF7">Filtro substituível F7 Murprotec Alta Eficácia</label>
+                </div>
+                <hr />
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" asp-for="HasVigilancia24h" onchange="calcularTotais()">
+                    <label class="form-check-label" asp-for="HasVigilancia24h">Vigilância e controle 24h/dia (EtairBox)</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+            <a asp-action="Volumes" asp-route-id="@Model.QualidadeDoArId" class="btn btn-outline-secondary">Voltar</a>
+            <button type="submit" class="btn btn-primary px-4">Salvar e continuar</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Definir preços de exemplo (substituir por valores reais)
+        const PRECOS = {
+            controleTecnico: 200.00,
+            execucaoProjeto: 300.00,
+            porM3: 13.31,
+            porCompartimento: 23.81,
+            instalacao: 462.80,
+            adaptacao: 1000.00,
+            acessorios: 0.00,
+            filtroG4: 16.90,
+            filtroF7: 30.00,
+            vigilancia: 0.00
+        };
+
+        // Função para formatar números como moeda
+        function formatarMoeda(valor) {
+            return valor.toFixed(2).replace('.', ',');
+        }
+
+        function validarVolume() {
+            const volumeInseridoEl = document.getElementById('M3VolumeHabitavel');
+            const volumeCalculado = parseFloat(document.getElementById('volume-calculado-display').textContent.replace(',', '.'));
+            const volumeInserido = parseFloat(volumeInseridoEl.value.replace(',', '.'));
+
+            if (Math.abs(volumeInserido - volumeCalculado) > 0.01) { // Usar uma tolerância
+                volumeInseridoEl.classList.add('is-invalid');
+            } else {
+                volumeInseridoEl.classList.remove('is-invalid');
+            }
+            calcularTotais();
+        }
+
+        function calcularTotais() {
+            const form = document.getElementById('orcamento-form');
+
+            // Projeto
+            let pvpProjeto = 0;
+            if (form.querySelector('#HasControleTecnico').checked) pvpProjeto += PRECOS.controleTecnico;
+            if (form.querySelector('#HasExecucaoProjeto').checked) pvpProjeto += PRECOS.execucaoProjeto;
+            document.getElementById('pvp-projeto').textContent = formatarMoeda(pvpProjeto);
+
+            // Fabricação
+            const m3 = parseFloat(form.querySelector('#M3VolumeHabitavel').value.replace(',', '.')) || 0;
+            const compartimentos = parseInt(form.querySelector('#NumeroCompartimentos').value) || 0;
+            const pvpFabricacaoUnidade = m3 * PRECOS.porM3;
+            const pvpFabricacaoConfig = compartimentos * PRECOS.porCompartimento;
+            const pvpFabricacaoTotal = pvpFabricacaoUnidade + pvpFabricacaoConfig;
+            document.getElementById('pvp-fabricacao-unidade').textContent = formatarMoeda(pvpFabricacaoUnidade);
+            document.getElementById('pvp-fabricacao-config').textContent = formatarMoeda(pvpFabricacaoConfig);
+            document.getElementById('pvp-fabricacao-total').textContent = formatarMoeda(pvpFabricacaoTotal);
+
+            // Implementação
+            let pvpImplementacao = 0;
+            if (form.querySelector('#HasInstalacaoMaoDeObra').checked) pvpImplementacao += PRECOS.instalacao;
+            document.getElementById('pvp-implementacao').textContent = formatarMoeda(pvpImplementacao);
+
+            // Personalização
+            let pvpPersonalizacao = 0;
+            if (form.querySelector('#HasAdaptacaoSistema').checked) pvpPersonalizacao += PRECOS.adaptacao;
+            if (form.querySelector('#HasAcessoriosExtras').checked) pvpPersonalizacao += PRECOS.acessorios;
+            document.getElementById('pvp-personalizacao').textContent = formatarMoeda(pvpPersonalizacao);
+
+            // Manutenção
+            let pvpManutencao = 0;
+            if (form.querySelector('#filtroG4').checked) pvpManutencao += PRECOS.filtroG4;
+            if (form.querySelector('#filtroF7').checked) pvpManutencao += PRECOS.filtroF7;
+            if (form.querySelector('#HasVigilancia24h').checked) pvpManutencao += PRECOS.vigilancia;
+            document.getElementById('pvp-manutencao').textContent = formatarMoeda(pvpManutencao);
+        }
+
+        // Calcular totais ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            validarVolume(); // Chama a validação e o cálculo ao carregar
+        });
+    </script>
+}

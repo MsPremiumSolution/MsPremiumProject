@@ -1002,30 +1002,126 @@ namespace MSPremiumProject.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> DetalheOrcamento(ulong id) // Aceita 'id' do QualidadeDoArId
+        public async Task<IActionResult> DetalheOrcamento(ulong id) // id é o QualidadeDoArId
         {
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
                 TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
+            await SetQualidadeArSubmenuState(propostaId, "DetalheOrcamento");
+
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null || !proposta.QualidadeDoArId.HasValue)
             {
                 TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
                 return RedirectToAction(nameof(SelectTreatment));
             }
-            await SetQualidadeArSubmenuState(propostaId, "DetalheOrcamento");
 
-            var viewModel = new QualidadeArViewModel // Pode ser um ViewModel mais genérico ou específico para DetalheOrcamento
+            var orcamentoAr = await _context.OrcamentoAr
+                .FirstOrDefaultAsync(oa => oa.QualidadeDoAr.Id == id);
+
+            var qualidadeDoAr = await _context.QualidadeDoAr
+                .FirstOrDefaultAsync(qa => qa.Id == id);
+
+
+            if (orcamentoAr == null || qualidadeDoAr == null)
+            {
+                TempData["MensagemErro"] = "Estrutura do orçamento não encontrada.";
+                return RedirectToAction(nameof(SelectTreatment));
+            }
+
+            var viewModel = new DetalheOrcamentoViewModel
             {
                 PropostaId = propostaId,
                 QualidadeDoArId = id,
-                NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}"
+                OrcamentoArId = orcamentoAr.Id,
+                NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}",
+
+                // Carregar dados salvos
+                HasControleTecnico = orcamentoAr.HasControleTecnico,
+                HasExecucaoProjeto = orcamentoAr.HasExecucaoProjeto,
+                M3VolumeHabitavel = orcamentoAr.M3VolumeHabitavel,
+                M3VolumeHabitavelCalculado = qualidadeDoAr.VolumeTotal, // Puxa o total da página de Volumes
+                NumeroCompartimentos = orcamentoAr.NumeroCompartimentos,
+                NumeroPisos = orcamentoAr.NumeroPisos,
+                HasInstalacaoMaoDeObra = orcamentoAr.HasInstalacaoMaoDeObra,
+                HasAdaptacaoSistema = orcamentoAr.HasAdaptacaoSistema,
+                HasAcessoriosExtras = orcamentoAr.HasAcessoriosExtras,
+                FiltroManutencao = orcamentoAr.FiltroManutencao,
+                HasVigilancia24h = orcamentoAr.HasVigilancia24h
             };
 
-            ViewData["Title"] = "Detalhe do Orçamento";
             return View(viewModel);
+        }
+
+        // Detalhe do Orçamento (POST)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DetalheOrcamento(DetalheOrcamentoViewModel model)
+        {
+            await SetQualidadeArSubmenuState(model.PropostaId, "DetalheOrcamento");
+
+            if (!ModelState.IsValid)
+            {
+                // Recarregar o valor calculado para exibição em caso de erro
+                var qualidadeDoAr = await _context.QualidadeDoAr.FindAsync(model.QualidadeDoArId);
+                if (qualidadeDoAr != null) model.M3VolumeHabitavelCalculado = qualidadeDoAr.VolumeTotal;
+                return View(model);
+            }
+
+            var orcamentoArParaAtualizar = await _context.OrcamentoAr.FindAsync(model.OrcamentoArId);
+            if (orcamentoArParaAtualizar == null)
+            {
+                TempData["MensagemErro"] = "Orçamento não encontrado para atualização.";
+                return NotFound();
+            }
+
+            // =============================================================
+            // LÓGICA DE CÁLCULO DE PREÇOS (Valores de exemplo)
+            // Substitua estes valores pelos seus preços reais ou regras de negócio
+            // =============================================================
+            decimal precoControleTecnico = 200.00m;
+            decimal precoExecucaoProjeto = 300.00m;
+            decimal precoPorM3 = 13.31m; // Exemplo para 3722.78 / 280
+            decimal precoPorCompartimento = 23.81m; // Exemplo para 166.67 / 7
+            decimal precoInstalacao = 462.80m;
+            decimal precoAdaptacao = 1000.00m;
+            decimal precoAcessorios = 0.00m; // Pode ser um valor fixo ou calculado
+            decimal precoFiltroG4 = 16.90m;
+            decimal precoFiltroF7 = 30.00m; // Exemplo
+            decimal precoVigilancia = 0.00m; // Exemplo
+            // =============================================================
+
+            // Atualizar campos de dados e flags
+            orcamentoArParaAtualizar.M3VolumeHabitavel = model.M3VolumeHabitavel;
+            orcamentoArParaAtualizar.NumeroCompartimentos = model.NumeroCompartimentos;
+            orcamentoArParaAtualizar.NumeroPisos = model.NumeroPisos;
+            orcamentoArParaAtualizar.FiltroManutencao = model.FiltroManutencao;
+
+            orcamentoArParaAtualizar.HasControleTecnico = model.HasControleTecnico;
+            orcamentoArParaAtualizar.HasExecucaoProjeto = model.HasExecucaoProjeto;
+            orcamentoArParaAtualizar.HasInstalacaoMaoDeObra = model.HasInstalacaoMaoDeObra;
+            orcamentoArParaAtualizar.HasAdaptacaoSistema = model.HasAdaptacaoSistema;
+            orcamentoArParaAtualizar.HasAcessoriosExtras = model.HasAcessoriosExtras;
+            orcamentoArParaAtualizar.HasVigilancia24h = model.HasVigilancia24h;
+
+            // Calcular e salvar os totais de cada seção
+            orcamentoArParaAtualizar.ValorProjeto = (model.HasControleTecnico ? precoControleTecnico : 0) + (model.HasExecucaoProjeto ? precoExecucaoProjeto : 0);
+            orcamentoArParaAtualizar.ValorFabricacao = model.M3VolumeHabitavel * precoPorM3;
+            orcamentoArParaAtualizar.ValorConfiguracaoFabricacao = model.NumeroCompartimentos * precoPorCompartimento;
+            orcamentoArParaAtualizar.ValorImplementacaoTrabalho = model.HasInstalacaoMaoDeObra ? precoInstalacao : 0;
+            orcamentoArParaAtualizar.ValorPersonalizacao = (model.HasAdaptacaoSistema ? precoAdaptacao : 0) + (model.HasAcessoriosExtras ? precoAcessorios : 0);
+
+            decimal valorFiltro = 0;
+            if (model.FiltroManutencao == "G4") valorFiltro = precoFiltroG4;
+            else if (model.FiltroManutencao == "F7") valorFiltro = precoFiltroF7;
+            orcamentoArParaAtualizar.ValorManutencao = valorFiltro + (model.HasVigilancia24h ? precoVigilancia : 0);
+
+            await _context.SaveChangesAsync();
+
+            TempData["MensagemSucesso"] = "Detalhes do orçamento guardados com sucesso!";
+            return RedirectToAction("ResumoOrcamento", new { id = model.QualidadeDoArId });
         }
 
         [HttpGet]
