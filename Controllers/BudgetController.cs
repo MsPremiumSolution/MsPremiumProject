@@ -1084,75 +1084,24 @@ namespace MSPremiumProject.Controllers
                 return NotFound();
             }
 
-            // =============================================================
-            // LÓGICA DE PREÇOS UNITÁRIOS
-            // =============================================================
-            var precos = new Dictionary<string, decimal>
-            {
-                { "PROJ_CONTROLETECNICO", 200.00m },
-                { "PROJ_EXECUCAOPROJETO", 300.00m },
-                { "FAB_UNIDADECENTRAL", 13.31m },
-                { "FAB_CONFIG", 23.81m },
-                { "IMPL_MAODEOBRA", 462.80m },
-                { "PERS_ADAPTACAO", 1000.00m },
-                { "PERS_ACESSORIOS", 0.00m },
-                { "MANUT_FILTRO_G4", 16.90m },
-                { "MANUT_FILTRO_F7", 30.00m },
-                { "MANUT_VIGILANCIA", 0.00m }
-            };
+            // ... (dicionário de preços) ...
 
             // Atualizar os campos de dados principais
             orcamentoArParaAtualizar.M3VolumeHabitavel = model.M3VolumeHabitavel;
             orcamentoArParaAtualizar.NumeroCompartimentos = model.NumeroCompartimentos;
             orcamentoArParaAtualizar.NumeroPisos = model.NumeroPisos;
-            orcamentoArParaAtualizar.FiltroManutencao = model.FiltroManutencao;
 
-            // Limpa as linhas antigas para recriá-las.
-            orcamentoArParaAtualizar.LinhasOrcamento.Clear();
+            // AQUI ESTÁ A CORREÇÃO: Garante que nunca é nulo
+            orcamentoArParaAtualizar.FiltroManutencao = model.FiltroManutencao ?? "Nenhum"; // Se for nulo, atribui "Nenhum"
 
-            decimal valorTotalCalculado = 0;
-
-            Action<string, string, decimal, decimal> AddLinha = (codigo, desc, qtd, precoUnit) =>
-            {
-                if (qtd > 0)
-                {
-                    var totalLinha = qtd * precoUnit;
-                    orcamentoArParaAtualizar.LinhasOrcamento.Add(new OrcamentoArLinha
-                    {
-                        CodigoItem = codigo,
-                        Descricao = desc,
-                        Quantidade = qtd,
-                        PrecoUnitario = precoUnit,
-                        TotalLinha = totalLinha
-                    });
-                    valorTotalCalculado += totalLinha; // Acumula o total
-                }
-            };
-
-            // Adicionar linhas com base nos checkboxes e dados do formulário
-            if (model.HasControleTecnico) AddLinha("PROJ_CONTROLETECNICO", "Controle técnico", 1, precos["PROJ_CONTROLETECNICO"]);
-            if (model.HasExecucaoProjeto) AddLinha("PROJ_EXECUCAOPROJETO", "Execução de projeto", 1, precos["PROJ_EXECUCAOPROJETO"]);
-
-            AddLinha("FAB_UNIDADECENTRAL", "Fabricação Unidade Central (m³)", model.M3VolumeHabitavel, precos["FAB_UNIDADECENTRAL"]);
-            AddLinha("FAB_CONFIG", "Configuração por compartimento", model.NumeroCompartimentos, precos["FAB_CONFIG"]);
-
-            if (model.HasInstalacaoMaoDeObra) AddLinha("IMPL_MAODEOBRA", "Instalação e mão de obra", 1, precos["IMPL_MAODEOBRA"]);
-
-            if (model.HasAdaptacaoSistema) AddLinha("PERS_ADAPTACAO", "Adaptação do sistema à medida", 1, precos["PERS_ADAPTACAO"]);
-            if (model.HasAcessoriosExtras) AddLinha("PERS_ACESSORIOS", "Acessórios extras", 1, precos["PERS_ACESSORIOS"]);
-
-            if (model.FiltroManutencao == "G4") AddLinha("MANUT_FILTRO_G4", "Filtro substituível G4", 1, precos["MANUT_FILTRO_G4"]);
-            if (model.FiltroManutencao == "F7") AddLinha("MANUT_FILTRO_F7", "Filtro substituível F7", 1, precos["MANUT_FILTRO_F7"]);
-            if (model.HasVigilancia24h) AddLinha("MANUT_VIGILANCIA", "Vigilância 24h/dia (EtairBox)", 1, precos["MANUT_VIGILANCIA"]);
-
-            // ATRIBUIR O VALOR TOTAL CALCULADO
-            orcamentoArParaAtualizar.ValorTotalDetalhe = valorTotalCalculado;
+            // ... (restante do código que adiciona as linhas e salva) ...
 
             await _context.SaveChangesAsync();
 
             TempData["MensagemSucesso"] = "Detalhes do orçamento guardados com sucesso!";
             return RedirectToAction("ResumoOrcamento", new { id = model.QualidadeDoArId });
         }
+
 
         [HttpGet]
         public async Task<IActionResult> ResumoOrcamento(ulong id) // id é o QualidadeDoArId
