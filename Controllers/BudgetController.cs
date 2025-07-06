@@ -727,7 +727,7 @@ namespace MSPremiumProject.Controllers
                 EvacuacaoHumidadeExcesso = qualidadeDoAr.Objetivos.EvacuacaoHumidadeExcesso
             };
 
-            return View(viewModel);
+            return View("BudgetGoals", viewModel);
         }
 
         // Implementação do método POST para salvar os Objetivos
@@ -747,7 +747,7 @@ namespace MSPremiumProject.Controllers
                     model.NomeCliente = $"{propostaCliente.Cliente.Nome} {propostaCliente.Cliente.Apelido}";
                 }
                 ViewData["Title"] = $"Objetivos - {model.NomeCliente}"; // Manter o título correto
-                return View(model);
+                return View("BudgetGoals", model);
             }
 
             // Buscar a entidade QualidadeDoAr com seus Objetivos para atualização
