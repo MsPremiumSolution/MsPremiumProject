@@ -402,11 +402,13 @@ namespace MSPremiumProject.Controllers
 
             if (proposta.QualidadeDoArId.HasValue)
             {
-                await SetQualidadeArSubmenuState(propostaId, "SelectTreatment");
+                // Se o tratamento já foi selecionado, redireciona para a continuação do fluxo
+                return RedirectToAction(nameof(ContinuarOrcamento), new { id = proposta.PropostaId });
             }
 
             var viewModel = new SelectTreatmentViewModel
             {
+                ClienteId = proposta.ClienteId, // <-- PREENCHA A PROPRIEDADE AQUI
                 NomeCliente = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}"
             };
 
