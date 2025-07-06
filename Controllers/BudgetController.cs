@@ -393,6 +393,7 @@ namespace MSPremiumProject.Controllers
 
                     var novoTratamentoAr = new QualidadeDoAr
                     {
+                        PropostaId = proposta.PropostaId, // <<< ADICIONE ESTA LINHA AQUI
                         DadosGeraisId = novosDadosGerais.Id,
                         ObjetivosId = novosObjetivos.Id,
                         OrcamentoArId = novoOrcamentoAr.Id

@@ -15,6 +15,11 @@ public partial class QualidadeDoAr
 
     [Key]
     public ulong Id { get; set; }
+
+    [Required]
+    public ulong PropostaId { get; set; }
+
+
     public ulong? DadosGeraisId { get; set; }
     public ulong? ObjetivosId { get; set; }
     public ulong? OrcamentoArId { get; set; }
@@ -33,5 +38,5 @@ public partial class QualidadeDoAr
     public virtual OrcamentoAr? OrcamentoAr { get; set; } = null!;
 
     public virtual ICollection<Volume> Volumes { get; set; }
-    public virtual Proposta? Proposta { get; set; }
+    public virtual Proposta Proposta { get; set; } // Mantém a referência ao objeto pai
 }
