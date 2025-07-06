@@ -807,7 +807,7 @@ namespace MSPremiumProject.Controllers
             {
                 PropostaId = propostaId,
                 QualidadeDoArId = id,
-                NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}",
+                //NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}",
                 Volumes = volumesDb.Select(v => new VolumeItemViewModel
                 {
                     Id = v.Id,
