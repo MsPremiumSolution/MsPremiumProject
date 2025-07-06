@@ -785,25 +785,7 @@ namespace MSPremiumProject.Controllers
         // PÁGINAS PLACEHOLDER PARA AS OUTRAS SUB-ETAPAS DA QUALIDADE DO AR
         // Todas ativam o submenu e o link correto
         //================================================================================
-        [HttpGet]
-        public async Task<IActionResult> Objetivos()
-        {
-            if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
-            {
-                TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
-                return RedirectToAction(nameof(OrçamentosEmCurso));
-            }
-            var proposta = await _context.Proposta.FindAsync(propostaId);
-            if (proposta == null || !proposta.QualidadeDoArId.HasValue)
-            {
-                TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
-                return RedirectToAction(nameof(SelectTreatment));
-            }
-            await SetQualidadeArSubmenuState(propostaId, "Objetivos");
-
-            ViewData["Title"] = "Objetivos";
-            return View();
-        }
+        
 
         [HttpGet]
         public async Task<IActionResult> Volumes()
