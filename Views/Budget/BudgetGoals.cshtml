@@ -12,7 +12,7 @@
         <input type="hidden" asp-for="QualidadeDoArId" />
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Coleção de dados</h1>
+            <h1>Objetivos do Orçamento</h1>
         </div>
 
         @if (TempData["MensagemSucesso"] != null)
@@ -32,34 +32,8 @@
 
         <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-        <ul class="nav nav-tabs" id="colecaoDadosTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <a class="nav-link" id="dados-construtivos-tab"
-                   href="@Url.Action("EditQualidadeDoAr", "Budget", new { id = Model.QualidadeDoArId })"
-                   role="tab" aria-controls="construtivos-pane" aria-selected="false">Dados construtivos</a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a class="nav-link" id="higrometria-tab"
-                   href="@Url.Action("Higrometria", "Budget", new { id = Model.QualidadeDoArId })"
-                   role="tab" aria-controls="higrometria-pane" aria-selected="false">Higrometria</a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a class="nav-link" id="sintomatologia-tab"
-                   href="@Url.Action("Sintomatologia", "Budget", new { id = Model.QualidadeDoArId })"
-                   role="tab" aria-controls="sintomatologia-pane" aria-selected="false">Sintomatologia</a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a class="nav-link active" id="objetivos-tab"
-                   href="@Url.Action("Objetivos", "Budget", new { id = Model.QualidadeDoArId })"
-                   role="tab" aria-controls="objetivos-pane" aria-selected="true">Objetivos</a>
-            </li>
-        </ul>
-
-        <div class="tab-content bg-white card-body" id="colecaoDadosTabContent" style="border: 1px solid #dee2e6; border-top: none;">
-            <!-- O conteúdo das outras abas não é renderizado aqui,
-                 pois cada aba agora é um link para uma ação separada.
-                 Apenas a aba ativa (Objetivos) tem conteúdo real. -->
-            <div class="tab-pane fade show active p-4" id="objetivos-pane" role="tabpanel" aria-labelledby="objetivos-tab">
+        <div class="card bg-white" style="border: 1px solid #dee2e6;">
+            <div class="card-body p-4">
                 <h5 class="mb-3">Possíveis tratamentos</h5>
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -135,8 +109,11 @@
                         </div>
                     </div>
                 </div>
+                <div class="mt-4 alert alert-success text-center" role="alert">
+                    De acordo com as medições de habitabilidade e higrometria propomos uma solução com 100% de garantia
+                </div>
                 <div class="mt-4 text-end">
-                    <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-2"></i>Guardar e continuar</button>
+                    <button type="submit" class="btn btn-warning px-4"><i class="bi bi-save me-2"></i>Analisar</button>
                 </div>
             </div>
         </div>
@@ -145,24 +122,4 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        // Este script é necessário para simular o comportamento de "abas ativas" quando a página carrega.
-        // Como cada "aba" agora é uma página diferente, o Bootstrap não ativará automaticamente.
-        document.addEventListener('DOMContentLoaded', function() {
-            var activeTabId = '@ViewData["ActiveSubmenuLink"]'; // Assume que o Controller define isso
-            if (activeTabId === 'Objetivos') {
-                document.getElementById('objetivos-tab')?.classList.add('active');
-                document.getElementById('objetivos-tab')?.setAttribute('aria-selected', 'true');
-                document.getElementById('objetivos-pane')?.classList.add('show', 'active');
-            }
-            // Para garantir que as outras abas não estejam ativas por padrão se o JavaScript não for executado corretamente
-            document.querySelectorAll('.nav-link:not(#objetivos-tab)').forEach(function(tab) {
-                tab.classList.remove('active');
-                tab.setAttribute('aria-selected', 'false');
-            });
-            document.querySelectorAll('.tab-pane:not(#objetivos-pane)').forEach(function(pane) {
-                pane.classList.remove('show', 'active');
-            });
-        });
-    </script>
 }

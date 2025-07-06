@@ -5,13 +5,11 @@ namespace MSPremiumProject.ViewModels
 {
     public class ObjetivosViewModel
     {
-        // Propriedades para identificar a proposta e o orçamento de Qualidade do Ar
         public ulong PropostaId { get; set; }
         public ulong QualidadeDoArId { get; set; }
         public string NomeCliente { get; set; }
 
-        // Propriedades que correspondem aos "Possíveis tratamentos" na imagem
-        // Estas propriedades mapeiam diretamente para as propriedades do seu modelo MSPremiumProject.Models.Objetivos
+        // --- Possíveis tratamentos ---
         [Display(Name = "Isolamento externo com S.A.T.E.")]
         public bool IsolamentoExternoSATE { get; set; }
 
@@ -39,8 +37,6 @@ namespace MSPremiumProject.ViewModels
         [Display(Name = "Evacuação da humidade ambiente em excesso")]
         public bool EvacuacaoHumidadeExcesso { get; set; }
 
-        // Note: As propriedades para "Objetivos a alcançar" (Prevenir a proliferação de fungos, etc.)
-        // não são incluídas aqui, pois você especificou que essa parte seria omitida da view.
-        // Seu modelo Models.Objetivos já está alinhado com os "Possíveis tratamentos".
+        // As propriedades para "Objetivos a alcançar" foram removidas daqui.
     }
 }

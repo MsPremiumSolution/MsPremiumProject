@@ -39,13 +39,13 @@
             border-radius: 50%;
             margin-right: 10px;
             vertical-align: middle;
-            transition: background-color 0.2s, border-color 0.2s; /* Adiciona transição para cores */
+            transition: background-color 0.2s, border-color 0.2s;
         }
 
         /* Cor do círculo quando o link está ATIVO (página atual) */
         .submenu a.nav-link.active .submenu-item-circle {
             background-color: #ffc107; /* Laranja preenchido */
-            border-color: #ffc107;     /* Borda laranja */
+            border-color: #ffc107; /* Borda laranja */
         }
         /* Estilo do texto do link ativo */
         .submenu a.nav-link.active {
@@ -58,13 +58,55 @@
             background-color: rgba(255, 255, 255, 0.3); /* Um cinzento claro/semi-transparente preenchido */
             border-color: rgba(255, 255, 255, 0.5); /* Borda um pouco mais escura */
         }
-        
+
         /* Prioridade para o estado 'active' sobre 'completed' */
         .submenu a.nav-link.active .submenu-item-circle.completed {
             background-color: #ffc107;
             border-color: #ffc107;
         }
+
+        /* Estilo para empurrar o conteúdo principal para a direita da sidebar */
+        .content {
+            margin-left: 250px; /* Largura da sidebar */
+            padding-top: 56px; /* Ajuste para o topbar fixo */
+            transition: margin-left 0.3s ease;
+        }
+
+        .sidebar.active + .content {
+            margin-left: 0; /* Quando a sidebar estiver recolhida (se tiver essa funcionalidade) */
+        }
+        /* Para o topbar, garantir que a largura é 100% menos a sidebar */
+        .topbar {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 999;
+            background-color: #007bff; /* Ou a cor do seu topbar */
+            color: white;
+        }
+        /* Ajuste do padding do corpo se o topbar é fixo */
+        body {
+            padding-top: 0; /* Remova o padding-top padrão se o topbar já o gere */
+        }
+
     </style>
+    @* Adicione estas linhas de using se ainda não as tiver no seu _Layout.cshtml *@
+    @using Microsoft.AspNetCore.Http;
+    @using MSPremiumProject.ViewModels;
+    @{
+        // Estas variáveis e funções foram movidas para o topo para terem um escopo global na View
+        var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
+        var stepsCompleted = ViewData["StepsCompleted"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
+
+        // Usar Func<T, TResult> para definir helpers em Razor views
+        Func<string, bool> IsStepCompleted = (stepName) => stepsCompleted.GetValueOrDefault(stepName);
+        string activeSubmenuLinkName = ViewData["ActiveSubmenuLink"] as string ?? "";
+        Func<string, bool> IsActiveLink = (actionName) => activeSubmenuLinkName == actionName;
+
+        ulong currentQualidadeDoArId = ViewData["QualidadeDoArId"] is ulong ? (ulong)ViewData["QualidadeDoArId"] : 0;
+    }
 </head>
 <body>
     <!-- Sidebar -->
@@ -78,18 +120,6 @@
                 <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door-fill"></i> Página Inicial</a>
                 <a class="nav-link" asp-controller="Home" asp-action="ClientPainel"><i class="bi bi-bar-chart"></i> Clientes</a>
 
-                
-                    var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
-                    var stepsCompleted = ViewData["StepsCompleted"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
-
-                    // Helper para verificar se um passo está completo
-                    bool IsStepCompleted(string stepName) => stepsCompleted.GetValueOrDefault(stepName);
-
-                    // Helper para verificar se um link é o ativo
-                    string activeSubmenuLinkName = ViewData["ActiveSubmenuLink"] as string ?? "";
-                    bool IsActiveLink(string actionName) => activeSubmenuLinkName == actionName;
-                
-
                 <a class="nav-link @(inQualidadeArContext ? "has-active-submenu" : "")" asp-controller="Budget" asp-action="OrçamentosEmCurso"><i class="bi bi-calculator-fill"></i> Orçamento</a>
 
                 @if (inQualidadeArContext)
@@ -99,29 +129,34 @@
                             <h6 class="text-white mb-0">Qualidade do ar</h6>
                             <a asp-controller="Budget" asp-action="SelectTreatment" class="btn btn-sm btn-link text-white p-0" title="Alterar tipo de tratamento"><i class="bi bi-x-lg"></i></a>
                         </div>
-                        
+
                         <!-- Coleção de dados -->
-                        <a class="nav-link @(IsActiveLink("ColecaoDados") ? "active" : "")" asp-controller="Budget" asp-action="ColecaoDados">
+                        <a class="nav-link @(IsActiveLink("ColecaoDados") ? "active" : "")"
+                           asp-controller="Budget" asp-action="ColecaoDados" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("ColecaoDados") ? "completed" : "")"></span> Coleção de dados
                         </a>
-                        
+
                         <!-- Objetivos -->
-                        <a class="nav-link @(IsActiveLink("Objetivos") ? "active" : "")" asp-controller="Budget" asp-action="Objetivos">
+                        <a class="nav-link @(IsActiveLink("Objetivos") ? "active" : "")"
+                           asp-controller="Budget" asp-action="Objetivos" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("Objetivos") ? "completed" : "")"></span> Objetivos
                         </a>
-                        
+
                         <!-- Volumes -->
-                        <a class="nav-link @(IsActiveLink("Volumes") ? "active" : "")" asp-controller="Budget" asp-action="Volumes">
+                        <a class="nav-link @(IsActiveLink("Volumes") ? "active" : "")"
+                           asp-controller="Budget" asp-action="Volumes" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("Volumes") ? "completed" : "")"></span> Volumes
                         </a>
-                        
+
                         <!-- Detalhe do orçamento -->
-                        <a class="nav-link @(IsActiveLink("DetalheOrcamento") ? "active" : "")" asp-controller="Budget" asp-action="DetalheOrcamento">
+                        <a class="nav-link @(IsActiveLink("DetalheOrcamento") ? "active" : "")"
+                           asp-controller="Budget" asp-action="DetalheOrcamento" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("DetalheOrcamento") ? "completed" : "")"></span> Detalhe do orçamento
                         </a>
-                        
+
                         <!-- Resumo do orçamento -->
-                        <a class="nav-link @(IsActiveLink("ResumoOrcamento") ? "active" : "")" asp-controller="Budget" asp-action="ResumoOrcamento">
+                        <a class="nav-link @(IsActiveLink("ResumoOrcamento") ? "active" : "")"
+                           asp-controller="Budget" asp-action="ResumoOrcamento" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("ResumoOrcamento") ? "completed" : "")"></span> Resumo do orçamento
                         </a>
                     </div>
@@ -138,7 +173,7 @@
             }
         </nav>
         <div class="mt-auto p-3 text-center">
-             <a href="#" class="btn btn-outline-light btn-sm">Ver certificações</a>
+            <a href="#" class="btn btn-outline-light btn-sm">Ver certificações</a>
         </div>
     </div>
 
@@ -160,7 +195,7 @@
         }
         else
         {
-            <span> </span>
+            <span> </span>
         }
     </div>
 
@@ -192,11 +227,6 @@
                     sidebar.classList.toggle('active');
                 });
             }
-
-            // Script para marcar o item ativo no submenu
-            // Este script agora é mais simples porque o estado "active" já vem do Razor
-            // e os "completed" são gerados com a classe .completed.
-            // Não precisa de fazer manipulação de classes aqui.
         });
     </script>
 
