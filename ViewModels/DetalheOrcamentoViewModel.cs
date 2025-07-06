@@ -14,7 +14,7 @@ namespace MSPremiumProject.ViewModels
 
         // Seção Fabricação
         public decimal M3VolumeHabitavel { get; set; }
-        public decimal M3VolumeHabitavelCalculado { get; set; } // Valor vindo do passo "Volumes"
+        public decimal M3VolumeHabitavelCalculado { get; set; }
         public int NumeroCompartimentos { get; set; }
         public int NumeroPisos { get; set; }
 
@@ -26,7 +26,7 @@ namespace MSPremiumProject.ViewModels
         public bool HasAcessoriosExtras { get; set; }
 
         // Seção Manutenção
-        public string FiltroManutencao { get; set; } // "G4" ou "F7"
+        public string FiltroManutencao { get; set; }
         public bool HasVigilancia24h { get; set; }
     }
 }

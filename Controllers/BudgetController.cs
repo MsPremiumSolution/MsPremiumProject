@@ -1019,17 +1019,20 @@ namespace MSPremiumProject.Controllers
             }
 
             var orcamentoAr = await _context.OrcamentoAr
+                .Include(oa => oa.LinhasOrcamento) // Carrega as linhas existentes
                 .FirstOrDefaultAsync(oa => oa.QualidadeDoAr.Id == id);
 
-            var qualidadeDoAr = await _context.QualidadeDoAr
-                .FirstOrDefaultAsync(qa => qa.Id == id);
-
+            var qualidadeDoAr = await _context.QualidadeDoAr.FindAsync(id);
 
             if (orcamentoAr == null || qualidadeDoAr == null)
             {
                 TempData["MensagemErro"] = "Estrutura do orçamento não encontrada.";
                 return RedirectToAction(nameof(SelectTreatment));
             }
+
+            // Função auxiliar para obter uma linha do orçamento
+            Func<string, OrcamentoArLinha> getLinha = (codigo) =>
+                orcamentoAr.LinhasOrcamento.FirstOrDefault(l => l.CodigoItem == codigo);
 
             var viewModel = new DetalheOrcamentoViewModel
             {
@@ -1039,17 +1042,19 @@ namespace MSPremiumProject.Controllers
                 NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}",
 
                 // Carregar dados salvos
-                HasControleTecnico = orcamentoAr.HasControleTecnico,
-                HasExecucaoProjeto = orcamentoAr.HasExecucaoProjeto,
                 M3VolumeHabitavel = orcamentoAr.M3VolumeHabitavel,
-                M3VolumeHabitavelCalculado = qualidadeDoAr.VolumeTotal, // Puxa o total da página de Volumes
+                M3VolumeHabitavelCalculado = qualidadeDoAr.VolumeTotal,
                 NumeroCompartimentos = orcamentoAr.NumeroCompartimentos,
                 NumeroPisos = orcamentoAr.NumeroPisos,
-                HasInstalacaoMaoDeObra = orcamentoAr.HasInstalacaoMaoDeObra,
-                HasAdaptacaoSistema = orcamentoAr.HasAdaptacaoSistema,
-                HasAcessoriosExtras = orcamentoAr.HasAcessoriosExtras,
                 FiltroManutencao = orcamentoAr.FiltroManutencao,
-                HasVigilancia24h = orcamentoAr.HasVigilancia24h
+
+                // Mapear checkboxes com base na existência das linhas de orçamento
+                HasControleTecnico = getLinha("PROJ_CONTROLETECNICO") != null,
+                HasExecucaoProjeto = getLinha("PROJ_EXECUCAOPROJETO") != null,
+                HasInstalacaoMaoDeObra = getLinha("IMPL_MAODEOBRA") != null,
+                HasAdaptacaoSistema = getLinha("PERS_ADAPTACAO") != null,
+                HasAcessoriosExtras = getLinha("PERS_ACESSORIOS") != null,
+                HasVigilancia24h = getLinha("MANUT_VIGILANCIA") != null,
             };
 
             return View(viewModel);
@@ -1064,13 +1069,15 @@ namespace MSPremiumProject.Controllers
 
             if (!ModelState.IsValid)
             {
-                // Recarregar o valor calculado para exibição em caso de erro
                 var qualidadeDoAr = await _context.QualidadeDoAr.FindAsync(model.QualidadeDoArId);
                 if (qualidadeDoAr != null) model.M3VolumeHabitavelCalculado = qualidadeDoAr.VolumeTotal;
                 return View(model);
             }
 
-            var orcamentoArParaAtualizar = await _context.OrcamentoAr.FindAsync(model.OrcamentoArId);
+            var orcamentoArParaAtualizar = await _context.OrcamentoAr
+                .Include(oa => oa.LinhasOrcamento)
+                .FirstOrDefaultAsync(oa => oa.Id == model.OrcamentoArId);
+
             if (orcamentoArParaAtualizar == null)
             {
                 TempData["MensagemErro"] = "Orçamento não encontrado para atualização.";
@@ -1078,45 +1085,62 @@ namespace MSPremiumProject.Controllers
             }
 
             // =============================================================
-            // LÓGICA DE CÁLCULO DE PREÇOS (Valores de exemplo)
-            // Substitua estes valores pelos seus preços reais ou regras de negócio
+            // LÓGICA DE PREÇOS UNITÁRIOS (pode vir de uma tabela de preços ou ser hard-coded)
             // =============================================================
-            decimal precoControleTecnico = 200.00m;
-            decimal precoExecucaoProjeto = 300.00m;
-            decimal precoPorM3 = 13.31m; // Exemplo para 3722.78 / 280
-            decimal precoPorCompartimento = 23.81m; // Exemplo para 166.67 / 7
-            decimal precoInstalacao = 462.80m;
-            decimal precoAdaptacao = 1000.00m;
-            decimal precoAcessorios = 0.00m; // Pode ser um valor fixo ou calculado
-            decimal precoFiltroG4 = 16.90m;
-            decimal precoFiltroF7 = 30.00m; // Exemplo
-            decimal precoVigilancia = 0.00m; // Exemplo
-            // =============================================================
+            var precos = new Dictionary<string, decimal>
+            {
+                { "PROJ_CONTROLETECNICO", 200.00m },
+                { "PROJ_EXECUCAOPROJETO", 300.00m },
+                { "FAB_UNIDADECENTRAL", 13.31m }, // Preço por m³
+                { "FAB_CONFIG", 23.81m }, // Preço por compartimento
+                { "IMPL_MAODEOBRA", 462.80m },
+                { "PERS_ADAPTACAO", 1000.00m },
+                { "PERS_ACESSORIOS", 0.00m }, // Pode ser editável no futuro
+                { "MANUT_FILTRO_G4", 16.90m },
+                { "MANUT_FILTRO_F7", 30.00m },
+                { "MANUT_VIGILANCIA", 0.00m }
+            };
 
-            // Atualizar campos de dados e flags
+            // Atualizar os campos de dados principais
             orcamentoArParaAtualizar.M3VolumeHabitavel = model.M3VolumeHabitavel;
             orcamentoArParaAtualizar.NumeroCompartimentos = model.NumeroCompartimentos;
             orcamentoArParaAtualizar.NumeroPisos = model.NumeroPisos;
             orcamentoArParaAtualizar.FiltroManutencao = model.FiltroManutencao;
 
-            orcamentoArParaAtualizar.HasControleTecnico = model.HasControleTecnico;
-            orcamentoArParaAtualizar.HasExecucaoProjeto = model.HasExecucaoProjeto;
-            orcamentoArParaAtualizar.HasInstalacaoMaoDeObra = model.HasInstalacaoMaoDeObra;
-            orcamentoArParaAtualizar.HasAdaptacaoSistema = model.HasAdaptacaoSistema;
-            orcamentoArParaAtualizar.HasAcessoriosExtras = model.HasAcessoriosExtras;
-            orcamentoArParaAtualizar.HasVigilancia24h = model.HasVigilancia24h;
+            // Limpa as linhas antigas para recriá-las. É a abordagem mais simples.
+            orcamentoArParaAtualizar.LinhasOrcamento.Clear();
 
-            // Calcular e salvar os totais de cada seção
-            orcamentoArParaAtualizar.ValorProjeto = (model.HasControleTecnico ? precoControleTecnico : 0) + (model.HasExecucaoProjeto ? precoExecucaoProjeto : 0);
-            orcamentoArParaAtualizar.ValorFabricacao = model.M3VolumeHabitavel * precoPorM3;
-            orcamentoArParaAtualizar.ValorConfiguracaoFabricacao = model.NumeroCompartimentos * precoPorCompartimento;
-            orcamentoArParaAtualizar.ValorImplementacaoTrabalho = model.HasInstalacaoMaoDeObra ? precoInstalacao : 0;
-            orcamentoArParaAtualizar.ValorPersonalizacao = (model.HasAdaptacaoSistema ? precoAdaptacao : 0) + (model.HasAcessoriosExtras ? precoAcessorios : 0);
+            // Função auxiliar para adicionar uma linha
+            Action<string, string, decimal, decimal> AddLinha = (codigo, desc, qtd, precoUnit) =>
+            {
+                if (qtd > 0) // Só adiciona a linha se a quantidade for maior que zero
+                {
+                    orcamentoArParaAtualizar.LinhasOrcamento.Add(new OrcamentoArLinha
+                    {
+                        CodigoItem = codigo,
+                        Descricao = desc,
+                        Quantidade = qtd,
+                        PrecoUnitario = precoUnit,
+                        TotalLinha = qtd * precoUnit
+                    });
+                }
+            };
 
-            decimal valorFiltro = 0;
-            if (model.FiltroManutencao == "G4") valorFiltro = precoFiltroG4;
-            else if (model.FiltroManutencao == "F7") valorFiltro = precoFiltroF7;
-            orcamentoArParaAtualizar.ValorManutencao = valorFiltro + (model.HasVigilancia24h ? precoVigilancia : 0);
+            // Adicionar linhas com base nos checkboxes e dados do formulário
+            if (model.HasControleTecnico) AddLinha("PROJ_CONTROLETECNICO", "Controle técnico", 1, precos["PROJ_CONTROLETECNICO"]);
+            if (model.HasExecucaoProjeto) AddLinha("PROJ_EXECUCAOPROJETO", "Execução de projeto", 1, precos["PROJ_EXECUCAOPROJETO"]);
+
+            AddLinha("FAB_UNIDADECENTRAL", "Fabricação Unidade Central (m³)", model.M3VolumeHabitavel, precos["FAB_UNIDADECENTRAL"]);
+            AddLinha("FAB_CONFIG", "Configuração por compartimento", model.NumeroCompartimentos, precos["FAB_CONFIG"]);
+
+            if (model.HasInstalacaoMaoDeObra) AddLinha("IMPL_MAODEOBRA", "Instalação e mão de obra", 1, precos["IMPL_MAODEOBRA"]);
+
+            if (model.HasAdaptacaoSistema) AddLinha("PERS_ADAPTACAO", "Adaptação do sistema à medida", 1, precos["PERS_ADAPTACAO"]);
+            if (model.HasAcessoriosExtras) AddLinha("PERS_ACESSORIOS", "Acessórios extras", 1, precos["PERS_ACESSORIOS"]);
+
+            if (model.FiltroManutencao == "G4") AddLinha("MANUT_FILTRO_G4", "Filtro substituível G4", 1, precos["MANUT_FILTRO_G4"]);
+            if (model.FiltroManutencao == "F7") AddLinha("MANUT_FILTRO_F7", "Filtro substituível F7", 1, precos["MANUT_FILTRO_F7"]);
+            if (model.HasVigilancia24h) AddLinha("MANUT_VIGILANCIA", "Vigilância 24h/dia (EtairBox)", 1, precos["MANUT_VIGILANCIA"]);
 
             await _context.SaveChangesAsync();
 

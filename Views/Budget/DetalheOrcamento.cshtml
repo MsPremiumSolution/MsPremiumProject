@@ -185,12 +185,14 @@
         function validarVolume() {
             const volumeInseridoEl = document.getElementById('M3VolumeHabitavel');
             const volumeCalculado = parseFloat(document.getElementById('volume-calculado-display').textContent.replace(',', '.'));
-            const volumeInserido = parseFloat(volumeInseridoEl.value.replace(',', '.'));
+            const volumeInserido = parseFloat(volumeInseridoEl.value.replace(',', '.')) || 0;
 
             if (Math.abs(volumeInserido - volumeCalculado) > 0.01) { // Usar uma tolerância
                 volumeInseridoEl.classList.add('is-invalid');
+                volumeInseridoEl.parentElement.nextElementSibling.style.display = 'block'; // Mostra a mensagem de aviso
             } else {
                 volumeInseridoEl.classList.remove('is-invalid');
+                volumeInseridoEl.parentElement.nextElementSibling.style.display = 'none'; // Esconde a mensagem de aviso
             }
             calcularTotais();
         }
