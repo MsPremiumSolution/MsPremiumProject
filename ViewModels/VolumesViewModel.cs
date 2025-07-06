@@ -7,7 +7,7 @@ namespace MSPremiumProject.ViewModels
     {
         public ulong PropostaId { get; set; }
         public ulong QualidadeDoArId { get; set; }
-        public string NomeCliente { get; set; }
+        //public string NomeCliente { get; set; }
 
         public List<VolumeItemViewModel> Volumes { get; set; } = new List<VolumeItemViewModel>();
     }
