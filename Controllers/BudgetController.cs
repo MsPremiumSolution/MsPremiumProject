@@ -676,6 +676,110 @@ namespace MSPremiumProject.Controllers
         }
 
 
+        [HttpGet]
+        public async Task<IActionResult> Objetivos(ulong id) // O 'id' aqui será o QualidadeDoArId
+        {
+            if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
+            {
+                TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+
+            // Definir o estado do submenu para "Objetivos"
+            await SetQualidadeArSubmenuState(propostaId, "Objetivos");
+
+            var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
+            if (proposta == null)
+            {
+                TempData["MensagemErro"] = "Proposta associada ao orçamento de Qualidade do Ar não encontrada.";
+                return NotFound();
+            }
+
+            // Buscar a entidade QualidadeDoAr e seus Objetivos associados
+            var qualidadeDoAr = await _context.QualidadeDoAr
+                .Include(qa => qa.Objetivos)
+                .AsNoTracking() // Usamos AsNoTracking para evitar rastreamento desnecessário se for apenas para exibição
+                .FirstOrDefaultAsync(qa => qa.Id == id);
+
+            if (qualidadeDoAr == null || qualidadeDoAr.Objetivos == null)
+            {
+                TempData["MensagemErro"] = "A estrutura de objetivos para este orçamento não foi encontrada ou está incompleta. Por favor, reinicie a criação do orçamento ou contacte o suporte.";
+                return RedirectToAction(nameof(SelectTreatment)); // Ou outra ação apropriada
+            }
+
+            ViewData["Title"] = $"Objetivos - {proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
+
+            // Mapear os dados do modelo para o ViewModel
+            var viewModel = new ObjetivosViewModel
+            {
+                PropostaId = propostaId,
+                QualidadeDoArId = qualidadeDoAr.Id,
+                NomeCliente = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}",
+
+                IsolamentoExternoSATE = qualidadeDoAr.Objetivos.IsolamentoExternoSATE,
+                IsolamentoInteriorPladur = qualidadeDoAr.Objetivos.IsolamentoInteriorPladur,
+                InjeccaoCamaraArPoliuretano = qualidadeDoAr.Objetivos.InjeccaoCamaraArPoliuretano,
+                TrituracaoCorticaTriturada = qualidadeDoAr.Objetivos.TrituracaoCorticaTriturada,
+                AplicacaoTintaTermica = qualidadeDoAr.Objetivos.AplicacaoTintaTermica,
+                ImpermeabilizacaoFachadas = qualidadeDoAr.Objetivos.ImpermeabilizacaoFachadas,
+                TubagemParedesInfiltracao = qualidadeDoAr.Objetivos.TubagemParedesInfiltracao,
+                InjeccaoParedesAccaoCapilar = qualidadeDoAr.Objetivos.InjeccaoParedesAccaoCapilar,
+                EvacuacaoHumidadeExcesso = qualidadeDoAr.Objetivos.EvacuacaoHumidadeExcesso
+            };
+
+            return View(viewModel);
+        }
+
+        // Implementação do método POST para salvar os Objetivos
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Objetivos(ObjetivosViewModel model)
+        {
+            // Definir o estado do submenu para "Objetivos"
+            await SetQualidadeArSubmenuState(model.PropostaId, "Objetivos");
+
+            if (!ModelState.IsValid)
+            {
+                // Se houver erros de validação, recarregar o nome do cliente e retornar a view
+                var propostaCliente = await _context.Proposta.Include(p => p.Cliente).AsNoTracking().FirstOrDefaultAsync(p => p.PropostaId == model.PropostaId);
+                if (propostaCliente != null)
+                {
+                    model.NomeCliente = $"{propostaCliente.Cliente.Nome} {propostaCliente.Cliente.Apelido}";
+                }
+                ViewData["Title"] = $"Objetivos - {model.NomeCliente}"; // Manter o título correto
+                return View(model);
+            }
+
+            // Buscar a entidade QualidadeDoAr com seus Objetivos para atualização
+            var qualidadeDoArParaAtualizar = await _context.QualidadeDoAr
+                .Include(qa => qa.Objetivos)
+                .FirstOrDefaultAsync(qa => qa.Id == model.QualidadeDoArId);
+
+            if (qualidadeDoArParaAtualizar == null || qualidadeDoArParaAtualizar.Objetivos == null)
+            {
+                TempData["MensagemErro"] = "Dados de objetivos incompletos ou não encontrados para atualização.";
+                return NotFound();
+            }
+
+            var objetivos = qualidadeDoArParaAtualizar.Objetivos;
+
+            // Atualizar as propriedades do modelo Objetivos com os dados do ViewModel
+            objetivos.IsolamentoExternoSATE = model.IsolamentoExternoSATE;
+            objetivos.IsolamentoInteriorPladur = model.IsolamentoInteriorPladur;
+            objetivos.InjeccaoCamaraArPoliuretano = model.InjeccaoCamaraArPoliuretano;
+            objetivos.TrituracaoCorticaTriturada = model.TrituracaoCorticaTriturada;
+            objetivos.AplicacaoTintaTermica = model.AplicacaoTintaTermica;
+            objetivos.ImpermeabilizacaoFachadas = model.ImpermeabilizacaoFachadas;
+            objetivos.TubagemParedesInfiltracao = model.TubagemParedesInfiltracao;
+            objetivos.InjeccaoParedesAccaoCapilar = model.InjeccaoParedesAccaoCapilar;
+            objetivos.EvacuacaoHumidadeExcesso = model.EvacuacaoHumidadeExcesso;
+
+            await _context.SaveChangesAsync();
+            TempData["MensagemSucesso"] = "Objetivos guardados com sucesso!";
+
+            // Redirecionar para a próxima etapa (por exemplo, Volumes)
+            return RedirectToAction("Volumes", new { id = model.QualidadeDoArId });
+        }
 
         //================================================================================
         // PÁGINAS PLACEHOLDER PARA AS OUTRAS SUB-ETAPAS DA QUALIDADE DO AR
