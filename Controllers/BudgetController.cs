@@ -687,6 +687,7 @@ namespace MSPremiumProject.Controllers
 
             await SetQualidadeArSubmenuState(propostaId, "Objetivos");
 
+            // A busca da proposta ainda é útil para definir o título da página.
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null)
             {
@@ -705,15 +706,15 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(SelectTreatment));
             }
 
+            // O título pode ser definido diretamente no ViewData, sem precisar do ViewModel para isso.
             ViewData["Title"] = $"Objetivos - {proposta.Cliente.Nome} {proposta.Cliente.Apelido}";
 
             var viewModel = new ObjetivosViewModel
             {
                 PropostaId = propostaId,
                 QualidadeDoArId = qualidadeDoAr.Id,
-                NomeCliente = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}",
+                // REMOVIDO: NomeCliente = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}",
 
-                // --- Mapear SOMENTE "Possíveis tratamentos" para o ViewModel (para exibição) ---
                 IsolamentoExternoSATE = qualidadeDoAr.Objetivos.IsolamentoExternoSATE,
                 IsolamentoInteriorPladur = qualidadeDoAr.Objetivos.IsolamentoInteriorPladur,
                 InjeccaoCamaraArPoliuretano = qualidadeDoAr.Objetivos.InjeccaoCamaraArPoliuretano,
@@ -737,12 +738,12 @@ namespace MSPremiumProject.Controllers
 
             if (!ModelState.IsValid)
             {
+                // Se o ModelState não for válido, defina o título da página antes de retornar a view.
                 var propostaCliente = await _context.Proposta.Include(p => p.Cliente).AsNoTracking().FirstOrDefaultAsync(p => p.PropostaId == model.PropostaId);
                 if (propostaCliente != null)
                 {
-                    model.NomeCliente = $"{propostaCliente.Cliente.Nome} {propostaCliente.Cliente.Apelido}";
+                    ViewData["Title"] = $"Objetivos - {propostaCliente.Cliente.Nome} {propostaCliente.Cliente.Apelido}";
                 }
-                ViewData["Title"] = $"Objetivos - {model.NomeCliente}";
                 return View("BudgetGoals", model);
             }
 
@@ -758,10 +759,6 @@ namespace MSPremiumProject.Controllers
 
             var objetivosToUpdate = qualidadeDoArParaAtualizar.Objetivos;
 
-            // --- Atualizar "Possíveis tratamentos" ---
-            // Apenas atribuímos as propriedades que vêm do formulário (checkboxes).
-            // As propriedades de "Objetivos a alcançar" (se existirem no DB) não são alteradas por este POST,
-            // pois não estão no ViewModel submetido nem são mapeadas aqui.
             objetivosToUpdate.IsolamentoExternoSATE = model.IsolamentoExternoSATE;
             objetivosToUpdate.IsolamentoInteriorPladur = model.IsolamentoInteriorPladur;
             objetivosToUpdate.InjeccaoCamaraArPoliuretano = model.InjeccaoCamaraArPoliuretano;

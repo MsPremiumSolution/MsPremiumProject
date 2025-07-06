@@ -7,7 +7,7 @@ namespace MSPremiumProject.ViewModels
     {
         public ulong PropostaId { get; set; }
         public ulong QualidadeDoArId { get; set; }
-        public string NomeCliente { get; set; }
+        
 
         // --- Possíveis tratamentos ---
         [Display(Name = "Isolamento externo com S.A.T.E.")]
