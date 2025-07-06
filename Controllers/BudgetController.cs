@@ -780,30 +780,137 @@ namespace MSPremiumProject.Controllers
         // Todas ativam o submenu e o link correto e aceitam 'id'
         //================================================================================
         [HttpGet]
-        public async Task<IActionResult> Volumes(ulong id) // Aceita 'id' do QualidadeDoArId
+        public async Task<IActionResult> Volumes(ulong id) // id é o QualidadeDoArId
         {
             if (!ulong.TryParse(HttpContext.Session.GetString("CurrentPropostaId"), out ulong propostaId))
             {
                 TempData["MensagemErro"] = "Sessão expirada. Por favor, retome o orçamento.";
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
+
+            await SetQualidadeArSubmenuState(propostaId, "Volumes");
+
             var proposta = await _context.Proposta.Include(p => p.Cliente).FirstOrDefaultAsync(p => p.PropostaId == propostaId);
             if (proposta == null || !proposta.QualidadeDoArId.HasValue)
             {
                 TempData["MensagemErro"] = "Orçamento de Qualidade do Ar não encontrado ou não iniciado.";
                 return RedirectToAction(nameof(SelectTreatment));
             }
-            await SetQualidadeArSubmenuState(propostaId, "Volumes");
 
-            var viewModel = new QualidadeArViewModel // Pode ser um ViewModel mais genérico ou específico para Volumes
+            // Carregar os volumes e medidas existentes
+            var volumesDb = await _context.Volumes
+                .Include(v => v.Medidas)
+                .Where(v => v.QualidadeDoArId == id)
+                .ToListAsync();
+
+            var viewModel = new VolumesViewModel
             {
                 PropostaId = propostaId,
                 QualidadeDoArId = id,
-                NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}"
+                NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}",
+                Volumes = volumesDb.Select(v => new VolumeItemViewModel
+                {
+                    Id = v.Id,
+                    Altura = v.Altura,
+                    Medidas = v.Medidas.Select(m => new MedidaItemViewModel
+                    {
+                        Id = m.Id,
+                        Largura = m.Largura,
+                        Comprimento = m.Comprimento
+                    }).ToList()
+                }).ToList()
             };
+
+            // Se não houver volumes, adiciona um em branco para começar
+            if (!viewModel.Volumes.Any())
+            {
+                viewModel.Volumes.Add(new VolumeItemViewModel());
+            }
 
             ViewData["Title"] = "Volumes";
             return View(viewModel);
+        }
+
+        // Volumes (POST)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Volumes(VolumesViewModel model)
+        {
+            await SetQualidadeArSubmenuState(model.PropostaId, "Volumes");
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Estratégia de Atualização: Remover os antigos e adicionar os novos
+                // Esta é a forma mais simples de gerir formulários dinâmicos complexos.
+
+                // 1. Remover todos os volumes e medidas existentes para este orçamento
+                var existingVolumes = await _context.Volumes
+                    .Include(v => v.Medidas)
+                    .Where(v => v.QualidadeDoArId == model.QualidadeDoArId)
+                    .ToListAsync();
+
+                foreach (var volume in existingVolumes)
+                {
+                    _context.Medida.RemoveRange(volume.Medidas);
+                }
+                _context.Volumes.RemoveRange(existingVolumes);
+                await _context.SaveChangesAsync(); // Aplica as remoções
+
+                // 2. Adicionar os novos volumes e medidas que vieram do formulário
+                if (model.Volumes != null)
+                {
+                    foreach (var volumeVm in model.Volumes)
+                    {
+                        // Ignorar blocos de altura sem valor
+                        if (volumeVm.Altura <= 0) continue;
+
+                        var newVolume = new Volume
+                        {
+                            QualidadeDoArId = model.QualidadeDoArId,
+                            Altura = volumeVm.Altura
+                        };
+
+                        _context.Volumes.Add(newVolume);
+                        await _context.SaveChangesAsync(); // Salva para obter o ID do newVolume
+
+                        if (volumeVm.Medidas != null)
+                        {
+                            foreach (var medidaVm in volumeVm.Medidas)
+                            {
+                                // Ignorar medidas incompletas
+                                if (medidaVm.Largura > 0 && medidaVm.Comprimento > 0)
+                                {
+                                    var newMedida = new Medida
+                                    {
+                                        VolumeId = newVolume.Id,
+                                        Largura = medidaVm.Largura,
+                                        Comprimento = medidaVm.Comprimento
+                                    };
+                                    _context.Medida.Add(newMedida);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync(); // Salva todas as novas medidas
+                await transaction.CommitAsync();
+
+                TempData["MensagemSucesso"] = "Volumes guardados com sucesso!";
+                return RedirectToAction("DetalheOrcamento", new { id = model.QualidadeDoArId });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                TempData["MensagemErro"] = $"Erro ao guardar os volumes: {ex.Message}";
+                return View(model);
+            }
         }
 
         [HttpGet]
