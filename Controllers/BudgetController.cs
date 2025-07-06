@@ -760,7 +760,8 @@ namespace MSPremiumProject.Controllers
 
             // --- Atualizar "Possíveis tratamentos" ---
             // Apenas atribuímos as propriedades que vêm do formulário (checkboxes).
-            // As propriedades de "Objetivos a alcançar" (se existirem no DB) não são alteradas por este POST.
+            // As propriedades de "Objetivos a alcançar" (se existirem no DB) não são alteradas por este POST,
+            // pois não estão no ViewModel submetido nem são mapeadas aqui.
             objetivosToUpdate.IsolamentoExternoSATE = model.IsolamentoExternoSATE;
             objetivosToUpdate.IsolamentoInteriorPladur = model.IsolamentoInteriorPladur;
             objetivosToUpdate.InjeccaoCamaraArPoliuretano = model.InjeccaoCamaraArPoliuretano;
@@ -797,16 +798,15 @@ namespace MSPremiumProject.Controllers
             }
             await SetQualidadeArSubmenuState(propostaId, "Volumes");
 
-            // Crie um ViewModel para esta página e passe os dados necessários para a sidebar
             var viewModel = new QualidadeArViewModel // Pode ser um ViewModel mais genérico ou específico para Volumes
             {
                 PropostaId = propostaId,
-                QualidadeDoArId = id, // O ID da QualidadeDoAr é passado para a View
+                QualidadeDoArId = id,
                 NomeCliente = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}"
             };
 
             ViewData["Title"] = "Volumes";
-            return View(viewModel); // Retorne a View com o ViewModel
+            return View(viewModel);
         }
 
         [HttpGet]

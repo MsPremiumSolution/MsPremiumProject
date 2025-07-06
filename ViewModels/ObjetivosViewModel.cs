@@ -37,6 +37,6 @@ namespace MSPremiumProject.ViewModels
         [Display(Name = "Evacuação da humidade ambiente em excesso")]
         public bool EvacuacaoHumidadeExcesso { get; set; }
 
-        // As propriedades para "Objetivos a alcançar" foram removidas daqui.
+        // As propriedades para "Objetivos a alcançar" foram removidas.
     }
 }

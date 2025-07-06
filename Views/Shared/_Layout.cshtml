@@ -1,4 +1,20 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http;
+@using MSPremiumProject.ViewModels; @* Necessário para o ViewModel na sidebar *@
+@{
+    // ESTE É O BLOCO DE CÓDIGO CORRIGIDO. DEVE ESTAR NO TOPO DO FICHEIRO.
+    var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
+    var stepsCompleted = ViewData["StepsCompleted"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
+
+    // Usar Func<T, TResult> para definir helpers em Razor views
+    Func<string, bool> IsStepCompleted = (stepName) => stepsCompleted.GetValueOrDefault(stepName);
+    string activeSubmenuLinkName = ViewData["ActiveSubmenuLink"] as string ?? "";
+    Func<string, bool> IsActiveLink = (actionName) => activeSubmenuLinkName == actionName;
+
+    // currentQualidadeDoArId pode ser 0 se ainda não estiver num contexto de QA
+    ulong currentQualidadeDoArId = ViewData["QualidadeDoArId"] is ulong ? (ulong)ViewData["QualidadeDoArId"] : 0;
+}
+
+<!DOCTYPE html>
 <html lang="pt">
 <head>
     <meta charset="utf-8" />
@@ -88,25 +104,9 @@
         }
         /* Ajuste do padding do corpo se o topbar é fixo */
         body {
-            padding-top: 0; /* Remova o padding-top padrão se o topbar já o gere */
+            padding-top: 0;
         }
-
     </style>
-    @* Adicione estas linhas de using se ainda não as tiver no seu _Layout.cshtml *@
-    @using Microsoft.AspNetCore.Http;
-    @using MSPremiumProject.ViewModels;
-    @{
-        // Estas variáveis e funções foram movidas para o topo para terem um escopo global na View
-        var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
-        var stepsCompleted = ViewData["StepsCompleted"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
-
-        // Usar Func<T, TResult> para definir helpers em Razor views
-        Func<string, bool> IsStepCompleted = (stepName) => stepsCompleted.GetValueOrDefault(stepName);
-        string activeSubmenuLinkName = ViewData["ActiveSubmenuLink"] as string ?? "";
-        Func<string, bool> IsActiveLink = (actionName) => activeSubmenuLinkName == actionName;
-
-        ulong currentQualidadeDoArId = ViewData["QualidadeDoArId"] is ulong ? (ulong)ViewData["QualidadeDoArId"] : 0;
-    }
 </head>
 <body>
     <!-- Sidebar -->
@@ -232,4 +232,4 @@
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
-</html> // teste
+</html>
