@@ -14,7 +14,7 @@ namespace MSPremiumProject.ViewModels
         [Display(Name = "Password")]
         public string Password { get; set; }
 
-        [Display(Name = "Lembrar-me")]
+        [Display(Name = "Manter sessão iniciada")]
         public bool RememberMe { get; set; } // Para cookies persistentes
     }
 }
