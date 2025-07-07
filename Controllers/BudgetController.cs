@@ -441,7 +441,12 @@ namespace MSPremiumProject.Controllers
                     var novaHigrometria = new Higrometria();
                     var novaSintomatologia = new Sintomatologia();
                     var novosObjetivos = new Objetivos();
-                    var novoOrcamentoAr = new OrcamentoAr();
+
+                    // AQUI ESTÁ A CORREÇÃO
+                    var novoOrcamentoAr = new OrcamentoAr
+                    {
+                        FiltroManutencao = "Nenhum" // ou "G4" se quiser que G4 seja o padrão
+                    };
 
                     _context.AddRange(novosDadosConstrutivos, novaHigrometria, novaSintomatologia, novosObjetivos, novoOrcamentoAr);
                     await _context.SaveChangesAsync();
@@ -457,6 +462,7 @@ namespace MSPremiumProject.Controllers
 
                     var novoTratamentoAr = new QualidadeDoAr
                     {
+                        PropostaId = proposta.PropostaId,
                         DadosGeraisId = novosDadosGerais.Id,
                         ObjetivosId = novosObjetivos.Id,
                         OrcamentoArId = novoOrcamentoAr.Id
