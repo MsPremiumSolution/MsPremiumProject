@@ -341,6 +341,8 @@ namespace MSPremiumProject.Controllers
                 return RedirectToAction(nameof(OrçamentosEmCurso));
             }
 
+            // Se QualidadeDoArId já tiver valor, significa que o tratamento já foi selecionado e a estrutura criada.
+            // Redireciona para a edição de dados.
             if (proposta.QualidadeDoArId.HasValue)
             {
                 return RedirectToAction("EditQualidadeDoAr", new { id = proposta.QualidadeDoArId.Value });
@@ -385,9 +387,6 @@ namespace MSPremiumProject.Controllers
             return RedirectToAction(nameof(SelectTreatment));
         }
 
-        //================================================================================
-        // ETAPA 4: PÁGINA DE ESCOLHA DO TIPO DE TRATAMENTO
-        //================================================================================
         [HttpGet]
         public async Task<IActionResult> SelectTreatment()
         {
@@ -402,13 +401,11 @@ namespace MSPremiumProject.Controllers
 
             if (proposta.QualidadeDoArId.HasValue)
             {
-                // Se o tratamento já foi selecionado, redireciona para a continuação do fluxo
-                return RedirectToAction(nameof(ContinuarOrcamento), new { id = proposta.PropostaId });
+                await SetQualidadeArSubmenuState(propostaId, "SelectTreatment");
             }
 
             var viewModel = new SelectTreatmentViewModel
             {
-                ClienteId = proposta.ClienteId, // <-- PREENCHA A PROPRIEDADE AQUI
                 NomeCliente = $"{proposta.Cliente.Nome} {proposta.Cliente.Apelido}"
             };
 
@@ -460,7 +457,6 @@ namespace MSPremiumProject.Controllers
 
                     var novoTratamentoAr = new QualidadeDoAr
                     {
-                        PropostaId = proposta.PropostaId, // <<< ADICIONE ESTA LINHA AQUI
                         DadosGeraisId = novosDadosGerais.Id,
                         ObjetivosId = novosObjetivos.Id,
                         OrcamentoArId = novoOrcamentoAr.Id
@@ -1210,6 +1206,77 @@ namespace MSPremiumProject.Controllers
 
             TempData["MensagemSucesso"] = "Orçamento finalizado e guardado com sucesso!";
             return RedirectToAction("OrçamentosEmCurso"); // Ou para uma página de detalhes do orçamento concluído
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteProposta(ulong id)
+        {
+            var proposta = await _context.Proposta.FindAsync(id);
+
+            if (proposta == null)
+            {
+                TempData["MensagemErro"] = "A proposta que tentou apagar não foi encontrada.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+
+            if (proposta.EstadoPropostaId != ESTADO_EM_CURSO)
+            {
+                TempData["MensagemErro"] = "Apenas propostas 'Em Curso' podem ser apagadas.";
+                return RedirectToAction(nameof(OrçamentosEmCurso));
+            }
+
+            try
+            {
+                // Lógica de eliminação em cascata para QualidadeDoAr e suas dependências.
+                // Esta lógica só é estritamente necessária se o seu banco de dados NÃO tiver
+                // ON DELETE CASCADE configurado para as chaves estrangeiras.
+                // Se o seu DB tiver, remover a Proposta pode já ser suficiente.
+                if (proposta.QualidadeDoArId.HasValue)
+                {
+                    var qualidadeAr = await _context.QualidadeDoAr
+                        .Include(qa => qa.DadosGerais)
+                            .ThenInclude(dg => dg.DadosConstrutivo)
+                                .ThenInclude(dc => dc.Janelas) // Garante que as janelas são carregadas para serem removidas
+                        .Include(qa => qa.DadosGerais)
+                            .ThenInclude(dg => dg.Higrometria)
+                        .Include(qa => qa.DadosGerais)
+                            .ThenInclude(dg => dg.Sintomatologia)
+                        .Include(qa => qa.Objetivos)
+                        .Include(qa => qa.OrcamentoAr)
+                        .FirstOrDefaultAsync(qa => qa.Id == proposta.QualidadeDoArId.Value);
+
+                    if (qualidadeAr != null)
+                    {
+                        if (qualidadeAr.DadosGerais != null)
+                        {
+                            if (qualidadeAr.DadosGerais.DadosConstrutivo != null)
+                            {
+                                // Remove todas as janelas associadas a este DadosConstrutivos
+                                _context.Janelas.RemoveRange(qualidadeAr.DadosGerais.DadosConstrutivo.Janelas);
+                                _context.DadosConstrutivos.Remove(qualidadeAr.DadosGerais.DadosConstrutivo);
+                            }
+                            if (qualidadeAr.DadosGerais.Higrometria != null) _context.Higrometria.Remove(qualidadeAr.DadosGerais.Higrometria);
+                            if (qualidadeAr.DadosGerais.Sintomatologia != null) _context.Sintomatologia.Remove(qualidadeAr.DadosGerais.Sintomatologia);
+                            _context.DadosGerais.Remove(qualidadeAr.DadosGerais);
+                        }
+                        if (qualidadeAr.Objetivos != null) _context.Objetivos.Remove(qualidadeAr.Objetivos);
+                        if (qualidadeAr.OrcamentoAr != null) _context.OrcamentoAr.Remove(qualidadeAr.OrcamentoAr);
+                        _context.QualidadeDoAr.Remove(qualidadeAr);
+                    }
+                }
+
+                _context.Proposta.Remove(proposta);
+                await _context.SaveChangesAsync();
+                TempData["MensagemSucesso"] = $"A proposta Nº {id} foi apagada com sucesso.";
+            }
+            catch (DbUpdateException ex)
+            {
+                TempData["MensagemErro"] = $"Ocorreu um erro ao apagar a proposta: Por favor, verifique se todas as informações associadas (dados de qualidade do ar, etc.) foram removidas ou se há referências pendentes. Detalhes: {ex.Message}";
+                // Considere logar ex.InnerException para mais detalhes em depuração
+            }
+
+            return RedirectToAction(nameof(OrçamentosEmCurso));
         }
     }
 }
