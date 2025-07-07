@@ -1,8 +1,16 @@
+/* ================================================== */
+/*             ESTILOS GERAIS E LAYOUT                */
+/* ================================================== */
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    transition: margin-left 0.3s ease-out;
+    background-color: white; /* Fundo padrão do corpo */
 }
+
+/* ================================================== */
+/*           ESTILOS PADRÃO (MOBILE-FIRST)            */
+/* Define como o site se parece em ecrãs pequenos por padrão */
+/* ================================================== */
 
 .sidebar {
     height: 100vh;
@@ -12,11 +20,17 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000;
+    z-index: 1030; /* Z-index alto para ficar por cima de tudo */
     overflow-y: auto;
-    transition: transform 0.3s ease-out;
-    transform: translateX(0);
+    transition: transform 0.3s ease-in-out;
+    /* COMEÇA ESCONDIDA FORA DO ECRÃ */
+    transform: translateX(-100%);
 }
+
+    /* Classe 'active' que o JavaScript vai adicionar/remover para mostrar a sidebar */
+    .sidebar.active {
+        transform: translateX(0);
+    }
 
     .sidebar .logo {
         padding: 20px;
@@ -37,18 +51,17 @@ body {
 .topbar {
     height: 60px;
     background-color: #000; /* Topbar preta */
-    color: white; /* <<<<<<< CORREÇÃO AQUI: Garante que o texto padrão dentro da topbar seja branco */
+    color: white; /* Texto da topbar branco */
     padding: 0 20px;
-    margin-left: 250px; /* Para ecrãs grandes */
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: fixed;
     top: 0;
-    left: 0;
-    right: 0;
+    left: 0; /* Começa no canto esquerdo */
+    right: 0; /* Estica até ao canto direito */
     z-index: 999;
-    transition: margin-left 0.3s ease-out;
+    transition: left 0.3s ease-in-out; /* Transição suave */
 }
 
 .menu-toggle {
@@ -58,73 +71,42 @@ body {
     border: none;
     cursor: pointer;
     padding: 10px 15px;
+    display: block; /* O botão hambúrguer é VISÍVEL por padrão em mobile */
 }
 
 .content {
-    margin-left: 250px; /* Para ecrãs grandes */
-    padding-top: 60px;
-    padding-left: 30px;
-    padding-right: 30px;
-    padding-bottom: 30px;
-    background-color: white; /* Garante que o fundo da área de conteúdo é branco */
-    min-height: 100vh;
-    transition: margin-left 0.3s ease-out;
+    margin-left: 0; /* O conteúdo NÃO tem margem em mobile */
+    padding-top: 60px; /* Espaço para a topbar fixa */
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 20px;
+    transition: margin-left 0.3s ease-in-out;
     box-sizing: border-box;
 }
 
-/* Estilos para ecrãs menores (ex: tablets e telemóveis) */
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-250px);
-    }
 
-        .sidebar.active {
-            transform: translateX(0);
-        }
-
-    .topbar {
-        margin-left: 0;
-    }
-
-    .menu-toggle {
-        display: block; /* Mostra o botão de menu em ecrãs pequenos */
-    }
-
-    .content {
-        margin-left: 0;
-    }
-}
-
-/* Estilos para ecrãs maiores - garante que o menu-toggle está escondido */
+/* ================================================== */
+/*        REGRAS PARA ECRÃS MAIORES (DESKTOP)         */
+/* Aplica estes estilos APENAS se a largura do ecrã for 769px ou mais */
+/* ================================================== */
 @media (min-width: 769px) {
-    .menu-toggle {
-        display: none; /* Esconde o botão de menu em ecrãs grandes */
-    }
-}
-
-@media (max-width: 768px) {
-    /* REGRA 1: Esconder a Sidebar */
     .sidebar {
-        transform: translateX(-250px);
+        /* Em desktop, a sidebar fica visível por padrão */
+        transform: translateX(0);
     }
 
-        /* REGRA 2: Mostrar a Sidebar quando ativa */
-        .sidebar.active {
-            transform: translateX(0);
-        }
-
-    /* REGRA 3: Expandir a Topbar */
     .topbar {
-        margin-left: 0;
+        /* Em desktop, a topbar começa depois da sidebar */
+        left: 250px;
     }
 
-    /* REGRA 4: Mostrar o Botão Hambúrguer */
-    .menu-toggle {
-        display: block;
-    }
-
-    /* REGRA 5: Expandir o Conteúdo */
     .content {
-        margin-left: 0;
+        /* Em desktop, o conteúdo começa depois da sidebar */
+        margin-left: 250px;
+    }
+
+    .menu-toggle {
+        /* Em desktop, o botão hambúrguer é escondido */
+        display: none;
     }
 }
