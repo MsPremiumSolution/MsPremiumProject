@@ -54,7 +54,7 @@ namespace MSPremiumProject.Controllers
         // ... (código existente) ...
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]  // Protege contra ataques CSRF (Cross-Site Request Forgery).
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
@@ -62,7 +62,7 @@ namespace MSPremiumProject.Controllers
             if (ModelState.IsValid)
             {
                 var user = await _context.Utilizadores
-                                   .Include(u => u.Role) // Inclui o Role para usar nos Claims
+                                   .Include(u => u.Role)
                                    .FirstOrDefaultAsync(u => u.Login.ToLower() == model.Login.ToLower());
 
                 if (user != null)
@@ -73,28 +73,34 @@ namespace MSPremiumProject.Controllers
                         return View("~/Views/Account/Login.cshtml", model);
                     }
 
-                    // Verifica se a password fornecida corresponde à password hashada na BD.
                     if (BCrypt.Net.BCrypt.Verify(model.Password, user.Pwp))
                     {
-                        // Claims são pedaços de informação sobre o utilizador (ID, nome, role).
                         var claims = new List<Claim>
-                        {
-                            new Claim(ClaimTypes.NameIdentifier, user.UtilizadorId.ToString()),
-                            new Claim(ClaimTypes.Name, user.Login),
-                            new Claim("FullName", user.Nome ?? string.Empty), // Garante que Nome não é nulo
-                            // Garante que Role e Role.Nome não são nulos antes de aceder
-                            new Claim(ClaimTypes.Role, user.Role?.Nome ?? "DefaultRole")
-                        };
-                        // Cria uma identidade baseada nas claims.
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.UtilizadorId.ToString()),
+                    new Claim(ClaimTypes.Name, user.Login),
+                    new Claim("FullName", user.Nome ?? string.Empty),
+                    new Claim(ClaimTypes.Role, user.Role?.Nome ?? "DefaultRole")
+                };
+
                         var claimsIdentity = new ClaimsIdentity(
                             claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                        // Define propriedades da autenticação (ex: se o cookie é persistente).
+
+                        // --- SUGESTÃO DE MELHORIA APLICADA AQUI ---
                         var authProperties = new AuthenticationProperties
                         {
-                            ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(model.RememberMe ? (60 * 24 * 7) : 60), // o que é o cookie?
                             IsPersistent = model.RememberMe,
+                            AllowRefresh = true,
+                            // Define a expiração padrão. Será substituída abaixo se "RememberMe" for true.
+                            ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60)
                         };
-                        // Realiza o login, criando o cookie de autenticação.
+
+                        if (model.RememberMe)
+                        {
+                            authProperties.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7);
+                        }
+                        // --- FIM DA SUGESTÃO ---
+
                         await HttpContext.SignInAsync(
                             CookieAuthenticationDefaults.AuthenticationScheme,
                             new ClaimsPrincipal(claimsIdentity),
