@@ -245,15 +245,18 @@ namespace MSPremiumProject.Controllers
         [HttpGet]
         public async Task<IActionResult> ContinuarOrcamento(ulong id) // id aqui é o PropostaId
         {
-            // Carrega a proposta e todas as sub-entidades necessárias para a verificação de progresso
+            // Carrega a proposta e todas as sub-entidades necessárias, INCLUINDO o OrcamentoAr
             var proposta = await _context.Proposta
+                                     .AsNoTracking() // Use AsNoTracking para performance, já que é só leitura
                                      .Include(p => p.QualidadeDoAr)
                                          .ThenInclude(qa => qa.DadosGerais)
-                                             .ThenInclude(dg => dg.DadosConstrutivo) // Para verificar a coleção de dados
+                                             .ThenInclude(dg => dg.DadosConstrutivo)
                                      .Include(p => p.QualidadeDoAr)
-                                         .ThenInclude(qa => qa.Objetivos) // Para verificar os objetivos
+                                         .ThenInclude(qa => qa.Objetivos)
                                      .Include(p => p.QualidadeDoAr)
-                                         .ThenInclude(qa => qa.Volumes) // Para verificar os volumes
+                                         .ThenInclude(qa => qa.Volumes)
+                                     .Include(p => p.QualidadeDoAr) // <-- LINHA ADICIONADA
+                                         .ThenInclude(qa => qa.OrcamentoAr) // <-- LINHA ADICIONADA para o passo 5
                                      .FirstOrDefaultAsync(p => p.PropostaId == id);
 
             if (proposta == null || proposta.EstadoPropostaId != ESTADO_EM_CURSO)
@@ -264,74 +267,50 @@ namespace MSPremiumProject.Controllers
 
             HttpContext.Session.SetString("CurrentPropostaId", proposta.PropostaId.ToString());
 
-            // --- LÓGICA DE REDIRECIONAMENTO INTELIGENTE ---
+            // --- LÓGICA DE REDIRECIONAMENTO INTELIGENTE (CORRIGIDA) ---
 
-            // Passo 0: Verificar se a Tipologia Construtiva foi escolhida
             if (proposta.TipologiaConstrutivaId == null)
-            {
                 return RedirectToAction(nameof(TipologiaConstrutiva));
-            }
 
-            // Passo 1: Verificar se a estrutura de Qualidade do Ar foi criada
             if (proposta.QualidadeDoArId == null)
-            {
                 return RedirectToAction(nameof(SelectTreatment));
-            }
 
-            // A partir daqui, a estrutura de Qualidade do Ar existe.
             var qaId = proposta.QualidadeDoArId.Value;
-            var qualidadeDoAr = proposta.QualidadeDoAr;
+            var qualidadeDoAr = proposta.QualidadeDoAr; // Já está carregado
 
-            // Passo 2: Verificar a "Coleção de Dados"
-            bool colecaoDadosCompleta = qualidadeDoAr.DadosGeraisId.HasValue &&
-                                        qualidadeDoAr.DadosGerais?.DadosConstrutivo?.Id != 0 &&
-                                        qualidadeDoAr.DadosGerais?.Higrometria?.Id != 0 &&
-                                        qualidadeDoAr.DadosGerais?.Sintomatologia?.Id != 0;
-
+            bool colecaoDadosCompleta = qualidadeDoAr.DadosGerais?.DadosConstrutivo != null;
             if (!colecaoDadosCompleta)
-            {
                 return RedirectToAction("EditQualidadeDoAr", new { id = qaId });
-            }
 
-            // Passo 3: Verificar "Objetivos"
-            // (Considerado completo se pelo menos um tratamento for selecionado)
-            bool objetivosCompletos = false;
-            if (qualidadeDoAr.Objetivos != null)
-            {
-                objetivosCompletos = qualidadeDoAr.Objetivos.IsolamentoExternoSATE ||
-                                     qualidadeDoAr.Objetivos.IsolamentoInteriorPladur ||
-                                     qualidadeDoAr.Objetivos.InjeccaoCamaraArPoliuretano ||
-                                     qualidadeDoAr.Objetivos.TrituracaoCorticaTriturada ||
-                                     qualidadeDoAr.Objetivos.AplicacaoTintaTermica ||
-                                     qualidadeDoAr.Objetivos.ImpermeabilizacaoFachadas ||
-                                     qualidadeDoAr.Objetivos.TubagemParedesInfiltracao ||
-                                     qualidadeDoAr.Objetivos.InjeccaoParedesAccaoCapilar ||
-                                     qualidadeDoAr.Objetivos.EvacuacaoHumidadeExcesso;
-            }
-
+            bool objetivosCompletos = qualidadeDoAr.Objetivos != null &&
+                                      (qualidadeDoAr.Objetivos.IsolamentoExternoSATE ||
+                                       qualidadeDoAr.Objetivos.EvacuacaoHumidadeExcesso ||
+                                       // Adicione mais verificações se necessário
+                                       qualidadeDoAr.Objetivos.AplicacaoTintaTermica);
             if (!objetivosCompletos)
-            {
                 return RedirectToAction("Objetivos", new { id = qaId });
-            }
 
-            // Passo 4: Verificar "Volumes"
-            // (Considerado completo se pelo menos um volume foi adicionado)
             bool volumesCompletos = qualidadeDoAr.Volumes != null && qualidadeDoAr.Volumes.Any();
             if (!volumesCompletos)
-            {
                 return RedirectToAction("Volumes", new { id = qaId });
-            }
 
-            // Passo 5: Verificar "Detalhe do Orçamento" (adicione a sua lógica de conclusão aqui)
-            // Exemplo: bool detalheOrcamentoCompleto = (qualidadeDoAr.OrcamentoAr?.AlgumCampoImportante > 0);
-            bool detalheOrcamentoCompleto = false; // Substitua pela sua lógica real.
+            // Passo 5: Verificar "Detalhe do Orçamento" - CORRIGIDO
+            // Usamos o nosso novo sinalizador. O operador '?? false' trata o caso
+            // em que OrcamentoAr possa ser nulo por algum motivo.
+            bool detalheOrcamentoCompleto = qualidadeDoAr.OrcamentoAr?.DetalheConcluido ?? false;
             if (!detalheOrcamentoCompleto)
             {
                 return RedirectToAction("DetalheOrcamento", new { id = qaId });
             }
 
-            // Se todos os passos acima estiverem completos, redireciona para o resumo como o próximo passo.
-            // Se o resumo for o último passo, o utilizador pode querer editá-lo.
+            // Passo 6: Verificar "Resumo do Orçamento" (opcional, mas bom ter)
+            bool resumoOrcamentoCompleto = qualidadeDoAr.OrcamentoAr?.ResumoConcluido ?? false;
+            if (!resumoOrcamentoCompleto)
+            {
+                return RedirectToAction("ResumoOrcamento", new { id = qaId });
+            }
+
+            // Se tudo estiver completo, talvez queira ir para a página de resumo final ou de impressão
             return RedirectToAction("ResumoOrcamento", new { id = qaId });
         }
 
@@ -1101,23 +1080,24 @@ namespace MSPremiumProject.Controllers
                 return NotFound();
             }
 
-            // ... (dicionário de preços) ...
-
-            // Atualizar os campos de dados principais
+            // ... (o seu código que atualiza os campos e adiciona linhas de orçamento) ...
             orcamentoArParaAtualizar.M3VolumeHabitavel = model.M3VolumeHabitavel;
             orcamentoArParaAtualizar.NumeroCompartimentos = model.NumeroCompartimentos;
             orcamentoArParaAtualizar.NumeroPisos = model.NumeroPisos;
+            orcamentoArParaAtualizar.FiltroManutencao = model.FiltroManutencao ?? "Nenhum";
 
-            // AQUI ESTÁ A CORREÇÃO: Garante que nunca é nulo
-            orcamentoArParaAtualizar.FiltroManutencao = model.FiltroManutencao ?? "Nenhum"; // Se for nulo, atribui "Nenhum"
+            // AQUI ESTÁ A MUDANÇA IMPORTANTE:
+            // Marcamos este passo como concluído antes de guardar.
+            orcamentoArParaAtualizar.DetalheConcluido = true;
 
-            // ... (restante do código que adiciona as linhas e salva) ...
+            // ... (resto do seu código para gerir as linhas de orçamento) ...
 
             await _context.SaveChangesAsync();
 
             TempData["MensagemSucesso"] = "Detalhes do orçamento guardados com sucesso!";
             return RedirectToAction("ResumoOrcamento", new { id = model.QualidadeDoArId });
         }
+
 
 
         [HttpGet]

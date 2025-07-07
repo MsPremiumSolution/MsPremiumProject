@@ -29,6 +29,8 @@ public partial class OrcamentoAr
     [Column(TypeName = "decimal(18, 2)")]
     public decimal ValorIva { get; set; }
 
+    public bool DetalheConcluido { get; set; }
+
     public bool ResumoConcluido { get; set; } = false;
 
     [Column(TypeName = "decimal(18, 2)")]
