@@ -101,3 +101,30 @@ body {
         display: none; /* Esconde o botão de menu em ecrãs grandes */
     }
 }
+
+@media (max-width: 768px) {
+    /* REGRA 1: Esconder a Sidebar */
+    .sidebar {
+        transform: translateX(-250px);
+    }
+
+        /* REGRA 2: Mostrar a Sidebar quando ativa */
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+    /* REGRA 3: Expandir a Topbar */
+    .topbar {
+        margin-left: 0;
+    }
+
+    /* REGRA 4: Mostrar o Botão Hambúrguer */
+    .menu-toggle {
+        display: block;
+    }
+
+    /* REGRA 5: Expandir o Conteúdo */
+    .content {
+        margin-left: 0;
+    }
+}
