@@ -1,16 +1,8 @@
-/* ================================================== */
-/*             ESTILOS GERAIS E LAYOUT                */
-/* ================================================== */
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background-color: white; /* Fundo padrão do corpo */
+    background-color: white; /* Fundo branco por defeito */
 }
-
-/* ================================================== */
-/*           ESTILOS PADRÃO (MOBILE-FIRST)            */
-/* Define como o site se parece em ecrãs pequenos por padrão */
-/* ================================================== */
 
 .sidebar {
     height: 100vh;
@@ -20,17 +12,11 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1030; /* Z-index alto para ficar por cima de tudo */
+    z-index: 1000;
     overflow-y: auto;
-    transition: transform 0.3s ease-in-out;
-    /* COMEÇA ESCONDIDA FORA DO ECRÃ */
-    transform: translateX(-100%);
+    transition: transform 0.3s ease-out;
+    transform: translateX(0);
 }
-
-    /* Classe 'active' que o JavaScript vai adicionar/remover para mostrar a sidebar */
-    .sidebar.active {
-        transform: translateX(0);
-    }
 
     .sidebar .logo {
         padding: 20px;
@@ -43,6 +29,11 @@ body {
         display: block;
         text-decoration: none;
     }
+        /* Adicione uma classe .active para o link de login */
+        .sidebar .nav-link.active {
+            background-color: #222;
+            font-weight: bold;
+        }
 
         .sidebar .nav-link:hover {
             background-color: #222;
@@ -51,17 +42,18 @@ body {
 .topbar {
     height: 60px;
     background-color: #000; /* Topbar preta */
-    color: white; /* Texto da topbar branco */
+    color: white;
     padding: 0 20px;
+    margin-left: 250px; /* Para ecrãs grandes */
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: fixed;
     top: 0;
-    left: 0; /* Começa no canto esquerdo */
-    right: 0; /* Estica até ao canto direito */
+    left: 0;
+    right: 0;
     z-index: 999;
-    transition: left 0.3s ease-in-out; /* Transição suave */
+    transition: margin-left 0.3s ease-out;
 }
 
 .menu-toggle {
@@ -71,42 +63,59 @@ body {
     border: none;
     cursor: pointer;
     padding: 10px 15px;
-    display: block; /* O botão hambúrguer é VISÍVEL por padrão em mobile */
 }
 
 .content {
-    margin-left: 0; /* O conteúdo NÃO tem margem em mobile */
-    padding-top: 60px; /* Espaço para a topbar fixa */
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-bottom: 20px;
-    transition: margin-left 0.3s ease-in-out;
+    margin-left: 250px; /* Para ecrãs grandes */
+    padding-top: 60px; /* Espaço para a topbar QUANDO ELA EXISTE */
+    padding-left: 30px;
+    padding-right: 30px;
+    padding-bottom: 30px;
+    min-height: 100vh;
+    transition: margin-left 0.3s ease-out;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+    .content main {
+        flex-grow: 1; /* Faz o conteúdo principal esticar */
+    }
+
+
+/* Regra para quando o utilizador NÃO está autenticado */
+.not-authenticated-layout .content {
+    /* Na página de login, o padding-top pode ser menor porque não há topbar */
+    padding-top: 30px;
 }
 
 
-/* ================================================== */
-/*        REGRAS PARA ECRÃS MAIORES (DESKTOP)         */
-/* Aplica estes estilos APENAS se a largura do ecrã for 769px ou mais */
-/* ================================================== */
-@media (min-width: 769px) {
+/* Estilos para ecrãs menores (ex: tablets e telemóveis) */
+@media (max-width: 768px) {
     .sidebar {
-        /* Em desktop, a sidebar fica visível por padrão */
-        transform: translateX(0);
+        transform: translateX(-250px);
     }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
 
     .topbar {
-        /* Em desktop, a topbar começa depois da sidebar */
-        left: 250px;
-    }
-
-    .content {
-        /* Em desktop, o conteúdo começa depois da sidebar */
-        margin-left: 250px;
+        margin-left: 0;
     }
 
     .menu-toggle {
-        /* Em desktop, o botão hambúrguer é escondido */
-        display: none;
+        display: block; /* Mostra o botão de menu em ecrãs pequenos */
+    }
+
+    .content {
+        margin-left: 0;
+    }
+}
+
+/* Estilos para ecrãs maiores - garante que o menu-toggle está escondido */
+@media (min-width: 769px) {
+    .menu-toggle {
+        display: none; /* Esconde o botão de menu em ecrãs grandes */
     }
 }
