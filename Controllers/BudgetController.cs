@@ -33,55 +33,67 @@ namespace MSPremiumProject.Controllers
         // ================================================================================
         private async Task SetQualidadeArSubmenuState(ulong propostaId, string activeLinkName)
         {
+            // Define o contexto e o link ativo para a sidebar no _Layout.cshtml
             ViewData["CurrentBudgetContext"] = "QualidadeAr";
             ViewData["ActiveSubmenuLink"] = activeLinkName;
 
             var stepsCompleted = new Dictionary<string, bool>();
 
+            // Consulta otimizada que carrega todos os dados necessários de uma só vez para evitar erros.
+            // Usar AsNoTracking() é mais rápido para operações de apenas leitura como esta.
             var proposta = await _context.Proposta
+                                 .AsNoTracking()
+                                 .Include(p => p.Cliente)
                                  .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.DadosGerais)
                                          .ThenInclude(dg => dg.DadosConstrutivo)
                                  .Include(p => p.QualidadeDoAr)
+                                     .ThenInclude(qa => qa.DadosGerais)
+                                         .ThenInclude(dg => dg.Higrometria)
+                                 .Include(p => p.QualidadeDoAr)
+                                     .ThenInclude(qa => qa.DadosGerais)
+                                         .ThenInclude(dg => dg.Sintomatologia)
+                                 .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.Objetivos)
                                  .Include(p => p.QualidadeDoAr)
                                      .ThenInclude(qa => qa.Volumes)
-                                 .Include(p => p.Cliente)
+                                 .Include(p => p.QualidadeDoAr)
+                                     .ThenInclude(qa => qa.OrcamentoAr) // Crucial para os últimos dois passos
                                  .FirstOrDefaultAsync(p => p.PropostaId == propostaId);
 
+            // Se a proposta e a secção de Qualidade do Ar existirem, calcula o estado de cada passo
             if (proposta?.QualidadeDoAr != null)
             {
                 ViewData["QualidadeDoArId"] = proposta.QualidadeDoAr.Id;
                 ViewData["NomeCliente"] = $"{proposta.Cliente?.Nome} {proposta.Cliente?.Apelido}";
 
-                stepsCompleted["ColecaoDados"] = proposta.QualidadeDoAr.DadosGeraisId.HasValue &&
-                                                 proposta.QualidadeDoAr.DadosGerais?.DadosConstrutivo?.Id != 0 &&
-                                                 proposta.QualidadeDoAr.DadosGerais?.Higrometria?.Id != 0 &&
-                                                 proposta.QualidadeDoAr.DadosGerais?.Sintomatologia?.Id != 0;
+                // Passo 1: Coleção de Dados
+                // Considerado completo se a entidade 'DadosGerais' e todas as suas sub-entidades existirem.
+                stepsCompleted["ColecaoDados"] = proposta.QualidadeDoAr.DadosGerais != null &&
+                                                 proposta.QualidadeDoAr.DadosGerais.DadosConstrutivo != null &&
+                                                 proposta.QualidadeDoAr.DadosGerais.Higrometria != null &&
+                                                 proposta.QualidadeDoAr.DadosGerais.Sintomatologia != null;
 
-                // Lógica de conclusão de Objetivos: considerada completa se pelo menos um tratamento for selecionado
-                stepsCompleted["Objetivos"] = false; // Valor padrão
-                if (proposta.QualidadeDoAr.Objetivos != null)
-                {
-                    stepsCompleted["Objetivos"] = proposta.QualidadeDoAr.Objetivos.IsolamentoExternoSATE ||
-                                                  proposta.QualidadeDoAr.Objetivos.IsolamentoInteriorPladur ||
-                                                  proposta.QualidadeDoAr.Objetivos.InjeccaoCamaraArPoliuretano ||
-                                                  proposta.QualidadeDoAr.Objetivos.TrituracaoCorticaTriturada ||
-                                                  proposta.QualidadeDoAr.Objetivos.AplicacaoTintaTermica ||
-                                                  proposta.QualidadeDoAr.Objetivos.ImpermeabilizacaoFachadas ||
-                                                  proposta.QualidadeDoAr.Objetivos.TubagemParedesInfiltracao ||
-                                                  proposta.QualidadeDoAr.Objetivos.InjeccaoParedesAccaoCapilar ||
-                                                  proposta.QualidadeDoAr.Objetivos.EvacuacaoHumidadeExcesso;
-                }
+                // Passo 2: Objetivos
+                // Considerado completo se a entidade 'Objetivos' estiver associada.
+                stepsCompleted["Objetivos"] = proposta.QualidadeDoAr.Objetivos != null;
 
+                // Passo 3: Volumes
+                // Considerado completo se existirem registos de 'Volume' associados.
                 stepsCompleted["Volumes"] = proposta.QualidadeDoAr.Volumes != null && proposta.QualidadeDoAr.Volumes.Any();
-                // Ou stepsCompleted["Volumes"] = proposta.QualidadeDoAr.VolumesId.HasValue; se for uma entidade única
 
-                stepsCompleted["DetalheOrcamento"] = false;
-                stepsCompleted["ResumoOrcamento"] = false;
+                // Passo 4: Detalhe do Orçamento
+                // Considerado completo se a entidade 'OrcamentoAr' tiver sido criada e associada.
+                stepsCompleted["DetalheOrcamento"] = proposta.QualidadeDoAr.OrcamentoAr != null;
+
+                // Passo 5: Resumo do Orçamento
+                // Considerado completo se 'OrcamentoAr' existir E a sua flag 'ResumoConcluido' for verdadeira.
+                // O operador '?? false' trata o caso em que 'OrcamentoAr' pode ser nulo.
+                stepsCompleted["ResumoOrcamento"] = proposta.QualidadeDoAr.OrcamentoAr?.ResumoConcluido ?? false;
             }
             else
             {
+                // Se a proposta ou a secção de qualidade do ar não for encontrada, todos os passos ficam como não concluídos.
                 ViewData["QualidadeDoArId"] = (ulong)0;
                 ViewData["NomeCliente"] = "Cliente Não Encontrado";
                 stepsCompleted["ColecaoDados"] = false;
@@ -91,6 +103,7 @@ namespace MSPremiumProject.Controllers
                 stepsCompleted["ResumoOrcamento"] = false;
             }
 
+            // Envia o dicionário com o estado de todos os passos para a View.
             ViewData["StepsCompleted"] = stepsCompleted;
         }
 
