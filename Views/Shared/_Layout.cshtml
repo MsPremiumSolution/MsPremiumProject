@@ -1,16 +1,15 @@
 ﻿@using Microsoft.AspNetCore.Http;
-@using MSPremiumProject.ViewModels; @* Necessário para o ViewModel na sidebar *@
+@using MSPremiumProject.ViewModels;
 @{
-    // ESTE É O BLOCO DE CÓDIGO CORRIGIDO. DEVE ESTAR NO TOPO DO FICHEIRO.
+    // Estas variáveis e funções são declaradas aqui para terem escopo em toda a View.
     var inQualidadeArContext = ViewData["CurrentBudgetContext"] as string == "QualidadeAr";
     var stepsCompleted = ViewData["StepsCompleted"] as Dictionary<string, bool> ?? new Dictionary<string, bool>();
 
-    // Usar Func<T, TResult> para definir helpers em Razor views
+    // Funções auxiliares para legibilidade
     Func<string, bool> IsStepCompleted = (stepName) => stepsCompleted.GetValueOrDefault(stepName);
     string activeSubmenuLinkName = ViewData["ActiveSubmenuLink"] as string ?? "";
     Func<string, bool> IsActiveLink = (actionName) => activeSubmenuLinkName == actionName;
 
-    // currentQualidadeDoArId pode ser 0 se ainda não estiver num contexto de QA
     ulong currentQualidadeDoArId = ViewData["QualidadeDoArId"] is ulong ? (ulong)ViewData["QualidadeDoArId"] : 0;
 }
 
@@ -25,11 +24,94 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
 
     <style>
-        /* Estilo para o item de menu principal quando o submenu está ativo */
+        /* ----------------------------------------- */
+        /* ESTILOS PADRÃO (MOBILE-FIRST) */
+        /* ----------------------------------------- */
+        body {
+            /* Permite o layout flex para a sidebar e o content-wrapper */
+        }
+
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #007bff; /* Cor da sua sidebar */
+            color: white;
+            padding-top: 1rem;
+            z-index: 1030; /* Acima da navbar do Bootstrap */
+            transform: translateX(-100%); /* Começa escondida fora do ecrã */
+            transition: transform 0.3s ease-in-out;
+        }
+
+            .sidebar.active {
+                transform: translateX(0); /* Mostra a sidebar */
+            }
+
+        .content-wrapper {
+            width: 100%;
+            flex-grow: 1;
+            transition: margin-left 0.3s ease-in-out;
+            margin-left: 0; /* Sem margem em mobile */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            background-color: white;
+            border-bottom: 1px solid #dee2e6;
+            color: #212529;
+            height: 56px;
+        }
+
+            .topbar .btn-link {
+                color: #212529;
+            }
+
+            .topbar .text-white {
+                color: #212529 !important;
+            }
+
+        main {
+            flex-grow: 1; /* Faz o conteúdo principal ocupar o espaço vertical disponível */
+        }
+
+        #sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1029;
+            display: none; /* Começa escondido */
+        }
+
+
+        /* ----------------------------------------- */
+        /* ESTILOS PARA DESKTOP (Ecrãs maiores que 992px) */
+        /* ----------------------------------------- */
+        @@media (min-width: 992px) {
+            .sidebar {
+                transform: translateX(0); /* Sidebar sempre visível em desktop */
+            }
+            /* Esconde o botão hambúrguer em desktop, pois a sidebar é sempre visível */
+            #menuToggleBtn {
+                display: none;
+            }
+
+            .content-wrapper {
+                margin-left: 250px; /* Adiciona a margem para a sidebar visível */
+            }
+        }
+
+        /* Estilos de submenu (não precisam de ser alterados) */
         .nav-link.has-active-submenu {
-            background-color: #0056b3; /* Cor de destaque */
+            background-color: #0056b3;
             border-left: 4px solid #ffc107;
-            padding-left: calc(0.75rem - 4px); /* Ajusta o padding para alinhar o texto */
+            padding-left: calc(0.75rem - 4px);
         }
 
         .submenu {
@@ -58,54 +140,26 @@
             transition: background-color 0.2s, border-color 0.2s;
         }
 
-        /* Cor do círculo quando o link está ATIVO (página atual) */
         .submenu a.nav-link.active .submenu-item-circle {
-            background-color: #ffc107; /* Laranja preenchido */
-            border-color: #ffc107; /* Borda laranja */
+            background-color: #ffc107;
+            border-color: #ffc107;
         }
-        /* Estilo do texto do link ativo */
+
         .submenu a.nav-link.active {
             color: #fff !important;
             font-weight: bold;
         }
 
-        /* Estilo para o círculo quando o passo está COMPLETO (mas não é a página atual) */
         .submenu-item-circle.completed {
-            background-color: rgba(255, 255, 255, 0.3); /* Um cinzento claro/semi-transparente preenchido */
-            border-color: rgba(255, 255, 255, 0.5); /* Borda um pouco mais escura */
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
-        /* Prioridade para o estado 'active' sobre 'completed' */
         .submenu a.nav-link.active .submenu-item-circle.completed {
             background-color: #ffc107;
             border-color: #ffc107;
         }
 
-        /* Estilo para empurrar o conteúdo principal para a direita da sidebar */
-        .content {
-            margin-left: 250px; /* Largura da sidebar */
-            padding-top: 56px; /* Ajuste para o topbar fixo */
-            transition: margin-left 0.3s ease;
-        }
-
-        .sidebar.active + .content {
-            margin-left: 0; /* Quando a sidebar estiver recolhida (se tiver essa funcionalidade) */
-        }
-        /* Para o topbar, garantir que a largura é 100% menos a sidebar */
-        // .topbar {
-        //     margin-left: 250px;
-        //     width: calc(100% - 250px);
-        //     position: fixed;
-        //     top: 0;
-        //     right: 0;
-        //     z-index: 999;
-        //     background-color: #007bff; /* Ou a cor do seu topbar */
-        //     color: white;
-        // }
-        /* Ajuste do padding do corpo se o topbar é fixo */
-        body {
-            padding-top: 0;
-        }
     </style>
 </head>
 <body>
@@ -130,33 +184,23 @@
                             <a asp-controller="Budget" asp-action="SelectTreatment" class="btn btn-sm btn-link text-white p-0" title="Alterar tipo de tratamento"><i class="bi bi-x-lg"></i></a>
                         </div>
 
-                        <!-- Coleção de dados -->
-                        <a class="nav-link @(IsActiveLink("ColecaoDados") ? "active" : "")"
-                           asp-controller="Budget" asp-action="ColecaoDados" asp-route-id="@currentQualidadeDoArId">
+                        <a class="nav-link @(IsActiveLink("ColecaoDados") ? "active" : "")" asp-controller="Budget" asp-action="ColecaoDados" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("ColecaoDados") ? "completed" : "")"></span> Coleção de dados
                         </a>
 
-                        <!-- Objetivos -->
-                        <a class="nav-link @(IsActiveLink("Objetivos") ? "active" : "")"
-                           asp-controller="Budget" asp-action="Objetivos" asp-route-id="@currentQualidadeDoArId">
+                        <a class="nav-link @(IsActiveLink("Objetivos") ? "active" : "")" asp-controller="Budget" asp-action="Objetivos" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("Objetivos") ? "completed" : "")"></span> Objetivos
                         </a>
 
-                        <!-- Volumes -->
-                        <a class="nav-link @(IsActiveLink("Volumes") ? "active" : "")"
-                           asp-controller="Budget" asp-action="Volumes" asp-route-id="@currentQualidadeDoArId">
+                        <a class="nav-link @(IsActiveLink("Volumes") ? "active" : "")" asp-controller="Budget" asp-action="Volumes" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("Volumes") ? "completed" : "")"></span> Volumes
                         </a>
 
-                        <!-- Detalhe do orçamento -->
-                        <a class="nav-link @(IsActiveLink("DetalheOrcamento") ? "active" : "")"
-                           asp-controller="Budget" asp-action="DetalheOrcamento" asp-route-id="@currentQualidadeDoArId">
+                        <a class="nav-link @(IsActiveLink("DetalheOrcamento") ? "active" : "")" asp-controller="Budget" asp-action="DetalheOrcamento" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("DetalheOrcamento") ? "completed" : "")"></span> Detalhe do orçamento
                         </a>
 
-                        <!-- Resumo do orçamento -->
-                        <a class="nav-link @(IsActiveLink("ResumoOrcamento") ? "active" : "")"
-                           asp-controller="Budget" asp-action="ResumoOrcamento" asp-route-id="@currentQualidadeDoArId">
+                        <a class="nav-link @(IsActiveLink("ResumoOrcamento") ? "active" : "")" asp-controller="Budget" asp-action="ResumoOrcamento" asp-route-id="@currentQualidadeDoArId">
                             <span class="submenu-item-circle @(IsStepCompleted("ResumoOrcamento") ? "completed" : "")"></span> Resumo do orçamento
                         </a>
                     </div>
@@ -177,55 +221,75 @@
         </div>
     </div>
 
-    <!-- Topbar (código original) -->
-    <div class="topbar d-flex align-items-center p-2">
-        <button class="menu-toggle btn btn-link text-white me-auto" id="menuToggleBtn" type="button" title="Alternar menu">
-            <i class="bi bi-list" style="font-size: 1.5rem;"></i>
-        </button>
+    <!-- Overlay para fechar o menu mobile ao clicar fora -->
+    <div id="sidebar-overlay"></div>
 
-        @if (User.Identity != null && User.Identity.IsAuthenticated)
-        {
-            <span class="me-3 text-white">Olá, <strong>@User.FindFirst("FullName")?.Value</strong></span>
-            <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="d-inline">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-outline-light btn-sm" title="Sair">
-                    <i class="bi bi-box-arrow-right"></i> Sair
+    <!-- Main Content Wrapper (à direita da sidebar) -->
+    <div class="content-wrapper">
+        <header>
+            <!-- Topbar (navbar principal ou barra de info do utilizador) -->
+            <div class="topbar d-flex align-items-center p-2">
+                <button class="menu-toggle btn btn-link me-auto" id="menuToggleBtn" type="button" title="Alternar menu">
+                    <i class="bi bi-list" style="font-size: 1.5rem;"></i>
                 </button>
-            </form>
-        }
-        else
-        {
-            <span> </span>
-        }
-    </div>
 
-    <!-- Main Content -->
-    <div class="content">
-        <main role="main" class="pb-3">
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <span class="me-3 text-dark">Olá, <strong>@User.FindFirst("FullName")?.Value</strong></span>
+                    <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-secondary btn-sm" title="Sair">
+                            <i class="bi bi-box-arrow-right"></i> Sair
+                        </button>
+                    </form>
+                }
+            </div>
+        </header>
+
+        <main role="main" class="p-3">
             @RenderBody()
         </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            © 2024 - MSPremiumProject - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
+        <footer class="border-top footer text-muted mt-auto">
+            <div class="container-fluid">
+                © 2024 - MSPremiumProject - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </div>
+        </footer>
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    @* Scripts para os menus *@
+    @* Scripts para o menu responsivo *@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Script do menu principal (hambúrguer)
             const menuToggleBtn = document.getElementById('menuToggleBtn');
             const sidebar = document.querySelector('.sidebar');
-            if (menuToggleBtn && sidebar) {
-                menuToggleBtn.addEventListener('click', function () {
-                    sidebar.classList.toggle('active');
+            const overlay = document.getElementById('sidebar-overlay');
+            const contentWrapper = document.querySelector('.content-wrapper');
+
+            function openSidebar() {
+                sidebar.classList.add('active');
+                overlay.style.display = 'block';
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                overlay.style.display = 'none';
+            }
+
+            if (menuToggleBtn && sidebar && overlay) {
+                menuToggleBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (sidebar.classList.contains('active')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
                 });
+
+                overlay.addEventListener('click', closeSidebar);
             }
         });
     </script>
