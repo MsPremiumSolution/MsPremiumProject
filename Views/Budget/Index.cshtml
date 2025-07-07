@@ -6,92 +6,80 @@
 }
 
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
         <div>
-            <h1 class="mb-1">@ViewData["Title"]</h1>
+            <h1>@ViewData["Title"]</h1>
             <p class="text-muted">Passo 1 de X: Escolha o cliente para o qual deseja criar um novo orçamento.</p>
         </div>
-        <a asp-controller="Client" asp-action="Create" class="btn btn-success">
-            <i class="bi bi-person-plus-fill me-2"></i> Adicionar Novo Cliente
+        <a asp-controller="Client" asp-action="Create" class="btn btn-lg btn-success">
+            <i class="bi bi-person-plus-fill"></i> Adicionar Novo Cliente
         </a>
     </div>
 
-    <!-- Adiciona um formulário de pesquisa -->
-    <form asp-action="Index" method="get" class="mb-4">
-        <div class="input-group">
-            <input type="text" name="searchTerm" class="form-control" placeholder="Pesquisar por nome ou apelido..." value="@ViewData["CurrentFilter"]" />
-            <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i> Pesquisar</button>
-            <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Limpar</a>
-        </div>
-    </form>
+    <!-- Formulário de Pesquisa Dinâmica -->
+    <div class="mb-3">
+        <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Pesquisar por nome ou apelido..." autofocus>
+    </div>
 
-    @* Mensagens TempData *@
-    @if (TempData["MensagemSucesso"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["MensagemSucesso"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-    @if (TempData["MensagemErro"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["MensagemErro"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    @if (!Model.Any())
-    {
-        <div class="alert alert-info text-center" role="alert">
-            Nenhum cliente encontrado. <a asp-action="Create" asp-controller="Client" class="alert-link">Adicione o primeiro!</a>
-        </div>
-    }
-    else
-    {
-        <div class="card shadow-sm rounded-3">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0 align-middle">
-                        <thead class="table-light">
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="clientTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome Completo</th>
+                            <th>Email</th>
+                            <th>Telefone</th>
+                            <th>Localidade</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cliente in Model)
+                        {
                             <tr>
-                                <th>Nome Completo</th>
-                                <th>Email</th>
-                                <th>Telefone</th>
-                                <th>Localidade</th>
-                                <th class="text-end" style="width: 20%;">Ação</th>
+                                <td>@cliente.Nome @cliente.Apelido</td>
+                                <td><a href="mailto:@cliente.Email">@cliente.Email</a></td>
+                                <td>@cliente.Telefone1</td>
+                                <td>@(cliente.LocalidadeNavigation?.Regiao)</td>
+                                <td class="text-end">
+                                    <a asp-controller="Budget" asp-action="IniciarOrcamento" asp-route-clienteId="@cliente.ClienteId" class="btn btn-primary">
+                                        <i class="bi bi-file-earmark-plus"></i> Iniciar Orçamento
+                                    </a>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td><strong>@item.Nome @item.Apelido</strong></td>
-                                    <td>@Html.DisplayFor(modelItem => item.Email)</td>
-                                    <td>@Html.DisplayFor(modelItem => item.Telefone1)</td>
-                                    <td>
-                                        @(item.LocalidadeNavigation != null ? Html.DisplayFor(modelItem => item.LocalidadeNavigation.Regiao) : "N/A")
-                                    </td>
-                                    <td class="text-end">
-                                        <!-- ================== BOTÃO PRINCIPAL ================== -->
-                                        <!-- Este botão chama a ação IniciarOrcamento no BudgetController -->
-                                        <a asp-controller="Budget" asp-action="IniciarOrcamento" asp-route-clienteId="@item.ClienteId" class="btn btn-primary">
-                                            <i class="bi bi-file-earmark-plus-fill me-2"></i> Iniciar Orçamento
-                                        </a>
-                                        <!-- ====================================================== -->
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
-    }
+    </div>
 
     <div class="mt-4">
-        <a asp-action="OrçamentosEmCurso" class="btn btn-outline-secondary">
+        <a asp-controller="Budget" asp-action="OrçamentosEmCurso" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Voltar para Orçamentos em Curso
         </a>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // A função é chamada sempre que o utilizador escreve ou apaga no campo de pesquisa
+            $("#searchInput").on("keyup", function () {
+                // Obtém o valor do campo de pesquisa e converte para minúsculas para uma pesquisa case-insensitive
+                var value = $(this).val().toLowerCase();
+
+                // Percorre cada linha (<tr>) dentro do corpo (<tbody>) da tabela
+                $("#clientTable tbody tr").filter(function () {
+                    // $(this) refere-se à linha (<tr>) atual
+                    // .text().toLowerCase() obtém todo o texto da linha e converte para minúsculas
+                    // .indexOf(value) > -1 verifica se o texto da pesquisa existe em algum lugar no texto da linha
+
+                    // .toggle() mostra a linha se a condição for verdadeira, e esconde se for falsa.
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+        });
+    </script>
+}
