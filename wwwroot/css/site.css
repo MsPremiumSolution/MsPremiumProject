@@ -1,7 +1,7 @@
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    transition: margin-left 0.3s ease-out;
+    transition: margin-left 0.3s ease-out; /* Esta linha pode ser removida se não for usada */
 }
 
 .sidebar {
@@ -35,7 +35,7 @@ body {
         }
 
 .topbar {
-    height: 60px;
+    height: 60px; /* ALTURA DA SUA TOPBAR */
     background-color: #000;
     color: white;
     padding: 0 20px;
@@ -52,7 +52,6 @@ body {
 }
 
 .menu-toggle {
-    /* display: none;  Removido daqui, será controlado pela media query abaixo */
     font-size: 24px;
     color: white;
     background: none;
@@ -63,10 +62,16 @@ body {
 
 .content {
     margin-left: 250px; /* Para ecrãs grandes */
-    padding: 80px 30px 30px 30px;
+    /*
+        CORREÇÃO AQUI:
+        O padding-top deve ser igual à altura da topbar para empurrar o conteúdo para baixo.
+        O resto do padding pode ser o que você preferir.
+    */
+    padding: 60px 30px 30px 30px;
     background-color: white;
-    min-height: calc(100vh - 60px);
+    min-height: 100vh; /* Garante que o content preenche a altura */
     transition: margin-left 0.3s ease-out;
+    box-sizing: border-box; /* Boa prática para incluir padding/border no cálculo da altura/largura */
 }
 
 /* Estilos para ecrãs menores (ex: tablets e telemóveis) */
@@ -93,7 +98,7 @@ body {
 }
 
 /* Estilos para ecrãs maiores - garante que o menu-toggle está escondido */
-@media (min-width: 769px) { /* O oposto da media query acima */
+@media (min-width: 769px) {
     .menu-toggle {
         display: none; /* Esconde o botão de menu em ecrãs grandes */
     }
