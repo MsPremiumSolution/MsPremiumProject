@@ -24,19 +24,22 @@ body {
     }
 
     .sidebar .nav-link {
-        color: white;
+        color: #adb5bd; /* Cor cinza-claro para links normais */
         padding: 12px 20px;
         display: block;
         text-decoration: none;
+        transition: all 0.2s ease-in-out;
     }
-        /* Adicione uma classe .active para o link de login */
+        /* Estilo para link ATIVO (texto branco e mais forte) */
         .sidebar .nav-link.active {
             background-color: #222;
+            color: #fff; /* Garante que o texto fica branco */
             font-weight: bold;
         }
 
         .sidebar .nav-link:hover {
             background-color: #222;
+            color: #fff; /* Texto branco no hover */
         }
 
 .topbar {
@@ -119,3 +122,47 @@ body {
         display: none; /* Esconde o botão de menu em ecrãs grandes */
     }
 }
+
+
+/* ======================================= */
+/* ESTILOS PARA O SUBMENU DE QUALIDADE DO AR */
+/* ======================================= */
+
+.submenu {
+    padding-left: 20px; /* Indentação para o submenu */
+    background-color: #0d0d0d; /* Fundo ligeiramente diferente para o submenu */
+    padding-bottom: 10px;
+}
+
+    .submenu .nav-link {
+        font-size: 0.9rem; /* Texto um pouco menor no submenu */
+        padding: 8px 20px;
+    }
+
+/* Estilo base para a bolinha do submenu */
+.submenu-item-circle {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 12px;
+    vertical-align: middle;
+    transition: all 0.2s ease-in-out;
+    border: 2px solid #6c757d; /* Cor cinza para a borda padrão */
+    background-color: transparent;
+}
+
+    /* Estilo para a bolinha de um passo CONCLUÍDO (mas não ativo) */
+    .submenu-item-circle.completed {
+        background-color: #28a745; /* Verde para concluído */
+        border-color: #28a745;
+    }
+
+    /* Estilo para a bolinha do passo ATIVO */
+    /* Este estilo vai sobrepor o .completed se um passo estiver concluído e for o ativo */
+    .submenu-item-circle.active-step {
+        background-color: #D4AF37; /* Cor dourada/amarela, como no exemplo */
+        border-color: #D4AF37;
+        transform: scale(1.1); /* Efeito opcional para destacar ainda mais */
+        box-shadow: 0 0 8px rgba(212, 175, 55, 0.7); /* Brilho opcional */
+    }

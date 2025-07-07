@@ -55,19 +55,19 @@
                         </div>
 
                         <a class="nav-link @(IsActiveLink("ColecaoDados") ? "active" : "")" asp-controller="Budget" asp-action="ColecaoDados" asp-route-id="@currentQualidadeDoArId">
-                            <span class="submenu-item-circle @(IsStepCompleted("ColecaoDados") ? "completed" : "")"></span> Coleção de dados
+                            <span class="submenu-item-circle @(IsStepCompleted("ColecaoDados") ? "completed" : "") @(IsActiveLink("ColecaoDados") ? "active-step" : "")"></span> Coleção de dados
                         </a>
                         <a class="nav-link @(IsActiveLink("Objetivos") ? "active" : "")" asp-controller="Budget" asp-action="Objetivos" asp-route-id="@currentQualidadeDoArId">
-                            <span class="submenu-item-circle @(IsStepCompleted("Objetivos") ? "completed" : "")"></span> Objetivos
+                            <span class="submenu-item-circle @(IsStepCompleted("Objetivos") ? "completed" : "") @(IsActiveLink("Objetivos") ? "active-step" : "")"></span> Objetivos
                         </a>
                         <a class="nav-link @(IsActiveLink("Volumes") ? "active" : "")" asp-controller="Budget" asp-action="Volumes" asp-route-id="@currentQualidadeDoArId">
-                            <span class="submenu-item-circle @(IsStepCompleted("Volumes") ? "completed" : "")"></span> Volumes
+                            <span class="submenu-item-circle @(IsStepCompleted("Volumes") ? "completed" : "") @(IsActiveLink("Volumes") ? "active-step" : "")"></span> Volumes
                         </a>
                         <a class="nav-link @(IsActiveLink("DetalheOrcamento") ? "active" : "")" asp-controller="Budget" asp-action="DetalheOrcamento" asp-route-id="@currentQualidadeDoArId">
-                            <span class="submenu-item-circle @(IsStepCompleted("DetalheOrcamento") ? "completed" : "")"></span> Detalhe do orçamento
+                            <span class="submenu-item-circle @(IsStepCompleted("DetalheOrcamento") ? "completed" : "") @(IsActiveLink("DetalheOrcamento") ? "active-step" : "")"></span> Detalhe do orçamento
                         </a>
                         <a class="nav-link @(IsActiveLink("ResumoOrcamento") ? "active" : "")" asp-controller="Budget" asp-action="ResumoOrcamento" asp-route-id="@currentQualidadeDoArId">
-                            <span class="submenu-item-circle @(IsStepCompleted("ResumoOrcamento") ? "completed" : "")"></span> Resumo do orçamento
+                            <span class="submenu-item-circle @(IsStepCompleted("ResumoOrcamento") ? "completed" : "") @(IsActiveLink("ResumoOrcamento") ? "active-step" : "")"></span> Resumo do orçamento
                         </a>
                     </div>
                 }
