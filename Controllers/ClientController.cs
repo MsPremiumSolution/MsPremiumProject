@@ -46,27 +46,35 @@ namespace MSPremiumProject.Controllers
             }
         }
 
-        // GET: Client/Details/5 - CORRIGIDO
+        // GET: Clientes/Details/5 - CORRIGIDO e COMPLETO
         public async Task<IActionResult> Details(ulong? id)
         {
             if (id == null || id == 0) return NotFound();
-            _logger.LogInformation("Acedendo a GET Client/Details para ID: {ClienteId}", id);
+
+            _logger.LogInformation("Acedendo a GET Clientes/Details para ID: {ClienteId}", id);
+
             try
             {
+                // A consulta agora inclui a navegação para Proposta
                 var cliente = await _context.Clientes
                     .Include(c => c.LocalidadeNavigation)
                         .ThenInclude(l => l.Pais)
+                    .Include(c => c.Proposta) // <-- ADIÇÃO NECESSÁRIA AQUI
                     .FirstOrDefaultAsync(m => m.ClienteId == id);
+
                 if (cliente == null)
                 {
-                    _logger.LogWarning("GET Client/Details - Cliente com ID: {ClienteId} não encontrado.", id);
+                    _logger.LogWarning("GET Clientes/Details - Cliente com ID: {ClienteId} não encontrado.", id);
                     return NotFound();
                 }
+
                 return View(cliente);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro ao buscar detalhes do cliente ID: {ClienteId}", id);
+                // Opcional: Adicionar uma mensagem de erro para o utilizador
+                TempData["ErrorMessage"] = "Ocorreu um erro ao carregar os detalhes do cliente. Tente novamente.";
                 return RedirectToAction(nameof(Index));
             }
         }
