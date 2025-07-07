@@ -31,63 +31,63 @@
             /* Permite o layout flex para a sidebar e o content-wrapper */
         }
 
-        .sidebar {
-            width: 250px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background-color: #007bff; /* Cor da sua sidebar */
-            color: white;
-            padding-top: 1rem;
-            z-index: 1030; /* Acima da navbar do Bootstrap */
-            transform: translateX(-100%); /* Começa escondida fora do ecrã */
-            transition: transform 0.3s ease-in-out;
-        }
+        // .sidebar {
+        //     width: 250px;
+        //     height: 100vh;
+        //     position: fixed;
+        //     top: 0;
+        //     left: 0;
+        //     background-color: #007bff; /* Cor da sua sidebar */
+        //     color: white;
+        //     padding-top: 1rem;
+        //     z-index: 1030; /* Acima da navbar do Bootstrap */
+        //     transform: translateX(-100%); /* Começa escondida fora do ecrã */
+        //     transition: transform 0.3s ease-in-out;
+        // }
 
-            .sidebar.active {
-                transform: translateX(0); /* Mostra a sidebar */
-            }
+        //     .sidebar.active {
+        //         transform: translateX(0); /* Mostra a sidebar */
+        //     }
 
-        .content-wrapper {
-            width: 100%;
-            flex-grow: 1;
-            transition: margin-left 0.3s ease-in-out;
-            margin-left: 0; /* Sem margem em mobile */
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+        // .content-wrapper {
+        //     width: 100%;
+        //     flex-grow: 1;
+        //     transition: margin-left 0.3s ease-in-out;
+        //     margin-left: 0; /* Sem margem em mobile */
+        //     display: flex;
+        //     flex-direction: column;
+        //     min-height: 100vh;
+        // }
 
-        .topbar {
-            background-color: white;
-            border-bottom: 1px solid #dee2e6;
-            color: #212529;
-            height: 56px;
-        }
+        // .topbar {
+        //     background-color: white;
+        //     border-bottom: 1px solid #dee2e6;
+        //     color: #212529;
+        //     height: 56px;
+        // }
 
-            .topbar .btn-link {
-                color: #212529;
-            }
+        //     .topbar .btn-link {
+        //         color: #212529;
+        //     }
 
-            .topbar .text-white {
-                color: #212529 !important;
-            }
+        //     .topbar .text-white {
+        //         color: #212529 !important;
+        //     }
 
-        main {
-            flex-grow: 1; /* Faz o conteúdo principal ocupar o espaço vertical disponível */
-        }
+        // main {
+        //     flex-grow: 1; /* Faz o conteúdo principal ocupar o espaço vertical disponível */
+        // }
 
-        #sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1029;
-            display: none; /* Começa escondido */
-        }
+        // #sidebar-overlay {
+        //     position: fixed;
+        //     top: 0;
+        //     left: 0;
+        //     width: 100%;
+        //     height: 100%;
+        //     background-color: rgba(0,0,0,0.5);
+        //     z-index: 1029;
+        //     display: none; /* Começa escondido */
+        // }
 
 
         /* ----------------------------------------- */
