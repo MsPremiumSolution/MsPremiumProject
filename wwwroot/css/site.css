@@ -1,7 +1,7 @@
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    /* A transição na margem do body não é necessária se o content a tiver */
+    transition: margin-left 0.3s ease-out;
 }
 
 .sidebar {
@@ -35,9 +35,9 @@ body {
         }
 
 .topbar {
-    height: 60px; /* ALTURA DA SUA TOPBAR */
+    height: 60px;
     background-color: #000; /* Topbar preta */
-    color: white; /* Cor de texto padrão da topbar será branca */
+    color: white; /* <<<<<<< CORREÇÃO AQUI: Garante que o texto padrão dentro da topbar seja branco */
     padding: 0 20px;
     margin-left: 250px; /* Para ecrãs grandes */
     display: flex;
@@ -62,13 +62,6 @@ body {
 
 .content {
     margin-left: 250px; /* Para ecrãs grandes */
-    /* =================================================================== */
-    /*                         CORREÇÃO PRINCIPAL                        */
-    /* =================================================================== */
-    /*
-     * O padding-top empurra o conteúdo para baixo da topbar fixa.
-     * Deve ser igual à altura da topbar.
-    */
     padding-top: 60px;
     padding-left: 30px;
     padding-right: 30px;
