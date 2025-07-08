@@ -5,7 +5,6 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!-- Adicione este bloco de estilo NO TOPO da sua view para estilizar os separadores (tabs). -->
 @section Styles {
     <style>
         .nav-tabs .nav-link {
@@ -44,35 +43,20 @@
         <input type="hidden" asp-for="PropostaId" />
         <input type="hidden" asp-for="QualidadeDoArId" />
 
-        <!-- CABEÇALHO -->
         <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary-subtle">
             <h1 class="mb-0">Coleção de Dados</h1>
         </div>
 
-        <!-- ALERTAS -->
         @if (TempData["MensagemSucesso"] != null) { <div class="alert alert-success">@TempData["MensagemSucesso"]</div> }
         @if (TempData["MensagemErro"] != null) { <div class="alert alert-danger">@TempData["MensagemErro"]</div> }
         <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert" style="@(ViewData.ModelState.IsValid ? "display:none;" : "")"></div>
 
-        <!-- CARD PRINCIPAL COM ABAS (Removido bg-white e style) -->
         <div class="card">
             <div class="card-header p-0">
                 <ul class="nav nav-tabs nav-fill" id="colecaoDadosTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="construtivos-tab" data-bs-toggle="tab" data-bs-target="#construtivos-pane" type="button" role="tab">
-                            <i class="bi bi-bricks me-2"></i>Dados Construtivos
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="higrometria-tab" data-bs-toggle="tab" data-bs-target="#higrometria-pane" type="button" role="tab">
-                            <i class="bi bi-moisture me-2"></i>Higrometria
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="sintomatologia-tab" data-bs-toggle="tab" data-bs-target="#sintomatologia-pane" type="button" role="tab">
-                            <i class="bi bi-clipboard2-pulse me-2"></i>Sintomatologia
-                        </button>
-                    </li>
+                    <li class="nav-item" role="presentation"><button class="nav-link active" id="construtivos-tab" data-bs-toggle="tab" data-bs-target="#construtivos-pane" type="button" role="tab"><i class="bi bi-bricks me-2"></i>Dados Construtivos</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="higrometria-tab" data-bs-toggle="tab" data-bs-target="#higrometria-pane" type="button" role="tab"><i class="bi bi-moisture me-2"></i>Higrometria</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="sintomatologia-tab" data-bs-toggle="tab" data-bs-target="#sintomatologia-pane" type="button" role="tab"><i class="bi bi-clipboard2-pulse me-2"></i>Sintomatologia</button></li>
                 </ul>
             </div>
 
@@ -80,7 +64,6 @@
 
                 <!-- ====== ABA 1: DADOS CONSTRUTIVOS ====== -->
                 <div class="tab-pane fade show active p-4 p-lg-5" id="construtivos-pane" role="tabpanel">
-                    <!-- Cada secção está agora organizada com um título e um espaçamento maior (g-4) -->
                     <h3 class="mb-4">Informações Gerais da Habitação</h3>
                     <div class="row g-4">
                         <div class="col-md-4"><label asp-for="DataVisita" class="form-label"></label><input type="date" asp-for="DataVisita" class="form-control" /><span asp-validation-for="DataVisita" class="text-danger small"></span></div>
@@ -107,8 +90,7 @@
                         <div class="col-md-3"><label asp-for="IsolamentoCamara" class="form-label"></label><select asp-for="IsolamentoCamara" class="form-select"><option value="">Selecione</option><option value="Sem isolamento">Sem isolamento</option><option value="Com isolamento">Com isolamento</option></select><span asp-validation-for="IsolamentoCamara" class="text-danger small"></span></div>
                         <div class="col-md-3"><label asp-for="IsolamentoInterno" class="form-label"></label><select asp-for="IsolamentoInterno" class="form-select"><option value="">Selecione</option><option value="Sem isolamento">Sem isolamento</option><option value="Com isolamento">Com isolamento</option></select><span asp-validation-for="IsolamentoInterno" class="text-danger small"></span></div>
                         <div class="col-md-3"><label asp-for="TipoAquecimento" class="form-label"></label><select asp-for="TipoAquecimento" class="form-select"><option value="">Selecione</option><option value="Acumuladores elétricos">Acumuladores elétricos</option><option value="Gás natural">Gás natural</option><option value="Lenha/Pellets">Lenha/Pellets</option><option value="Nenhum">Nenhum</option></select><span asp-validation-for="TipoAquecimento" class="text-danger small"></span></div>
-                         <!-- Convertido para form-switch para consistência -->
-                         <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" asp-for="TratamentoHidrofugacao"><label class="form-check-label" asp-for="TratamentoHidrofugacao">Tratamento de hidrofugação?</label></div></div>
+                         <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" name="TratamentoHidrofugacao" value="true" @(Model.TratamentoHidrofugacao == true ? "checked" : "")><label class="form-check-label" for="TratamentoHidrofugacao">Tratamento de hidrofugação?</label><input type="hidden" name="TratamentoHidrofugacao" value="false" /></div></div>
                     </div>
 
                     <hr class="my-5" />
@@ -117,10 +99,9 @@
                         <div class="col-md-4"><label asp-for="TipoJanelaPrincipal" class="form-label">Tipo</label><select asp-for="TipoJanelaPrincipal" class="form-select" asp-items="Model.TiposJanelaDisponiveis"><option value="">Selecione</option></select><span asp-validation-for="TipoJanelaPrincipal" class="text-danger small"></span></div>
                         <div class="col-md-4"><label asp-for="MaterialJanela" class="form-label"></label><select asp-for="MaterialJanela" class="form-select"><option value="">Selecione</option><option value="Misturado">Misturado</option><option value="Alumínio">Alumínio</option><option value="PVC">PVC</option><option value="Madeira">Madeira</option></select><span asp-validation-for="MaterialJanela" class="text-danger small"></span></div>
                         <div class="col-md-4"><label asp-for="TipoVidro" class="form-label"></label><select asp-for="TipoVidro" class="form-select"><option value="">Selecione</option><option value="Vidro simples">Vidro simples</option><option value="Vidro duplo">Vidro duplo</option><option value="Vidro triplo">Vidro triplo</option></select><span asp-validation-for="TipoVidro" class="text-danger small"></span></div>
-                        <!-- Convertido para form-switch -->
-                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" asp-for="JanelasDuplas"><label class="form-check-label" asp-for="JanelasDuplas">Janelas duplas?</label></div></div>
-                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" asp-for="RPT"><label class="form-check-label" asp-for="RPT">Possui R.P.T.?</label></div></div>
-                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" asp-for="CaixasPersiana"><label class="form-check-label" asp-for="CaixasPersiana">Caixas de persiana?</label></div></div>
+                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" name="JanelasDuplas" value="true" @(Model.JanelasDuplas == true ? "checked" : "")><label class="form-check-label" for="JanelasDuplas">Janelas duplas?</label><input type="hidden" name="JanelasDuplas" value="false" /></div></div>
+                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" name="RPT" value="true" @(Model.RPT == true ? "checked" : "")><label class="form-check-label" for="RPT">Possui R.P.T.?</label><input type="hidden" name="RPT" value="false" /></div></div>
+                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" name="CaixasPersiana" value="true" @(Model.CaixasPersiana == true ? "checked" : "")><label class="form-check-label" for="CaixasPersiana">Caixas de persiana?</label><input type="hidden" name="CaixasPersiana" value="false" /></div></div>
                         <div class="col-md-3"><label asp-for="NumeroUnidadesJanela" class="form-label">Nº unidades</label><input type="number" asp-for="NumeroUnidadesJanela" class="form-control" /><span asp-validation-for="NumeroUnidadesJanela" class="text-danger small"></span></div>
                     </div>
                 </div>
@@ -151,22 +132,20 @@
                 <div class="tab-pane fade p-4 p-lg-5" id="sintomatologia-pane" role="tabpanel">
                     <h3 class="mb-4">Sintomas Observados na Habitação</h3>
                     <div class="row g-4">
-                        <!-- Convertido para form-switch para consistência visual -->
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="Fungos"><label class="form-check-label" asp-for="Fungos">Presença de fungos</label></div></div>
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="Cheiros"><label class="form-check-label" asp-for="Cheiros">Presença de cheiros</label></div></div>
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="MofoEmRoupasArmarios"><label class="form-check-label" asp-for="MofoEmRoupasArmarios">Mofo em roupas/armários</label></div></div>
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="CondensacaoNasJanelas"><label class="form-check-label" asp-for="CondensacaoNasJanelas">Condensação nas janelas</label></div></div>
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="ConsumoExcessivoAquecimento"><label class="form-check-label" asp-for="ConsumoExcessivoAquecimento">Consumo excessivo de aquecimento</label></div></div>
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="Alergias"><label class="form-check-label" asp-for="Alergias">Alergias nos habitantes</label></div></div>
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="ProblemasRespiratorios"><label class="form-check-label" asp-for="ProblemasRespiratorios">Problemas respiratórios</label></div></div>
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="GasRadao"><label class="form-check-label" asp-for="GasRadao">Suspeita de Gás Radão</label></div></div>
-                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="EsporosEmSuperficies"><label class="form-check-label" asp-for="EsporosEmSuperficies">Esporos em superfícies</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="Fungos" value="true" @(Model.Fungos == true ? "checked" : "")><label class="form-check-label" for="Fungos">Presença de fungos</label><input type="hidden" name="Fungos" value="false" /></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="Cheiros" value="true" @(Model.Cheiros == true ? "checked" : "")><label class="form-check-label" for="Cheiros">Presença de cheiros</label><input type="hidden" name="Cheiros" value="false" /></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="MofoEmRoupasArmarios" value="true" @(Model.MofoEmRoupasArmarios == true ? "checked" : "")><label class="form-check-label" for="MofoEmRoupasArmarios">Mofo em roupas/armários</label><input type="hidden" name="MofoEmRoupasArmarios" value="false" /></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="CondensacaoNasJanelas" value="true" @(Model.CondensacaoNasJanelas == true ? "checked" : "")><label class="form-check-label" for="CondensacaoNasJanelas">Condensação nas janelas</label><input type="hidden" name="CondensacaoNasJanelas" value="false" /></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="ConsumoExcessivoAquecimento" value="true" @(Model.ConsumoExcessivoAquecimento == true ? "checked" : "")><label class="form-check-label" for="ConsumoExcessivoAquecimento">Consumo excessivo de aquecimento</label><input type="hidden" name="ConsumoExcessivoAquecimento" value="false" /></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="Alergias" value="true" @(Model.Alergias == true ? "checked" : "")><label class="form-check-label" for="Alergias">Alergias nos habitantes</label><input type="hidden" name="Alergias" value="false" /></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="ProblemasRespiratorios" value="true" @(Model.ProblemasRespiratorios == true ? "checked" : "")><label class="form-check-label" for="ProblemasRespiratorios">Problemas respiratórios</label><input type="hidden" name="ProblemasRespiratorios" value="false" /></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="GasRadao" value="true" @(Model.GasRadao == true ? "checked" : "")><label class="form-check-label" for="GasRadao">Suspeita de Gás Radão</label><input type="hidden" name="GasRadao" value="false" /></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" name="EsporosEmSuperficies" value="true" @(Model.EsporosEmSuperficies == true ? "checked" : "")><label class="form-check-label" for="EsporosEmSuperficies">Esporos em superfícies</label><input type="hidden" name="EsporosEmSuperficies" value="false" /></div></div>
                     </div>
                 </div>
 
             </div>
 
-            <!-- RODAPÉ DO CARD COM O BOTÃO DE AÇÃO -->
             <div class="card-footer text-end p-3">
                 <button type="submit" class="btn btn-primary btn-lg px-5">
                     <i class="bi bi-save me-2"></i>Guardar e Continuar
