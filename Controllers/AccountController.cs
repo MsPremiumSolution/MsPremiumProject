@@ -34,7 +34,7 @@ namespace MSPremiumProject.Controllers
             _logger = logger;
         }
 
-       
+
 
         // GET: /Account/Login
         // ... (código existente) ...
@@ -44,9 +44,9 @@ namespace MSPremiumProject.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                return LocalRedirect(returnUrl ?? Url.Action("Index", "Home")); // Se o user está autenticado redireciona-o
+                return LocalRedirect(returnUrl ?? Url.Action("Index", "Home"));
             }
-            ViewData["ReturnUrl"] = returnUrl; // guarda o url de retorno para usar após o login
+            ViewData["ReturnUrl"] = returnUrl;
             return View("~/Views/Account/Login.cshtml", new LoginViewModel());
         }
 
@@ -76,30 +76,22 @@ namespace MSPremiumProject.Controllers
                     if (BCrypt.Net.BCrypt.Verify(model.Password, user.Pwp))
                     {
                         var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UtilizadorId.ToString()),
-                    new Claim(ClaimTypes.Name, user.Login),
-                    new Claim("FullName", user.Nome ?? string.Empty),
-                    new Claim(ClaimTypes.Role, user.Role?.Nome ?? "DefaultRole")
-                };
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, user.UtilizadorId.ToString()),
+                            new Claim(ClaimTypes.Name, user.Login),
+                            new Claim("FullName", user.Nome ?? string.Empty),
+                            new Claim(ClaimTypes.Role, user.Role?.Nome ?? "DefaultRole")
+                        };
 
                         var claimsIdentity = new ClaimsIdentity(
                             claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                        // --- SUGESTÃO DE MELHORIA APLICADA AQUI ---
                         var authProperties = new AuthenticationProperties
                         {
                             IsPersistent = model.RememberMe,
                             AllowRefresh = true,
-                            // Define a expiração padrão. Será substituída abaixo se "RememberMe" for true.
-                            ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60)
+                            ExpiresUtc = model.RememberMe ? DateTimeOffset.UtcNow.AddDays(7) : DateTimeOffset.UtcNow.AddMinutes(60)
                         };
-
-                        if (model.RememberMe)
-                        {
-                            authProperties.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7);
-                        }
-                        // --- FIM DA SUGESTÃO ---
 
                         await HttpContext.SignInAsync(
                             CookieAuthenticationDefaults.AuthenticationScheme,
@@ -143,8 +135,9 @@ namespace MSPremiumProject.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); // remove o cookie de autenticação
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             _logger.LogInformation("Utilizador deslogado.");
+            HttpContext.Session.Clear(); // Limpa a sessão também
             return RedirectToAction(nameof(Login), "Account");
         }
 

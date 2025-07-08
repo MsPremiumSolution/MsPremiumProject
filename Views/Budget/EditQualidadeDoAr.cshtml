@@ -2,384 +2,175 @@
 
 @{
     ViewData["Title"] = $"Orçamento Qualidade do Ar - {Model.NomeCliente}";
-    Layout = "~/Views/Shared/_Layout.cshtml"; // O Layout irá controlar a sidebar
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container-fluid mt-4">
+<!-- Adicione este bloco de estilo NO TOPO da sua view para estilizar os separadores (tabs). -->
+@section Styles {
+    <style>
+        .nav-tabs .nav-link {
+            color: var(--premium-text-muted);
+            border: none;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            padding: 1rem 1.5rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .nav-tabs .nav-link:hover {
+            border-bottom-color: var(--premium-border-gray);
+            color: var(--premium-text-light);
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--premium-gold);
+            background-color: transparent;
+            border-bottom-color: var(--premium-gold);
+        }
+
+        hr {
+            border-top: 1px solid var(--premium-border-gray);
+        }
+    </style>
+}
+
+<div class="container-fluid">
     <form asp-action="EditQualidadeDoAr" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="PropostaId" />
         <input type="hidden" asp-for="QualidadeDoArId" />
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Coleção de dados</h1>
+        <!-- CABEÇALHO -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary-subtle">
+            <h1 class="mb-0">Coleção de Dados</h1>
         </div>
 
-        @if (TempData["MensagemSucesso"] != null)
-        {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                @TempData["MensagemSucesso"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        }
-        @if (TempData["MensagemErro"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                @TempData["MensagemErro"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        }
+        <!-- ALERTAS -->
+        @if (TempData["MensagemSucesso"] != null) { <div class="alert alert-success">@TempData["MensagemSucesso"]</div> }
+        @if (TempData["MensagemErro"] != null) { <div class="alert alert-danger">@TempData["MensagemErro"]</div> }
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert" style="@(ViewData.ModelState.IsValid ? "display:none;" : "")"></div>
 
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-        <div class="card bg-white" style="border: 1px solid #dee2e6;">
-            <div class="card-header">
-                <!-- ABAS INTERNAS PARA DADOS CONSTRUTIVOS, HIGROMETRIA, SINTOMATOLOGIA -->
-                <ul class="nav nav-tabs card-header-tabs" id="colecaoDadosInternalTab" role="tablist">
-                    <li class="nav-item" role="presentation"><button class="nav-link active" id="dados-construtivos-tab" data-bs-toggle="tab" data-bs-target="#construtivos-pane" type="button" role="tab" aria-controls="construtivos-pane" aria-selected="true">Dados construtivos</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="higrometria-tab" data-bs-toggle="tab" data-bs-target="#higrometria-pane" type="button" role="tab" aria-controls="higrometria-pane" aria-selected="false">Higrometria</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="sintomatologia-tab" data-bs-toggle="tab" data-bs-target="#sintomatologia-pane" type="button" role="tab" aria-controls="sintomatologia-pane" aria-selected="false">Sintomatologia</button></li>
+        <!-- CARD PRINCIPAL COM ABAS (Removido bg-white e style) -->
+        <div class="card">
+            <div class="card-header p-0">
+                <ul class="nav nav-tabs nav-fill" id="colecaoDadosTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="construtivos-tab" data-bs-toggle="tab" data-bs-target="#construtivos-pane" type="button" role="tab">
+                            <i class="bi bi-bricks me-2"></i>Dados Construtivos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="higrometria-tab" data-bs-toggle="tab" data-bs-target="#higrometria-pane" type="button" role="tab">
+                            <i class="bi bi-moisture me-2"></i>Higrometria
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="sintomatologia-tab" data-bs-toggle="tab" data-bs-target="#sintomatologia-pane" type="button" role="tab">
+                            <i class="bi bi-clipboard2-pulse me-2"></i>Sintomatologia
+                        </button>
+                    </li>
                 </ul>
             </div>
 
             <div class="card-body tab-content" id="colecaoDadosTabContent">
 
-                <!-- Aba 1: Dados Construtivos -->
-                <div class="tab-pane fade show active p-4" id="construtivos-pane" role="tabpanel" aria-labelledby="dados-construtivos-tab">
-                    <h5 class="mb-3">Dados construtivos</h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label asp-for="DataVisita" class="form-label">Data</label>
-                            <input type="date" asp-for="DataVisita" class="form-control" />
-                            <span asp-validation-for="DataVisita" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="AnoConstrucao" class="form-label">Ano de construção</label>
-                            <input type="number" asp-for="AnoConstrucao" class="form-control" />
-                            <span asp-validation-for="AnoConstrucao" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="AreaM2" class="form-label">Área (m²)</label>
-                            <input type="number" asp-for="AreaM2" class="form-control" />
-                            <span asp-validation-for="AreaM2" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="NumeroAndares" class="form-label">Nº de andares</label>
-                            <input type="number" asp-for="NumeroAndares" class="form-control" />
-                            <span asp-validation-for="NumeroAndares" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="NumeroHabitantes" class="form-label">Nº de habitantes</label>
-                            <input type="number" asp-for="NumeroHabitantes" class="form-control" />
-                            <span asp-validation-for="NumeroHabitantes" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="Localidade" class="form-label">Localidade</label>
-                            <input type="text" asp-for="Localidade" class="form-control" />
-                            <span asp-validation-for="Localidade" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="Altitude" class="form-label">Altitude (m)</label>
-                            <input type="number" asp-for="Altitude" class="form-control" />
-                            <span asp-validation-for="Altitude" class="text-danger"></span>
-                        </div>
+                <!-- ====== ABA 1: DADOS CONSTRUTIVOS ====== -->
+                <div class="tab-pane fade show active p-4 p-lg-5" id="construtivos-pane" role="tabpanel">
+                    <!-- Cada secção está agora organizada com um título e um espaçamento maior (g-4) -->
+                    <h3 class="mb-4">Informações Gerais da Habitação</h3>
+                    <div class="row g-4">
+                        <div class="col-md-4"><label asp-for="DataVisita" class="form-label"></label><input type="date" asp-for="DataVisita" class="form-control" /><span asp-validation-for="DataVisita" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="AnoConstrucao" class="form-label"></label><input type="number" asp-for="AnoConstrucao" class="form-control" /><span asp-validation-for="AnoConstrucao" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="AreaM2" class="form-label">Área (m²)</label><input type="text" asp-for="AreaM2" class="form-control" /><span asp-validation-for="AreaM2" class="text-danger small"></span></div>
+                        <div class="col-md-3"><label asp-for="NumeroAndares" class="form-label"></label><input type="number" asp-for="NumeroAndares" class="form-control" /><span asp-validation-for="NumeroAndares" class="text-danger small"></span></div>
+                        <div class="col-md-3"><label asp-for="NumeroHabitantes" class="form-label"></label><input type="number" asp-for="NumeroHabitantes" class="form-control" /><span asp-validation-for="NumeroHabitantes" class="text-danger small"></span></div>
+                        <div class="col-md-3"><label asp-for="Localidade" class="form-label"></label><input type="text" asp-for="Localidade" class="form-control" /><span asp-validation-for="Localidade" class="text-danger small"></span></div>
+                        <div class="col-md-3"><label asp-for="Altitude" class="form-label">Altitude (m)</label><input type="number" asp-for="Altitude" class="form-control" /><span asp-validation-for="Altitude" class="text-danger small"></span></div>
+                    </div>
+                    
+                    <hr class="my-5" />
+                    <h3 class="mb-4">Características do Fechamento</h3>
+                    <div class="row g-4">
+                        <div class="col-md-4"><label asp-for="TipoFachada" class="form-label"></label><select asp-for="TipoFachada" class="form-select"><option value="">Selecione</option><option value="Doble hoja con cámara">Doble hoja con cámara</option><option value="Monofolha">Monofolha</option><option value="Outros">Outros</option></select><span asp-validation-for="TipoFachada" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="OrientacaoFachada" class="form-label"></label><select asp-for="OrientacaoFachada" class="form-select"><option value="">Selecione</option><option value="Norte/sul">Norte/sul</option><option value="Este/oeste">Este/oeste</option><option value="Todas">Todas</option></select><span asp-validation-for="OrientacaoFachada" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="CoberturaFachadaPrincipal" class="form-label"></label><select asp-for="CoberturaFachadaPrincipal" class="form-select"><option value="">Selecione</option><option value="Monocapa">Monocapa</option><option value="Ladrilho">Ladrilho</option><option value="Pedra">Pedra</option><option value="Outros">Outros</option></select><span asp-validation-for="CoberturaFachadaPrincipal" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="CoberturaFachadaPosterior" class="form-label"></label><select asp-for="CoberturaFachadaPosterior" class="form-select"><option value="">Selecione</option><option value="Fachada ventilada">Fachada ventilada</option><option value="Reboco">Reboco</option><option value="Outros">Outros</option></select><span asp-validation-for="CoberturaFachadaPosterior" class="text-danger small"></span></div>
+                    </div>
+                    
+                    <hr class="my-5" />
+                    <h3 class="mb-4">Isolamento e Aquecimento</h3>
+                     <div class="row g-4">
+                        <div class="col-md-3"><label asp-for="IsolamentoCamara" class="form-label"></label><select asp-for="IsolamentoCamara" class="form-select"><option value="">Selecione</option><option value="Sem isolamento">Sem isolamento</option><option value="Com isolamento">Com isolamento</option></select><span asp-validation-for="IsolamentoCamara" class="text-danger small"></span></div>
+                        <div class="col-md-3"><label asp-for="IsolamentoInterno" class="form-label"></label><select asp-for="IsolamentoInterno" class="form-select"><option value="">Selecione</option><option value="Sem isolamento">Sem isolamento</option><option value="Com isolamento">Com isolamento</option></select><span asp-validation-for="IsolamentoInterno" class="text-danger small"></span></div>
+                        <div class="col-md-3"><label asp-for="TipoAquecimento" class="form-label"></label><select asp-for="TipoAquecimento" class="form-select"><option value="">Selecione</option><option value="Acumuladores elétricos">Acumuladores elétricos</option><option value="Gás natural">Gás natural</option><option value="Lenha/Pellets">Lenha/Pellets</option><option value="Nenhum">Nenhum</option></select><span asp-validation-for="TipoAquecimento" class="text-danger small"></span></div>
+                         <!-- Convertido para form-switch para consistência -->
+                         <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" asp-for="TratamentoHidrofugacao"><label class="form-check-label" asp-for="TratamentoHidrofugacao">Tratamento de hidrofugação?</label></div></div>
                     </div>
 
-                    <h5 class="mt-4 mb-3">Fechamento</h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label asp-for="TipoFachada" class="form-label">Tipo de fachada</label>
-                            <select asp-for="TipoFachada" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Doble hoja con cámara">Doble hoja con cámara</option>
-                                <option value="Monofolha">Monofolha</option>
-                                <option value="Outros">Outros</option>
-                            </select>
-                            <span asp-validation-for="TipoFachada" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="OrientacaoFachada" class="form-label">Orientação da fachada PR/POST</label>
-                            <select asp-for="OrientacaoFachada" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Norte/sul">Norte/sul</option>
-                                <option value="Este/oeste">Este/oeste</option>
-                                <option value="Todas">Todas</option>
-                            </select>
-                            <span asp-validation-for="OrientacaoFachada" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="CoberturaFachadaPrincipal" class="form-label">Cobertura da fachada principal</label>
-                            <select asp-for="CoberturaFachadaPrincipal" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Monocapa">Monocapa</option>
-                                <option value="Ladrilho">Ladrilho</option>
-                                <option value="Pedra">Pedra</option>
-                                <option value="Outros">Outros</option>
-                            </select>
-                            <span asp-validation-for="CoberturaFachadaPrincipal" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="CoberturaFachadaPosterior" class="form-label">Cobertura da fachada posterior</label>
-                            <select asp-for="CoberturaFachadaPosterior" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Fachada ventilada">Fachada ventilada</option>
-                                <option value="Reboco">Reboco</option>
-                                <option value="Outros">Outros</option>
-                            </select>
-                            <span asp-validation-for="CoberturaFachadaPosterior" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="TratamentoHidrofugacao" class="form-label">Tratamento de hidrofugação</label>
-                            <select asp-for="TratamentoHidrofugacao" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="TratamentoHidrofugacao" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <h5 class="mt-4 mb-3">Isolamento</h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label asp-for="IsolamentoCamara" class="form-label">Isolamento da câmara</label>
-                            <select asp-for="IsolamentoCamara" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Sem isolamento">Sem isolamento</option>
-                                <option value="Com isolamento">Com isolamento</option>
-                            </select>
-                            <span asp-validation-for="IsolamentoCamara" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="IsolamentoInterno" class="form-label">Isolamento interno</label>
-                            <select asp-for="IsolamentoInterno" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Sem isolamento">Sem isolamento</option>
-                                <option value="Com isolamento">Com isolamento</option>
-                            </select>
-                            <span asp-validation-for="IsolamentoInterno" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="TipoAquecimento" class="form-label">Tipo de aquecimento</label>
-                            <select asp-for="TipoAquecimento" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Acumuladores elétricos">Acumuladores elétricos</option>
-                                <option value="Gás natural">Gás natural</option>
-                                <option value="Lenha/Pellets">Lenha/Pellets</option>
-                                <option value="Nenhum">Nenhum</option>
-                            </select>
-                            <span asp-validation-for="TipoAquecimento" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <h5 class="mt-4 mb-3">Tipo de janela principal</h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label asp-for="TipoJanelaPrincipal" class="form-label">Tipo de janela</label>
-                            <select asp-for="TipoJanelaPrincipal" class="form-select" asp-items="Model.TiposJanelaDisponiveis">
-                                <option value="">Selecione</option>
-                            </select>
-                            <span asp-validation-for="TipoJanelaPrincipal" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="MaterialJanela" class="form-label">Material</label>
-                            <select asp-for="MaterialJanela" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Misturado">Misturado</option>
-                                <option value="Alumínio">Alumínio</option>
-                                <option value="PVC">PVC</option>
-                                <option value="Madeira">Madeira</option>
-                            </select>
-                            <span asp-validation-for="MaterialJanela" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="JanelasDuplas" class="form-label">Janelas duplas</label>
-                            <select asp-for="JanelasDuplas" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="JanelasDuplas" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="TipoVidro" class="form-label">Tipo de vidro</label>
-                            <select asp-for="TipoVidro" class="form-select">
-                                <option value="">Selecione</option>
-                                <option value="Vidro simples">Vidro simples</option>
-                                <option value="Vidro duplo">Vidro duplo</option>
-                                <option value="Vidro triplo">Vidro triplo</option>
-                            </select>
-                            <span asp-validation-for="TipoVidro" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="RPT" class="form-label">R.P.T.</label>
-                            <select asp-for="RPT" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="RPT" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="CaixasPersiana" class="form-label">Caixas de persiana</label>
-                            <select asp-for="CaixasPersiana" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="CaixasPersiana" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="NumeroUnidadesJanela" class="form-label">Nº unidades</label>
-                            <input type="number" asp-for="NumeroUnidadesJanela" class="form-control" />
-                            <span asp-validation-for="NumeroUnidadesJanela" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="mt-4 text-center">
-                        <button type="button" class="btn btn-outline-secondary">Adicionar tipo de janela</button>
+                    <hr class="my-5" />
+                    <h3 class="mb-4">Tipo de Janela Principal</h3>
+                    <div class="row g-4">
+                        <div class="col-md-4"><label asp-for="TipoJanelaPrincipal" class="form-label">Tipo</label><select asp-for="TipoJanelaPrincipal" class="form-select" asp-items="Model.TiposJanelaDisponiveis"><option value="">Selecione</option></select><span asp-validation-for="TipoJanelaPrincipal" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="MaterialJanela" class="form-label"></label><select asp-for="MaterialJanela" class="form-select"><option value="">Selecione</option><option value="Misturado">Misturado</option><option value="Alumínio">Alumínio</option><option value="PVC">PVC</option><option value="Madeira">Madeira</option></select><span asp-validation-for="MaterialJanela" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="TipoVidro" class="form-label"></label><select asp-for="TipoVidro" class="form-select"><option value="">Selecione</option><option value="Vidro simples">Vidro simples</option><option value="Vidro duplo">Vidro duplo</option><option value="Vidro triplo">Vidro triplo</option></select><span asp-validation-for="TipoVidro" class="text-danger small"></span></div>
+                        <!-- Convertido para form-switch -->
+                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" asp-for="JanelasDuplas"><label class="form-check-label" asp-for="JanelasDuplas">Janelas duplas?</label></div></div>
+                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" asp-for="RPT"><label class="form-check-label" asp-for="RPT">Possui R.P.T.?</label></div></div>
+                        <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch fs-5 w-100"><input class="form-check-input" type="checkbox" role="switch" asp-for="CaixasPersiana"><label class="form-check-label" asp-for="CaixasPersiana">Caixas de persiana?</label></div></div>
+                        <div class="col-md-3"><label asp-for="NumeroUnidadesJanela" class="form-label">Nº unidades</label><input type="number" asp-for="NumeroUnidadesJanela" class="form-control" /><span asp-validation-for="NumeroUnidadesJanela" class="text-danger small"></span></div>
                     </div>
                 </div>
 
-                <!-- Aba 2: Higrometria -->
-                <div class="tab-pane fade p-4" id="higrometria-pane" role="tabpanel" aria-labelledby="higrometria-tab">
-                    <h5 class="mb-3">Higrometria</h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label asp-for="HumidadeRelativaExterior" class="form-label">Humidade Relativa Exterior</label>
-                            <input type="number" step="0.1" asp-for="HumidadeRelativaExterior" class="form-control" />
-                            <span asp-validation-for="HumidadeRelativaExterior" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="TemperaturaExterior" class="form-label">Temperatura Exterior</label>
-                            <input type="number" step="0.1" asp-for="TemperaturaExterior" class="form-control" />
-                            <span asp-validation-for="TemperaturaExterior" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="HumidadeRelativaInterior" class="form-label">Humidade Relativa Interior</label>
-                            <input type="number" step="0.1" asp-for="HumidadeRelativaInterior" class="form-control" />
-                            <span asp-validation-for="HumidadeRelativaInterior" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="TemperaturaInterior" class="form-label">Temperatura Interior</label>
-                            <input type="number" step="0.1" asp-for="TemperaturaInterior" class="form-control" />
-                            <span asp-validation-for="TemperaturaInterior" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="TemperaturaParedesInternas" class="form-label">Temperatura Paredes Internas</label>
-                            <input type="number" step="0.1" asp-for="TemperaturaParedesInternas" class="form-control" />
-                            <span asp-validation-for="TemperaturaParedesInternas" class="text-danger"></span>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label asp-for="PontoDeOrvalho" class="form-label">Temperatura Ponto de Orvalho (ºC)</label>
-                            <input type="number" step="0.1" asp-for="PontoDeOrvalho" class="form-control" />
-                            <span asp-validation-for="PontoDeOrvalho" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="PontosFrios" class="form-label">Temperatura de Pontos Frios (ºC)</label>
-                            <input type="number" step="0.1" asp-for="PontosFrios" class="form-control" />
-                            <span asp-validation-for="PontosFrios" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="NivelCO2" class="form-label">Nível CO2</label>
-                            <input type="number" step="1" asp-for="NivelCO2" class="form-control" />
-                            <span asp-validation-for="NivelCO2" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="NivelTCOV" class="form-label">Nível TCOV</label>
-                            <input type="number" step="1" asp-for="NivelTCOV" class="form-control" />
-                            <span asp-validation-for="NivelTCOV" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="NivelHCHO" class="form-label">Nível HCHO</label>
-                            <input type="number" step="0.01" asp-for="NivelHCHO" class="form-control" />
-                            <span asp-validation-for="NivelHCHO" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="DataLoggerSensores" class="form-label">Data Logger Sensores</label>
-                            <input type="number" asp-for="DataLoggerSensores" class="form-control" />
-                            <span asp-validation-for="DataLoggerSensores" class="text-danger"></span>
-                        </div>
+                <!-- ====== ABA 2: HIGROMETRIA ====== -->
+                <div class="tab-pane fade p-4 p-lg-5" id="higrometria-pane" role="tabpanel">
+                    <h3 class="mb-4">Medições de Higrometria</h3>
+                    <div class="row g-4">
+                        <div class="col-md-4"><label asp-for="HumidadeRelativaExterior" class="form-label"></label><input type="text" asp-for="HumidadeRelativaExterior" class="form-control" /><span asp-validation-for="HumidadeRelativaExterior" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="TemperaturaExterior" class="form-label"></label><input type="text" asp-for="TemperaturaExterior" class="form-control" /><span asp-validation-for="TemperaturaExterior" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="HumidadeRelativaInterior" class="form-label"></label><input type="text" asp-for="HumidadeRelativaInterior" class="form-control" /><span asp-validation-for="HumidadeRelativaInterior" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="TemperaturaInterior" class="form-label"></label><input type="text" asp-for="TemperaturaInterior" class="form-control" /><span asp-validation-for="TemperaturaInterior" class="text-danger small"></span></div>
+                        <div class="col-md-4"><label asp-for="TemperaturaParedesInternas" class="form-label"></label><input type="text" asp-for="TemperaturaParedesInternas" class="form-control" /><span asp-validation-for="TemperaturaParedesInternas" class="text-danger small"></span></div>
+                    </div>
+                    
+                    <hr class="my-5" />
+                    <h3 class="mb-4">Análise de Condensação e Qualidade do Ar</h3>
+                     <div class="row g-4">
+                        <div class="col-md-3"><label asp-for="PontoDeOrvalho" class="form-label">Ponto de Orvalho (ºC)</label><input type="text" asp-for="PontoDeOrvalho" class="form-control" /><span asp-validation-for="PontoDeOrvalho" class="text-danger small"></span></div>
+                        <div class="col-md-3"><label asp-for="PontosFrios" class="form-label">Pontos Frios (ºC)</label><input type="text" asp-for="PontosFrios" class="form-control" /><span asp-validation-for="PontosFrios" class="text-danger small"></span></div>
+                        <div class="col-md-2"><label asp-for="NivelCO2" class="form-label">Nível CO2</label><input type="number" asp-for="NivelCO2" class="form-control" /><span asp-validation-for="NivelCO2" class="text-danger small"></span></div>
+                        <div class="col-md-2"><label asp-for="NivelTCOV" class="form-label">Nível TCOV</label><input type="number" asp-for="NivelTCOV" class="form-control" /><span asp-validation-for="NivelTCOV" class="text-danger small"></span></div>
+                        <div class="col-md-2"><label asp-for="NivelHCHO" class="form-label">Nível HCHO</label><input type="text" asp-for="NivelHCHO" class="form-control" /><span asp-validation-for="NivelHCHO" class="text-danger small"></span></div>
+                    </div>
+                </div>
+                
+                <!-- ====== ABA 3: SINTOMATOLOGIA ====== -->
+                <div class="tab-pane fade p-4 p-lg-5" id="sintomatologia-pane" role="tabpanel">
+                    <h3 class="mb-4">Sintomas Observados na Habitação</h3>
+                    <div class="row g-4">
+                        <!-- Convertido para form-switch para consistência visual -->
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="Fungos"><label class="form-check-label" asp-for="Fungos">Presença de fungos</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="Cheiros"><label class="form-check-label" asp-for="Cheiros">Presença de cheiros</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="MofoEmRoupasArmarios"><label class="form-check-label" asp-for="MofoEmRoupasArmarios">Mofo em roupas/armários</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="CondensacaoNasJanelas"><label class="form-check-label" asp-for="CondensacaoNasJanelas">Condensação nas janelas</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="ConsumoExcessivoAquecimento"><label class="form-check-label" asp-for="ConsumoExcessivoAquecimento">Consumo excessivo de aquecimento</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="Alergias"><label class="form-check-label" asp-for="Alergias">Alergias nos habitantes</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="ProblemasRespiratorios"><label class="form-check-label" asp-for="ProblemasRespiratorios">Problemas respiratórios</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="GasRadao"><label class="form-check-label" asp-for="GasRadao">Suspeita de Gás Radão</label></div></div>
+                        <div class="col-md-4"><div class="form-check form-switch fs-5"><input class="form-check-input" type="checkbox" role="switch" asp-for="EsporosEmSuperficies"><label class="form-check-label" asp-for="EsporosEmSuperficies">Esporos em superfícies</label></div></div>
                     </div>
                 </div>
 
-                <!-- Aba 3: Sintomatologia -->
-                <div class="tab-pane fade p-4" id="sintomatologia-pane" role="tabpanel" aria-labelledby="sintomatologia-tab">
-                    <h5 class="mb-3">Sintomatologia</h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label asp-for="Fungos" class="form-label">Fungos</label>
-                            <select asp-for="Fungos" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="Fungos" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="Cheiros" class="form-label">Cheiros</label>
-                            <select asp-for="Cheiros" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="Cheiros" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="MofoEmRoupasArmarios" class="form-label">Mofo em roupas/armários</label>
-                            <select asp-for="MofoEmRoupasArmarios" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="MofoEmRoupasArmarios" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="CondensacaoNasJanelas" class="form-label">Condensação nas janelas</label>
-                            <select asp-for="CondensacaoNasJanelas" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="CondensacaoNasJanelas" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="ConsumoExcessivoAquecimento" class="form-label">Consumo excessivo aquecimento</label>
-                            <select asp-for="ConsumoExcessivoAquecimento" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="ConsumoExcessivoAquecimento" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="Alergias" class="form-label">Alergias</label>
-                            <select asp-for="Alergias" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="Alergias" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="ProblemasRespiratorios" class="form-label">Problemas respiratórios</label>
-                            <select asp-for="ProblemasRespiratorios" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="ProblemasRespiratorios" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="GasRadao" class="form-label">Gás Radão</label>
-                            <select asp-for="GasRadao" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="GasRadao" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="EsporosEmSuperficies" class="form-label">Esporos em superfícies</label>
-                            <select asp-for="EsporosEmSuperficies" class="form-select">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                            <span asp-validation-for="EsporosEmSuperficies" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="mt-4 text-end">
-                        <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-2"></i>Guardar e continuar</button>
-                    </div>
-                </div>
+            </div>
+
+            <!-- RODAPÉ DO CARD COM O BOTÃO DE AÇÃO -->
+            <div class="card-footer text-end p-3">
+                <button type="submit" class="btn btn-primary btn-lg px-5">
+                    <i class="bi bi-save me-2"></i>Guardar e Continuar
+                </button>
             </div>
         </div>
     </form>

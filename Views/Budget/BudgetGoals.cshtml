@@ -1,123 +1,109 @@
 ﻿@model MSPremiumProject.ViewModels.ObjetivosViewModel
-
 @{
-    
-    Layout = "~/Views/Shared/_Layout.cshtml"; // O Layout irá controlar a sidebar
+    ViewData["Title"] = "Objetivos do Orçamento";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container-fluid mt-4">
+<div class="container-fluid">
     <form asp-action="Objetivos" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="PropostaId" />
         <input type="hidden" asp-for="QualidadeDoArId" />
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Objetivos do Orçamento</h1>
+        <!-- CABEÇALHO -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary-subtle">
+            <h1 class="mb-0">@ViewData["Title"]</h1>
+            <!-- Botão foi movido para o fundo do formulário -->
         </div>
 
+        <!-- ALERTAS DE FEEDBACK -->
         @if (TempData["MensagemSucesso"] != null)
         {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                @TempData["MensagemSucesso"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+            <div class="alert alert-success">@TempData["MensagemSucesso"]</div>
         }
         @if (TempData["MensagemErro"] != null)
         {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                @TempData["MensagemErro"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+            <div class="alert alert-danger">@TempData["MensagemErro"]</div>
         }
 
+        <!-- ERROS DE VALIDAÇÃO -->
+        <!-- Unificado num só bloco. Apenas será mostrado se houverem erros. -->
         <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+        <!-- O card já herda o estilo escuro do nosso site.css -->
+        <div class="card">
+            <div class="card-body p-4 p-lg-5">
+                <h3 class="card-title mb-4">Possíveis Tratamentos</h3>
 
-        <div class="card bg-white" style="border: 1px solid #dee2e6;">
-            <div class="card-body p-4">
-                <h5 class="mb-3">Possíveis tratamentos</h5>
-                <div class="row g-3">
+                <div class="row g-4">
+                    <!-- Cada checkbox agora tem um espaçamento maior (g-4) e um estilo melhorado -->
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="IsolamentoExternoSATE" id="IsolamentoExternoSATE">
-                            <label class="form-check-label" for="IsolamentoExternoSATE">
-                                Isolamento externo com S.A.T.E.
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="IsolamentoExternoSATE" id="IsolamentoExternoSATE">
+                            <label class="form-check-label" for="IsolamentoExternoSATE">Isolamento externo com S.A.T.E.</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="IsolamentoInteriorPladur" id="IsolamentoInteriorPladur">
-                            <label class="form-check-label" for="IsolamentoInteriorPladur">
-                                Isolamento interior com placas de gesso cartonado laminado (Pladur)
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="IsolamentoInteriorPladur" id="IsolamentoInteriorPladur">
+                            <label class="form-check-label" for="IsolamentoInteriorPladur">Isolamento interior com placas (Pladur)</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="InjeccaoCamaraArPoliuretano" id="InjeccaoCamaraArPoliuretano">
-                            <label class="form-check-label" for="InjeccaoCamaraArPoliuretano">
-                                Injeção de câmaras de ar de poliuretano
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="InjeccaoCamaraArPoliuretano" id="InjeccaoCamaraArPoliuretano">
+                            <label class="form-check-label" for="InjeccaoCamaraArPoliuretano">Injeção de câmaras de ar de poliuretano</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="TrituracaoCorticaTriturada" id="TrituracaoCorticaTriturada">
-                            <label class="form-check-label" for="TrituracaoCorticaTriturada">
-                                Trituração/moagem de cortiça triturada
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="TrituracaoCorticaTriturada" id="TrituracaoCorticaTriturada">
+                            <label class="form-check-label" for="TrituracaoCorticaTriturada">Trituração/moagem de cortiça triturada</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="AplicacaoTintaTermica" id="AplicacaoTintaTermica">
-                            <label class="form-check-label" for="AplicacaoTintaTermica">
-                                Aplicação de tinta térmica
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="AplicacaoTintaTermica" id="AplicacaoTintaTermica">
+                            <label class="form-check-label" for="AplicacaoTintaTermica">Aplicação de tinta térmica</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="ImpermeabilizacaoFachadas" id="ImpermeabilizacaoFachadas">
-                            <label class="form-check-label" for="ImpermeabilizacaoFachadas">
-                                Impermeabilização de fachadas
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="ImpermeabilizacaoFachadas" id="ImpermeabilizacaoFachadas">
+                            <label class="form-check-label" for="ImpermeabilizacaoFachadas">Impermeabilização de fachadas</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="TubagemParedesInfiltracao" id="TubagemParedesInfiltracao">
-                            <label class="form-check-label" for="TubagemParedesInfiltracao">
-                                Tubagem das paredes afetadas pela infiltração
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="TubagemParedesInfiltracao" id="TubagemParedesInfiltracao">
+                            <label class="form-check-label" for="TubagemParedesInfiltracao">Tubagem das paredes afetadas pela infiltração</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="InjeccaoParedesAccaoCapilar" id="InjeccaoParedesAccaoCapilar">
-                            <label class="form-check-label" for="InjeccaoParedesAccaoCapilar">
-                                Injeção de paredes afetadas pela acção capilar
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="InjeccaoParedesAccaoCapilar" id="InjeccaoParedesAccaoCapilar">
+                            <label class="form-check-label" for="InjeccaoParedesAccaoCapilar">Injeção de paredes afetadas pela acção capilar</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" asp-for="EvacuacaoHumidadeExcesso" id="EvacuacaoHumidadeExcesso">
-                            <label class="form-check-label" for="EvacuacaoHumidadeExcesso">
-                                Evacuação da humidade ambiente em excesso
-                            </label>
+                        <div class="form-check form-switch fs-5">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="EvacuacaoHumidadeExcesso" id="EvacuacaoHumidadeExcesso">
+                            <label class="form-check-label" for="EvacuacaoHumidadeExcesso">Evacuação da humidade ambiente em excesso</label>
                         </div>
                     </div>
                 </div>
-                <div class="mt-4 alert alert-success text-center" role="alert">
-                    De acordo com as medições de habitabilidade e higrometria propomos uma solução com 100% de garantia
+
+                <!-- Mensagem de Garantia -->
+                <div class="mt-5 alert alert-success text-center" role="alert">
+                    <i class="bi bi-patch-check-fill me-2"></i>De acordo com as medições de habitabilidade e higrometria propomos uma solução com 100% de garantia.
                 </div>
-                <div class="mt-4 text-end">
-                    <!-- ALTERADO: Tipo, cor e texto do botão -->
-                    <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-2"></i>Guardar dados</button>
-                </div>
+            </div>
+
+            <!-- Rodapé do Card com o Botão de Ação -->
+            <div class="card-footer text-end p-3">
+                <button type="submit" class="btn btn-primary btn-lg px-5">
+                    <i class="bi bi-save me-2"></i>Guardar e Continuar
+                </button>
             </div>
         </div>
     </form>

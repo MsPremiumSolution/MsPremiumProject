@@ -4,41 +4,37 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using MSPremiumProject.Data;
-using MSPremiumProject.Services;
+using MSPremiumProject.Data; // Verifique se este é o namespace correto para a sua AppDbContext
+using MSPremiumProject.Services; // Verifique se este é o namespace correto para o seu IEmailSender
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuração de Logging para todos os níveis, incluindo Trace/Debug
-builder.Logging.ClearProviders(); // Limpa os providers padrão
-builder.Logging.AddConsole(); // Adiciona console logger
-builder.Logging.SetMinimumLevel(LogLevel.Trace); // Configura o nível mínimo para TRACE
+// Configuração de Logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information); // Nível 'Information' é suficiente para produção
 
 // --- CONFIGURAÇÃO DO AppDbContext (Para os seus dados de negócio) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("A connection string 'DefaultConnection' não foi encontrada.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    )
-    .LogTo(Console.WriteLine, LogLevel.Information) // Já tem isto, mas o nível acima garante mais detalhes
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
 // --- CONFIGURAÇÃO DO DataProtectionKeysContext (Para as chaves de segurança) ---
 builder.Services.AddDbContext<DataProtectionKeysContext>(options =>
-    options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString)
-    )
-    .LogTo(Console.WriteLine, LogLevel.Information) // Adicionar log para este contexto também
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
 // --- CONFIGURAÇÃO DO DATA PROTECTION ---
 builder.Services.AddDataProtection()
     .PersistKeysToDbContext<DataProtectionKeysContext>();
 
-// Resto dos teus serviços
+// Adicionar controladores e vistas
 builder.Services.AddControllersWithViews();
 
 // --- CONFIGURAÇÃO DA SESSÃO ---
@@ -50,7 +46,7 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// --- CONFIGURAÇÃO DA AUTENTICAÇÃO ---
+// --- CONFIGURAÇÃO DA AUTENTICAÇÃO (COM MAIS SEGURANÇA) ---
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -59,46 +55,69 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.SlidingExpiration = true;
+
+        // ADICIONADO: O cookie só é enviado em pedidos HTTPS. Essencial em produção.
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+
+        // ADICIONADO: Política mais restritiva para proteção contra CSRF.
+        options.Cookie.SameSite = SameSiteMode.Strict;
     });
 
+// Adicionar outros serviços
 builder.Services.AddTransient<IEmailSender, EmailSender>();
-// builder.Services.AddLogging(); // Já configurado acima com ClearProviders e AddConsole
 
 // =========================================================================
 // Construção da Aplicação
 var app = builder.Build();
 // =========================================================================
 
-// --- APLICAR MIGRATIONS E SEED DATA NO ARRANQUE ---
+// --- APLICAR MIGRAÇÕES E SEED DATA NO ARRANQUE (A FORMA SEGURA) ---
 using (var scope = app.Services.CreateScope())
 {
-    var serviceProvider = scope.ServiceProvider;
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
     try
     {
-        app.Logger.LogInformation("Attempting to apply database migrations and seeding...");
+        logger.LogInformation("A iniciar processo de migração da base de dados...");
 
-        var appDbContext = serviceProvider.GetRequiredService<AppDbContext>();
-        appDbContext.Database.Migrate();
-        app.Logger.LogInformation("AppDbContext migrations applied.");
+        // Migrar o contexto principal da aplicação
+        var appDbContext = services.GetRequiredService<AppDbContext>();
+        if (appDbContext.Database.GetPendingMigrations().Any())
+        {
+            logger.LogInformation("Migrações pendentes encontradas para AppDbContext. A aplicar...");
+            await appDbContext.Database.MigrateAsync();
+            logger.LogInformation("Migrações do AppDbContext aplicadas com sucesso.");
+        }
+        else
+        {
+            logger.LogInformation("AppDbContext já está atualizado. Nenhuma migração a aplicar.");
+        }
 
+        // Popular dados iniciais (se necessário)
         await SeedData.Initialize(appDbContext);
-        app.Logger.LogInformation("SeedData initialization completed.");
+        logger.LogInformation("SeedData verificado/inicializado.");
 
-        var dpContext = serviceProvider.GetRequiredService<DataProtectionKeysContext>();
-        dpContext.Database.Migrate();
-        app.Logger.LogInformation("DataProtectionKeysContext migrations applied.");
 
-        app.Logger.LogInformation("Database migrations and seeding applied successfully.");
+        // Migrar o contexto das chaves de segurança
+        var dpContext = services.GetRequiredService<DataProtectionKeysContext>();
+        if (dpContext.Database.GetPendingMigrations().Any())
+        {
+            logger.LogInformation("Migrações pendentes encontradas para DataProtectionKeysContext. A aplicar...");
+            await dpContext.Database.MigrateAsync();
+            logger.LogInformation("Migrações do DataProtectionKeysContext aplicadas com sucesso.");
+        }
+        else
+        {
+            logger.LogInformation("DataProtectionKeysContext já está atualizado.");
+        }
     }
     catch (Exception ex)
     {
-        // MUITO IMPORTANTE: Garante que qualquer erro no arranque da BD é fatal
-        app.Logger.LogCritical(ex, "FATAL ERROR: Application failed to start due to database or migration issues.");
-        throw; // Force o crash para que o Render.com mostre o erro nos logs
+        logger.LogCritical(ex, "ERRO FATAL: Falha durante a migração ou seeding da base de dados. A aplicação vai parar.");
     }
 }
-// --- FIM DA APLICAÇÃO DE MIGRATIONS E SEED DATA NO ARRANQUE ---
-
+// --- FIM DA SECÇÃO DE MIGRAÇÃO ---
 
 // Pipeline de Pedidos HTTP
 if (!app.Environment.IsDevelopment())
@@ -118,6 +137,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Account}/{action=Login}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

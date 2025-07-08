@@ -1,168 +1,329 @@
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: white; /* Fundo branco por defeito */
+/* ==========================================================================
+   DESIGN SYSTEM - PREMIUM SOLUTIONS
+   ========================================================================== */
+
+:root {
+    /* Paleta de Cores */
+    --premium-black: #121212;
+    --premium-dark-gray: #1c1c1c;
+    --premium-medium-gray: #2a2a2a;
+    --premium-border-gray: #3a3a3a;
+    --premium-text-light: #e0e0e0;
+    --premium-text-muted: #888888;
+    --premium-gold: #c0a575; /* Um dourado mais subtil e elegante */
+    --premium-gold-hover: #d4bc86;
+    --premium-white: #ffffff;
+    --color-success: #198754;
+    --color-danger: #dc3545;
+    /* Tipografia */
+    --font-headings: 'Playfair Display', serif;
+    --font-body: 'Montserrat', sans-serif;
 }
+
+/* ==========================================================================
+   ESTILOS GLOBAIS E RESET
+   ========================================================================== */
+
+html {
+    font-size: 16px;
+}
+
+body {
+    background-color: var(--premium-black);
+    color: var(--premium-text-light);
+    font-family: var(--font-body);
+    display: flex; /* A CHAVE! Transforma o body num container flexível. */
+    min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headings);
+    color: var(--premium-white);
+    font-weight: 600;
+}
+
+a {
+    color: var(--premium-gold);
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+}
+
+    a:hover {
+        color: var(--premium-gold-hover);
+    }
+
+/* ==========================================================================
+   LAYOUT PRINCIPAL (SIDEBAR + CONTEÚDO)
+   ========================================================================== */
 
 .sidebar {
-    height: 100vh;
-    width: 250px;
-    background-color: #000; /* Sidebar preta */
-    color: white;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-    overflow-y: auto;
-    transition: transform 0.3s ease-out;
-    transform: translateX(0);
-}
-
-    .sidebar .logo {
-        padding: 20px;
-        text-align: center;
-    }
-
-    .sidebar .nav-link {
-        color: #adb5bd; /* Cor cinza-claro para links normais */
-        padding: 12px 20px;
-        display: block;
-        text-decoration: none;
-        transition: all 0.2s ease-in-out;
-    }
-        /* Estilo para link ATIVO (texto branco e mais forte) */
-        .sidebar .nav-link.active {
-            background-color: #222;
-            color: #fff; /* Garante que o texto fica branco */
-            font-weight: bold;
-        }
-
-        .sidebar .nav-link:hover {
-            background-color: #222;
-            color: #fff; /* Texto branco no hover */
-        }
-
-.topbar {
-    height: 60px;
-    background-color: #000; /* Topbar preta */
-    color: white;
-    padding: 0 20px;
-    margin-left: 250px; /* Para ecrãs grandes */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 999;
-    transition: margin-left 0.3s ease-out;
-}
-
-.menu-toggle {
-    font-size: 24px;
-    color: white;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 10px 15px;
-}
-
-.content {
-    margin-left: 250px; /* Para ecrãs grandes */
-    padding-top: 60px; /* Espaço para a topbar QUANDO ELA EXISTE */
-    padding-left: 30px;
-    padding-right: 30px;
-    padding-bottom: 30px;
-    min-height: 100vh;
-    transition: margin-left 0.3s ease-out;
-    box-sizing: border-box;
+    width: 260px;
+    flex-shrink: 0; /* Impede a sidebar de encolher */
+    background-color: var(--premium-dark-gray);
+    border-right: 1px solid var(--premium-border-gray);
     display: flex;
     flex-direction: column;
 }
 
-    .content main {
-        flex-grow: 1; /* Faz o conteúdo principal esticar */
-    }
-
-
-/* Regra para quando o utilizador NÃO está autenticado */
-.not-authenticated-layout .content {
-    /* Na página de login, o padding-top pode ser menor porque não há topbar */
-    padding-top: 30px;
+.logo-container {
+    padding: 2rem 1.5rem;
+    text-align: center;
 }
 
-
-/* Estilos para ecrãs menores (ex: tablets e telemóveis) */
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-250px);
-    }
-
-        .sidebar.active {
-            transform: translateX(0);
-        }
-
-    .topbar {
-        margin-left: 0;
-    }
-
-    .menu-toggle {
-        display: block; /* Mostra o botão de menu em ecrãs pequenos */
-    }
-
-    .content {
-        margin-left: 0;
-    }
+.logo-img {
+    max-width: 80%;
+    height: auto;
 }
 
-/* Estilos para ecrãs maiores - garante que o menu-toggle está escondido */
-@media (min-width: 769px) {
-    .menu-toggle {
-        display: none; /* Esconde o botão de menu em ecrãs grandes */
-    }
+.main-content-wrapper {
+    flex-grow: 1; /* Faz esta div ocupar todo o espaço restante */
+    padding: 2.5rem;
+    overflow-y: auto; /* Adiciona scroll se o conteúdo for maior que a tela */
+    display: flex;
+    flex-direction: column;
 }
 
+    .main-content-wrapper > main {
+        flex-grow: 1; /* Garante que a tag <main> ocupa o espaço vertical */
+        display: flex;
+        flex-direction: column;
+    }
 
-/* ======================================= */
-/* ESTILOS PARA O SUBMENU DE QUALIDADE DO AR */
-/* ======================================= */
+/* ==========================================================================
+   COMPONENTES DA SIDEBAR
+   ========================================================================== */
 
+.sidebar .nav {
+    overflow-y: auto; /* Adiciona scroll à navegação se houver muitos itens */
+}
+
+.sidebar .nav-link {
+    color: var(--premium-text-light);
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-weight: 500;
+    border-left: 4px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+    .sidebar .nav-link i {
+        font-size: 1.1rem;
+        width: 20px; /* Alinha os ícones */
+        text-align: center;
+    }
+
+    .sidebar .nav-link:hover {
+        background-color: var(--premium-medium-gray);
+        color: var(--premium-white);
+    }
+
+    .sidebar .nav-link.active,
+    .sidebar .nav-link.has-active-submenu {
+        background-color: rgba(192, 165, 117, 0.1);
+        color: var(--premium-gold);
+        border-left-color: var(--premium-gold);
+    }
+
+/* Submenu */
 .submenu {
-    padding-left: 20px; /* Indentação para o submenu */
-    background-color: #0d0d0d; /* Fundo ligeiramente diferente para o submenu */
-    padding-bottom: 10px;
+    background-color: rgba(0,0,0,0.2);
+    padding: 0.5rem 0 0.5rem 1rem;
 }
 
-    .submenu .nav-link {
-        font-size: 0.9rem; /* Texto um pouco menor no submenu */
-        padding: 8px 20px;
+.submenu-title {
+    font-family: var(--font-body);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: var(--premium-text-muted);
+}
+
+.submenu .nav-link {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem 0.5rem 2.5rem; /* Indentação maior */
+    border-left: none;
+    position: relative;
+}
+
+    .submenu .nav-link.active {
+        background: none;
+        color: var(--premium-gold-hover);
+        font-weight: bold;
     }
 
-/* Estilo base para a bolinha do submenu */
 .submenu-item-circle {
     display: inline-block;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     margin-right: 12px;
     vertical-align: middle;
     transition: all 0.2s ease-in-out;
-    border: 2px solid #6c757d; /* Cor cinza para a borda padrão */
-    background-color: transparent;
+    border: 2px solid var(--premium-text-muted);
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
-    /* Estilo para a bolinha de um passo CONCLUÍDO (mas não ativo) */
     .submenu-item-circle.completed {
-        background-color: #28a745; /* Verde para concluído */
-        border-color: #28a745;
+        background-color: var(--color-success);
+        border-color: var(--color-success);
     }
 
-    /* Estilo para a bolinha do passo ATIVO */
-    /* Este estilo vai sobrepor o .completed se um passo estiver concluído e for o ativo */
     .submenu-item-circle.active-step {
-        background-color: #D4AF37; /* Cor dourada/amarela, como no exemplo */
-        border-color: #D4AF37;
-        transform: scale(1.1); /* Efeito opcional para destacar ainda mais */
-        box-shadow: 0 0 8px rgba(212, 175, 55, 0.7); /* Brilho opcional */
+        background-color: var(--premium-gold);
+        border-color: var(--premium-gold);
+        transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 0 8px rgba(192, 165, 117, 0.5);
     }
+
+.user-info {
+    background-color: #000;
+}
+
+
+/* ==========================================================================
+   COMPONENTES BOOTSTRAP PERSONALIZADOS
+   ========================================================================== */
+
+/* --- Botões --- */
+.btn {
+    font-family: var(--font-body);
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 10px 24px;
+    transition: all 0.2s ease-in-out;
+    border-width: 2px;
+}
+
+.btn-primary {
+    background-color: var(--premium-gold);
+    border-color: var(--premium-gold);
+    color: var(--premium-black);
+}
+
+    .btn-primary:hover {
+        background-color: var(--premium-gold-hover);
+        border-color: var(--premium-gold-hover);
+        color: var(--premium-black);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+.btn-danger {
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.btn-outline-danger {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+    .btn-outline-danger:hover {
+        color: var(--premium-white);
+        background-color: var(--color-danger);
+        border-color: var(--color-danger);
+    }
+
+/* --- Formulários --- */
+.form-control, .form-select {
+    background-color: var(--premium-medium-gray);
+    border: 1px solid var(--premium-border-gray);
+    color: var(--premium-text-light);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+}
+
+    .form-control:focus, .form-select:focus {
+        background-color: var(--premium-medium-gray);
+        color: var(--premium-white);
+        border-color: var(--premium-gold);
+        box-shadow: 0 0 0 0.25rem rgba(192, 165, 117, 0.25);
+    }
+
+    .form-control::placeholder {
+        color: var(--premium-text-muted);
+    }
+
+label.form-label, .form-check-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.form-floating > label {
+    color: var(--premium-text-muted);
+}
+
+
+/* --- Cards --- */
+.card {
+    background-color: var(--premium-dark-gray);
+    border: 1px solid var(--premium-border-gray);
+    border-radius: 8px;
+}
+
+.card-header {
+    background-color: var(--premium-medium-gray);
+    border-bottom: 1px solid var(--premium-border-gray);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* --- Tabelas --- */
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: var(--premium-medium-gray);
+    --bs-table-color: var(--premium-text-light);
+    --bs-table-border-color: var(--premium-border-gray);
+    --bs-table-hover-bg: #3a3a3a;
+    vertical-align: middle;
+}
+
+    .table thead th {
+        color: var(--premium-white);
+        font-family: var(--font-body);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom-width: 2px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+/* --- Modals --- */
+.modal-content {
+    background-color: var(--premium-dark-gray);
+    border: 1px solid var(--premium-border-gray);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--premium-border-gray);
+}
+
+.modal-footer {
+    border-top: 1px solid var(--premium-border-gray);
+}
+
+/* --- Alertas --- */
+.alert {
+    border-width: 0;
+    border-left-width: 4px;
+    border-radius: 4px;
+}
+
+.alert-success {
+    border-left-color: #198754;
+}
+
+.alert-danger {
+    border-left-color: #dc3545;
+}
+
+.alert-warning {
+    border-left-color: #ffc107;
+}
